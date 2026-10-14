@@ -1,0 +1,56 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+  html,body{margin:0;padding:0;background:#fff}
+  iframe{display:block;border:0}
+</style></head><body>
+<iframe id="v"></iframe>
+<script>
+  /**
+   * Capture d'un écran réel de la plateforme.
+   *
+   *   ?u=<chemin>    la page à montrer
+   *   ?l=<px>        largeur de rendu — 1280 pour le bureau, 540 pour le mobile.
+   *                  SANS ce paramètre on capture la mise en page bureau, ce qui
+   *                  donne un film vertical où tout est tassé sur un côté.
+   *   ?h=<px>        hauteur de rendu (pleine page)
+   *   ?remplir=1     pré-remplit le formulaire de demande
+   *   ?sansFixe=1    retire les barres `position: fixed` du corps de page :
+   *                  elles collent au bas de l'ÉCRAN, pas du document, et une
+   *                  capture pleine hauteur les plaquerait tout en bas.
+   */
+  const p = new URLSearchParams(location.search);
+  const f = document.getElementById("v");
+  f.style.width = (p.get("l") || 1280) + "px";
+  f.style.height = (p.get("h") || 900) + "px";
+  f.src = p.get("u");
+
+  f.onload = () => {
+    const d = f.contentDocument;
+    const style = d.createElement("style");
+    const sansFixe = p.get("sansFixe")
+      ? "[class*='fixed inset-x-0 bottom'],nav.fixed,div.fixed{display:none!important}"
+      : "";
+    style.textContent =
+      `nextjs-portal,[data-nextjs-toast],#__next-build-watcher{display:none!important}
+       *{scrollbar-width:none!important}::-webkit-scrollbar{display:none!important}` + sansFixe;
+    d.head.appendChild(style);
+
+    // React réinitialise les champs contrôlés en s'hydratant : écrire avant
+    // qu'il ait repris la main ne laisse aucune trace. On attend.
+    const remplir = () => {
+      const poser = (el, v) => {
+        const s = Object.getOwnPropertyDescriptor(
+          f.contentWindow.HTMLInputElement.prototype, "value").set;
+        s.call(el, v); el.dispatchEvent(new Event("input", { bubbles: true }));
+      };
+      const par = (sel) => d.querySelector(`form ${sel}`);
+      const paires = [
+        [par('input[autocomplete="name"], input[name="nom"]'), "Awa Ndiaye"],
+        [par('input[type="email"]'), "awa.ndiaye@example.sn"],
+        [par('input[type="tel"]'), "77 123 45 67"],
+      ];
+      for (const [el, v] of paires) if (el) poser(el, v);
+    };
+    if (p.get("remplir")) setTimeout(remplir, 3000);
+    setTimeout(() => { document.title = "PRET"; }, 5000);
+  };
+</script></body></html>

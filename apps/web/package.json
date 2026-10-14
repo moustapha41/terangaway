@@ -1,0 +1,35 @@
+{
+  "name": "@teranga/web",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev -p 3000",
+    "build": "next build",
+    "start": "next start -p 3000",
+    "lint": "next lint",
+    "typecheck": "tsc --noEmit",
+    "i18n:verifier": "node scripts/verifier-i18n.mjs",
+    "i18n:cles": "node scripts/verifier-cles-appelees.mjs",
+    "contraste": "node scripts/verifier-contraste.mjs",
+    "couture": "node scripts/verifier-couture.mjs"
+  },
+  "dependencies": {
+    "@fontsource-variable/inter": "^5.3.0",
+    "@teranga/contracts": "workspace:*",
+    "@teranga/tokens": "workspace:*",
+    "@teranga/ui": "workspace:*",
+    "lucide-react": "0.468.0",
+    "next": "15.5.27",
+    "react": "19.1.9",
+    "react-dom": "19.1.9",
+    "@teranga/fixtures": "workspace:*"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "4.1.13",
+    "@types/node": "22.10.2",
+    "@types/react": "19.0.2",
+    "@types/react-dom": "19.0.2",
+    "tailwindcss": "4.1.13",
+    "typescript": "5.6.2"
+  }
+}

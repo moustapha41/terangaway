@@ -1,0 +1,40 @@
+@import "tailwindcss";
+
+/* ───────────────────────────────────────────────────────────────────────────
+   Les jetons viennent de @teranga/tokens, généré depuis tokens.json.
+   Aucune couleur, taille ni marge ne s'écrit en dur ici ni dans un écran
+   (dossier de conception §C.1). Pour les modifier : packages/tokens/src/tokens.json
+   puis `pnpm -F @teranga/tokens generer`.
+   ─────────────────────────────────────────────────────────────────────────── */
+@import "@teranga/tokens/theme.css";
+
+/* Tailwind n'explore pas node_modules : sans ça, les classes de @teranga/ui
+   (un lien symbolique de l'atelier) ne produiraient aucune utilitaire. */
+@source "../../../../packages/ui/src";
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  background: var(--color-surface);
+  color: var(--color-nuit);
+  font-feature-settings: "cv11", "ss01";
+}
+
+/* Chiffres à largeur fixe pour les prix et les dates (dossier de conception §A.5) */
+.chiffres-tabulaires {
+  font-variant-numeric: tabular-nums;
+}
+
+/* §C.1 : les changements d'état sont désactivés si le téléphone le demande */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

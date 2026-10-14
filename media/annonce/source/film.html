@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><title>Teranga Way — annonce</title>
+<style>
+  :root { --primaire:#001D35; --jaune:#F5BB45; --encre:#17212B; }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{width:1280px;height:720px;overflow:hidden;background:#000}
+  body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+       -webkit-font-smoothing:antialiased}
+  #scene{position:relative;width:1280px;height:720px;overflow:hidden;background:var(--primaire)}
+
+  /* Chaque étape est une capture réelle de la plateforme, qu'on fait défiler. */
+  .etape{position:absolute;inset:0;overflow:hidden;opacity:0}
+  .etape img{position:absolute;left:0;top:0;width:1280px;display:block}
+
+  /* Le curseur : il va se poser sur le vrai bouton, puis on « clique ». */
+  #curseur{position:absolute;width:26px;height:26px;opacity:0;pointer-events:none;
+    filter:drop-shadow(0 2px 4px rgba(0,0,0,.4));z-index:20}
+  #onde{position:absolute;width:62px;height:62px;border-radius:50%;
+    border:2.5px solid var(--jaune);opacity:0;z-index:19;pointer-events:none}
+
+
+  /* Cartons d'ouverture et de fin. */
+  .carton{position:absolute;inset:0;background:var(--primaire);display:grid;
+    place-content:center;justify-items:center;gap:20px;opacity:0;z-index:30}
+  .marque img{display:block;height:92px;width:auto}
+  .sous{font-size:22px;color:rgba(255,255,255,.84);text-align:center;line-height:1.45}
+  .filet{height:2px;background:var(--jaune);border-radius:2px;width:0}
+  .url{font-size:25px;color:var(--jaune);font-weight:600;letter-spacing:.01em}
+</style></head><body>
+<div id="scene">
+  <section class="etape" id="e-accueil"><img src="ecrans/accueil.png" alt=""></section>
+  <section class="etape" id="e-resultats"><img src="ecrans/resultats.png" alt=""></section>
+  <section class="etape" id="e-fiche"><img src="ecrans/fiche.png" alt=""></section>
+  <section class="etape" id="e-demande"><img src="ecrans/demande.png" alt=""></section>
+  <section class="etape" id="e-confirme"><img src="ecrans/confirme.png" alt=""></section>
+
+  <div id="onde"></div>
+  <svg id="curseur" viewBox="0 0 24 24"><path d="M5 2l14 10.5-6.2.7 3.5 6.6-2.9 1.5-3.4-6.6L5 19z"
+    fill="#fff" stroke="#17212B" stroke-width="1.2" stroke-linejoin="round"/></svg>
+
+  <section class="carton" id="ouverture">
+    <div class="marque"><img src="logo-complet-clair.png" alt="Teranga Way"></div>
+    <div class="filet" id="filet"></div>
+    <p class="sous" id="o-sous">Logements et transports vérifiés<br>pour les JOJ Dakar 2026</p>
+  </section>
+
+  <section class="carton" id="fin">
+    <div class="marque" id="f-marque"><img src="logo-complet-clair.png" alt="Teranga Way"></div>
+    <p class="sous" id="f-sous">Réservez sans payer en ligne.<br>Réponse sous deux heures.</p>
+    <p class="url" id="f-url">terangaway.sn</p>
+  </section>
+</div>
+<script src="film.js"></script></body></html>

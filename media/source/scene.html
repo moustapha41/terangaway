@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Teranga Way — film de démonstration</title>
+<style>
+  /* Jetons repris de packages/tokens : le film et le produit ne doivent pas
+     diverger sur une seule couleur. */
+  :root {
+    --primaire: #001D35; --encre: #17212B; --encre-douce: #5B6676;
+    --surface: #FFFFFF; --page: #F7F8FA; --contour: #D9DEE5;
+    --jaune: #F5BB45; --succes: #087443; --teinte-bleu: #E8EEF5;
+    --teinte-vert: #E6F4EC;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 1280px; height: 720px; overflow: hidden; }
+  body {
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    background: var(--primaire); color: var(--encre);
+    -webkit-font-smoothing: antialiased;
+  }
+  #scene { position: relative; width: 1280px; height: 720px; overflow: hidden; }
+  .plan { position: absolute; inset: 0; opacity: 0; }
+  .tab { font-variant-numeric: tabular-nums; }
+
+  /* ---------- 1. ouverture ---------- */
+  #ouverture { display: grid; place-content: center; justify-items: center; gap: 22px;
+    background: radial-gradient(1100px 620px at 50% 44%, #073C55 0%, #001D35 68%); }
+  .marque { display: flex; align-items: center; gap: 18px; }
+  .sceau { width: 74px; height: 74px; border-radius: 50%; border: 2.5px solid var(--jaune);
+    display: grid; place-content: center; }
+  .sceau svg { width: 38px; height: 38px; }
+  .nom { font-size: 52px; font-weight: 700; letter-spacing: -0.025em; color: #fff; }
+  .accroche { font-size: 23px; color: rgba(255,255,255,.82); text-align: center; max-width: 30ch; line-height: 1.45; }
+  .filet { height: 2px; background: var(--jaune); border-radius: 2px; }
+
+  /* ---------- plans produit ---------- */
+  .fondpage { position: absolute; inset: 0; background: var(--page); }
+  /* Un élément positionné se peint au-dessus de ses frères qui ne le sont pas :
+     sans ceci, .fondpage recouvre le contenu du plan. */
+  .plan > *:not(.fondpage):not(.fin-img):not(.voile) { position: relative; }
+  .cadre { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+    width: 1096px; background: var(--surface); border-radius: 18px;
+    box-shadow: 0 34px 80px -28px rgba(2,20,38,.42); overflow: hidden; }
+  .barre { height: 46px; background: var(--primaire); display: flex; align-items: center;
+    padding: 0 18px; gap: 9px; }
+  .pastille { width: 10px; height: 10px; border-radius: 50%; background: rgba(255,255,255,.26); }
+  .barre .t { margin-left: 12px; color: rgba(255,255,255,.7); font-size: 13px; }
+  .corps { padding: 30px 34px 34px; }
+
+  .titreplan { font-size: 30px; font-weight: 700; letter-spacing: -0.02em; }
+  .sous { margin-top: 7px; font-size: 16px; color: var(--encre-douce); }
+
+  /* champs de recherche */
+  .champs { display: grid; grid-template-columns: 1.3fr 1.5fr 1fr auto; gap: 12px; margin-top: 22px; }
+  .champ { border: 1px solid var(--contour); border-radius: 12px; padding: 11px 14px; min-height: 62px; background: #fff; }
+  .champ .et { font-size: 12px; color: var(--encre-douce); }
+  .champ .va { margin-top: 4px; font-size: 17px; font-weight: 600; }
+  .curseur { display: inline-block; width: 1.5px; height: 17px; background: var(--primaire);
+    vertical-align: -3px; margin-left: 1px; }
+  .cta { background: var(--primaire); color: #fff; border-radius: 12px; min-height: 62px;
+    display: grid; place-content: center; padding: 0 26px; font-size: 16px; font-weight: 600; }
+
+  /* cartes de résultats */
+  .grille { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 22px; }
+  .carte { border: 1px solid var(--contour); border-radius: 14px; overflow: hidden; background: #fff; }
+  .carte .ph { height: 146px; background: var(--teinte-bleu) center/cover; }
+  .carte .bas { padding: 12px 13px 14px; }
+  .badge { display: inline-flex; align-items: center; gap: 5px; background: var(--teinte-bleu);
+    color: var(--primaire); border-radius: 999px; padding: 3px 9px; font-size: 11.5px; font-weight: 600; }
+  .carte h3 { font-size: 16.5px; font-weight: 700; margin-top: 8px; }
+  .carte .q { font-size: 13px; color: var(--encre-douce); margin-top: 2px; }
+  .carte .px { margin-top: 9px; font-size: 17px; font-weight: 700; }
+  .carte .px span { font-size: 12.5px; font-weight: 500; color: var(--encre-douce); }
+
+  /* fiche */
+  .fiche { display: grid; grid-template-columns: 1.25fr 1fr; gap: 24px; margin-top: 18px; }
+  .fiche .ph { height: 292px; border-radius: 13px; background: var(--teinte-bleu) center/cover; }
+  .ligne { display: flex; justify-content: space-between; padding: 11px 0; font-size: 15.5px;
+    border-bottom: 1px solid var(--contour); }
+  .ligne b { font-weight: 600; }
+  .total { display: flex; justify-content: space-between; padding-top: 13px; font-size: 19px; font-weight: 700; }
+  .note { margin-top: 13px; background: var(--teinte-vert); color: var(--succes);
+    border-radius: 11px; padding: 10px 13px; font-size: 13.5px; font-weight: 600;
+    display: flex; align-items: center; gap: 8px; }
+
+  /* confirmation */
+  #confirmation { display: grid; place-content: center; justify-items: center; gap: 16px; }
+  .rond { width: 112px; height: 112px; border-radius: 50%; background: var(--teinte-vert); display: grid; place-content: center; }
+  .rond svg { width: 60px; height: 60px; }
+  .coche { fill: none; stroke: var(--succes); stroke-width: 7; stroke-linecap: round; stroke-linejoin: round; }
+
+  /* fin */
+  #fin { display: grid; place-content: center; justify-items: center; gap: 20px; }
+  .fin-img { position: absolute; inset: 0; background: center/cover; }
+  .voile { position: absolute; inset: 0; background: rgba(0,29,53,.78); }
+</style>
+</head>
+<body>
+<div id="scene">
+
+  <section class="plan" id="ouverture">
+    <div class="marque">
+      <span class="sceau">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#F5BB45" stroke-width="1.5"
+             stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/><path d="M10 21v-6h4v6"/>
+        </svg>
+      </span>
+      <span class="nom">Teranga Way</span>
+    </div>
+    <div class="filet" id="filet"></div>
+    <p class="accroche" id="accroche">Logements et transports vérifiés<br>pour les JOJ Dakar 2026</p>
+  </section>
+
+  <section class="plan" id="recherche">
+    <div class="fondpage"></div>
+    <div class="cadre">
+      <div class="barre"><i class="pastille"></i><i class="pastille"></i><i class="pastille"></i>
+        <span class="t">terangaway.sn</span></div>
+      <div class="corps">
+        <p class="titreplan">Où dormez-vous à Dakar ?</p>
+        <p class="sous">Entrez vos dates, nous cherchons parmi les offres vérifiées.</p>
+        <div class="champs">
+          <div class="champ"><div class="et">Destination</div><div class="va" id="f-ville"></div></div>
+          <div class="champ"><div class="et">Dates</div><div class="va" id="f-dates"></div></div>
+          <div class="champ"><div class="et">Voyageurs</div><div class="va" id="f-pers"></div></div>
+          <div class="cta" id="f-cta">Rechercher</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="plan" id="resultats">
+    <div class="fondpage"></div>
+    <div class="cadre">
+      <div class="barre"><i class="pastille"></i><i class="pastille"></i><i class="pastille"></i>
+        <span class="t">terangaway.sn/logements</span></div>
+      <div class="corps">
+        <p class="titreplan" id="r-titre">8 logements vérifiés</p>
+        <p class="sous">Du 25 octobre au 1<sup>er</sup> novembre · 2 voyageurs</p>
+        <div class="grille" id="r-grille"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="plan" id="fichep">
+    <div class="fondpage"></div>
+    <div class="cadre">
+      <div class="barre"><i class="pastille"></i><i class="pastille"></i><i class="pastille"></i>
+        <span class="t">terangaway.sn/logements/villa-piscine-ngor</span></div>
+      <div class="corps">
+        <span class="badge">✓ Vérifié le 3 oct. par l'équipe</span>
+        <p class="titreplan" style="margin-top:9px">Villa avec piscine, Ngor</p>
+        <p class="sous">Villa · 6 voyageurs · 4,7 (18 avis)</p>
+        <div class="fiche">
+          <div class="ph" id="fiche-photo"></div>
+          <div>
+            <div class="ligne"><span>7 nuits × 150 000 FCFA</span><b class="tab">1 050 000 FCFA</b></div>
+            <div class="ligne"><span>Ménage</span><b class="tab">25 000 FCFA</b></div>
+            <div class="total"><span>Total</span><b class="tab">1 075 000 FCFA</b></div>
+            <div class="note">🔒 Aucun paiement en ligne · vous payez sur place</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="plan" id="confirmation">
+    <div class="fondpage"></div>
+    <span class="rond">
+      <svg viewBox="0 0 48 48"><path class="coche" id="trait" d="M12 25.5 20.5 34 36 16"/></svg>
+    </span>
+    <p class="titreplan" id="c-titre" style="font-size:33px">Demande envoyée</p>
+    <p class="sous" id="c-sous" style="font-size:17px">Le partenaire répond sous deux heures.</p>
+  </section>
+
+  <section class="plan" id="fin">
+    <div class="fin-img" id="fin-img"></div>
+    <div class="voile"></div>
+    <div class="marque" style="position:relative">
+      <span class="sceau">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#F5BB45" stroke-width="1.5"
+             stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/><path d="M10 21v-6h4v6"/>
+        </svg>
+      </span>
+      <span class="nom">Teranga Way</span>
+    </div>
+    <p class="accroche" id="fin-txt" style="position:relative">Rendez-vous à Dakar.</p>
+  </section>
+
+</div>
+<script src="scene.js"></script>
+</body>
+</html>

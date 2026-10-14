@@ -1,0 +1,13 @@
+packages:
+  - "apps/*"
+  - "packages/*"
+
+# Déplacé depuis package.json : pnpm 10 ne lit plus le champ "pnpm".
+# Sans ça, l'installation retente les binaires sharp win32/arm64 et rampe.
+supportedArchitectures:
+  os:
+    - linux
+  cpu:
+    - x64
+  libc:
+    - glibc

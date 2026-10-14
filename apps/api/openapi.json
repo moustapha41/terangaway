@@ -1,0 +1,1067 @@
+{
+  "openapi": "3.0.0",
+  "paths": {
+    "/sante": {
+      "get": {
+        "operationId": "ControleurSante_etat",
+        "summary": "L'API répond-elle ?",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "sante"
+        ]
+      }
+    },
+    "/logements": {
+      "get": {
+        "operationId": "ControleurLogements_chercher",
+        "summary": "Chercher des logements vérifiés",
+        "description": "Les compteurs de filtres (`facettes`) portent sur la ville entière, pas sur le résultat filtré : c'est ce qui permet d'élargir sa recherche.",
+        "parameters": [
+          {
+            "name": "ville",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "Dakar",
+              "type": "string"
+            }
+          },
+          {
+            "name": "personnes",
+            "required": false,
+            "in": "query",
+            "description": "Capacité minimale demandée.",
+            "schema": {
+              "example": 2,
+              "type": "number"
+            }
+          },
+          {
+            "name": "types",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "villa",
+                  "appartement",
+                  "studio",
+                  "chambre",
+                  "residence"
+                ]
+              }
+            }
+          },
+          {
+            "name": "equipements",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "climatisation",
+                  "wifi",
+                  "eau-chaude",
+                  "cuisine",
+                  "groupe-electrogene",
+                  "parking",
+                  "gardien",
+                  "piscine",
+                  "tv",
+                  "lave-linge",
+                  "balcon-terrasse"
+                ]
+              }
+            }
+          },
+          {
+            "name": "quartiers",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "name": "prixMin",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": 50000,
+              "type": "number"
+            }
+          },
+          {
+            "name": "prixMax",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": 200000,
+              "type": "number"
+            }
+          },
+          {
+            "name": "tri",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "enum": [
+                "pertinence",
+                "prix-croissant",
+                "prix-decroissant",
+                "capacite",
+                "note"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": 1,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "logements"
+        ]
+      }
+    },
+    "/logements/par-id/{id}": {
+      "get": {
+        "operationId": "ControleurLogements_parId",
+        "summary": "Fiche d'un logement par identifiant",
+        "description": "Utilisé là où le site ne connaît que l'identifiant — une demande, une réservation — et non le slug public.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "example": "l-004",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "404": {
+            "description": "`LOGEMENT_INTROUVABLE`"
+          }
+        },
+        "tags": [
+          "logements"
+        ]
+      }
+    },
+    "/logements/{slug}/avis": {
+      "get": {
+        "operationId": "ControleurLogements_avis",
+        "summary": "Avis d'un logement",
+        "description": "Un avis ne peut être déposé qu'après un séjour terminé.",
+        "parameters": [
+          {
+            "name": "slug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "example": "villa-ngor",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "logements"
+        ]
+      }
+    },
+    "/logements/{slug}": {
+      "get": {
+        "operationId": "ControleurLogements_parSlug",
+        "summary": "Fiche d'un logement",
+        "parameters": [
+          {
+            "name": "slug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "example": "villa-ngor",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "404": {
+            "description": "`LOGEMENT_INTROUVABLE`"
+          }
+        },
+        "tags": [
+          "logements"
+        ]
+      }
+    },
+    "/vehicules/estimation-taxi": {
+      "get": {
+        "operationId": "ControleurVehicules_estimerTaxi",
+        "summary": "Fourchette indicative pour une course de taxi",
+        "description": "Ce n'est pas un prix ferme : une course de taxi se convient sur place.",
+        "parameters": [
+          {
+            "name": "passagers",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": 2,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "vehicules"
+        ]
+      }
+    },
+    "/vehicules/facettes": {
+      "get": {
+        "operationId": "ControleurVehicules_facettes",
+        "summary": "Compteurs de filtres",
+        "description": "Chaque compteur neutralise son propre filtre : cocher « SUV » ne doit pas faire tomber les autres catégories à zéro.",
+        "parameters": [
+          {
+            "name": "besoin",
+            "required": true,
+            "in": "query",
+            "description": "Le besoin détermine l'offre exigée du véhicule.",
+            "schema": {
+              "enum": [
+                "trajet",
+                "location",
+                "taxi"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "passagers",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": 2,
+              "type": "number"
+            }
+          },
+          {
+            "name": "bagages",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": 2,
+              "type": "number"
+            }
+          },
+          {
+            "name": "quand",
+            "required": false,
+            "in": "query",
+            "description": "Prise en charge souhaitée. Un trajet demandé trop tôt est refusé (`DELAI_TROP_COURT`).",
+            "schema": {
+              "example": "2026-10-25T10:00",
+              "type": "string"
+            }
+          },
+          {
+            "name": "categories",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "berline",
+                  "suv",
+                  "minibus",
+                  "taxi"
+                ]
+              }
+            }
+          },
+          {
+            "name": "zone",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "Dakar",
+              "type": "string"
+            }
+          },
+          {
+            "name": "prixMin",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": 20000,
+              "type": "number"
+            }
+          },
+          {
+            "name": "prixMax",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": 100000,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "vehicules"
+        ]
+      }
+    },
+    "/vehicules": {
+      "get": {
+        "operationId": "ControleurVehicules_chercher",
+        "summary": "Chercher des véhicules vérifiés",
+        "parameters": [
+          {
+            "name": "besoin",
+            "required": true,
+            "in": "query",
+            "description": "Le besoin détermine l'offre exigée du véhicule.",
+            "schema": {
+              "enum": [
+                "trajet",
+                "location",
+                "taxi"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "passagers",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": 2,
+              "type": "number"
+            }
+          },
+          {
+            "name": "bagages",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": 2,
+              "type": "number"
+            }
+          },
+          {
+            "name": "quand",
+            "required": false,
+            "in": "query",
+            "description": "Prise en charge souhaitée. Un trajet demandé trop tôt est refusé (`DELAI_TROP_COURT`).",
+            "schema": {
+              "example": "2026-10-25T10:00",
+              "type": "string"
+            }
+          },
+          {
+            "name": "categories",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "berline",
+                  "suv",
+                  "minibus",
+                  "taxi"
+                ]
+              }
+            }
+          },
+          {
+            "name": "zone",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "Dakar",
+              "type": "string"
+            }
+          },
+          {
+            "name": "prixMin",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": 20000,
+              "type": "number"
+            }
+          },
+          {
+            "name": "prixMax",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": 100000,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "409": {
+            "description": "`DELAI_TROP_COURT` — prise en charge trop proche (§B.3)"
+          }
+        },
+        "tags": [
+          "vehicules"
+        ]
+      }
+    },
+    "/vehicules/par-id/{id}": {
+      "get": {
+        "operationId": "ControleurVehicules_parId",
+        "summary": "Fiche d'un véhicule par identifiant",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "example": "v-001",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "404": {
+            "description": "`VEHICULE_INTROUVABLE`"
+          }
+        },
+        "tags": [
+          "vehicules"
+        ]
+      }
+    },
+    "/vehicules/{slug}": {
+      "get": {
+        "operationId": "ControleurVehicules_parSlug",
+        "summary": "Fiche d'un véhicule",
+        "parameters": [
+          {
+            "name": "slug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "example": "toyota-land-cruiser",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "404": {
+            "description": "`VEHICULE_INTROUVABLE`"
+          }
+        },
+        "tags": [
+          "vehicules"
+        ]
+      }
+    },
+    "/lieux": {
+      "get": {
+        "operationId": "ControleurLieux_tous",
+        "summary": "Points de repère proposés à la saisie",
+        "description": "Aéroport, sites des Jeux, quartiers. Jamais une adresse de partenaire.",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "lieux"
+        ]
+      }
+    },
+    "/lieux/villes": {
+      "get": {
+        "operationId": "ControleurLieux_villes",
+        "summary": "Villes où des offres existent",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "lieux"
+        ]
+      }
+    },
+    "/lieux/quartiers": {
+      "get": {
+        "operationId": "ControleurLieux_quartiers",
+        "summary": "Quartiers, éventuellement bornés à une ville",
+        "parameters": [
+          {
+            "name": "ville",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "Dakar",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "lieux"
+        ]
+      }
+    },
+    "/comptes/otp/envoyer": {
+      "post": {
+        "operationId": "ControleurComptes_envoyer",
+        "summary": "Envoyer un code OTP au visiteur (simulé)",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EnvoyerOtpDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "comptes"
+        ]
+      }
+    },
+    "/comptes/otp/verifier": {
+      "post": {
+        "operationId": "ControleurComptes_verifier",
+        "summary": "Vérifier le code OTP et ouvrir une session visiteur",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifierOtpDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "comptes"
+        ]
+      }
+    },
+    "/comptes/prestataire/connexion": {
+      "post": {
+        "operationId": "ControleurComptes_prestataire",
+        "summary": "Connexion prestataire par SMS",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConnexionPrestataireDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "comptes"
+        ]
+      }
+    },
+    "/demandes/logement": {
+      "post": {
+        "operationId": "ControleurDemandes_creerLogement",
+        "summary": "Envoyer une demande de logement",
+        "parameters": [
+          {
+            "name": "x-visiteur-id",
+            "required": false,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreerDemandeLogementDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "demandes"
+        ]
+      }
+    },
+    "/demandes/vehicule": {
+      "post": {
+        "operationId": "ControleurDemandes_creerVehicule",
+        "summary": "Envoyer une demande de transport",
+        "parameters": [
+          {
+            "name": "x-visiteur-id",
+            "required": false,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreerDemandeVehiculeDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "demandes"
+        ]
+      }
+    },
+    "/reponses/{jeton}": {
+      "get": {
+        "operationId": "ControleurReponses_ouvrir",
+        "summary": "Ouvrir une demande via le jeton SMS du partenaire",
+        "parameters": [
+          {
+            "name": "jeton",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "example": "demo-valide",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "reponses"
+        ]
+      },
+      "post": {
+        "operationId": "ControleurReponses_repondre",
+        "summary": "Accepter ou refuser via le jeton SMS",
+        "parameters": [
+          {
+            "name": "jeton",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "example": "demo-valide",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RepondreDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "reponses"
+        ]
+      }
+    },
+    "/visiteurs/moi/demandes": {
+      "get": {
+        "operationId": "ControleurVisiteurs_lister",
+        "summary": "Lister les demandes du visiteur connecté",
+        "parameters": [
+          {
+            "name": "x-visiteur-id",
+            "required": false,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "visiteurs"
+        ]
+      }
+    },
+    "/visiteurs/moi/demandes/{id}": {
+      "get": {
+        "operationId": "ControleurVisiteurs_obtenir",
+        "summary": "Détail d'une demande du visiteur",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "example": "d-002",
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-visiteur-id",
+            "required": false,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "visiteurs"
+        ]
+      }
+    },
+    "/visiteurs/moi/demandes/{id}/confirmer": {
+      "post": {
+        "operationId": "ControleurVisiteurs_confirmer",
+        "summary": "Confirmer une demande acceptée",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "example": "d-002",
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-visiteur-id",
+            "required": false,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "visiteurs"
+        ]
+      }
+    },
+    "/visiteurs/moi/demandes/{id}/annuler": {
+      "post": {
+        "operationId": "ControleurVisiteurs_annuler",
+        "summary": "Annuler une demande en cours",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "example": "d-001",
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-visiteur-id",
+            "required": false,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "visiteurs"
+        ]
+      }
+    }
+  },
+  "info": {
+    "title": "Teranga Way — API",
+    "description": "Logements et transports vérifiés pour les JOJ Dakar 2026. Aucun paiement en ligne : le paiement a lieu sur place.",
+    "version": "0.1.0",
+    "contact": {}
+  },
+  "tags": [],
+  "servers": [],
+  "components": {
+    "schemas": {
+      "EnvoyerOtpDto": {
+        "type": "object",
+        "properties": {
+          "telephone": {
+            "type": "string",
+            "example": "+221 77 000 00 00"
+          }
+        },
+        "required": [
+          "telephone"
+        ]
+      },
+      "VerifierOtpDto": {
+        "type": "object",
+        "properties": {
+          "telephone": {
+            "type": "string",
+            "example": "+221 77 000 00 00"
+          },
+          "code": {
+            "type": "string",
+            "example": "123456"
+          }
+        },
+        "required": [
+          "telephone",
+          "code"
+        ]
+      },
+      "ConnexionPrestataireDto": {
+        "type": "object",
+        "properties": {
+          "telephone": {
+            "type": "string",
+            "example": "+221 77 111 22 33"
+          },
+          "code": {
+            "type": "string",
+            "example": "123456"
+          }
+        },
+        "required": [
+          "telephone",
+          "code"
+        ]
+      },
+      "CreerDemandeLogementDto": {
+        "type": "object",
+        "properties": {
+          "logementId": {
+            "type": "string",
+            "example": "l-001"
+          },
+          "debut": {
+            "type": "string",
+            "example": "2026-10-12"
+          },
+          "fin": {
+            "type": "string",
+            "example": "2026-10-26"
+          },
+          "personnes": {
+            "type": "number",
+            "example": 2
+          },
+          "heureArrivee": {
+            "type": "string",
+            "example": "15:00"
+          },
+          "message": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string",
+            "description": "Code OTP à six chiffres. Obligatoire tant qu'aucune session n'est active.",
+            "example": "123456"
+          }
+        },
+        "required": [
+          "logementId",
+          "debut",
+          "fin",
+          "personnes"
+        ]
+      },
+      "CreerDemandeVehiculeDto": {
+        "type": "object",
+        "properties": {
+          "vehiculeId": {
+            "type": "string",
+            "example": "v-001"
+          },
+          "prestation": {
+            "type": "string",
+            "enum": [
+              "trajet",
+              "journee",
+              "taxi"
+            ]
+          },
+          "depart": {
+            "type": "string",
+            "example": "Aéroport AIBD"
+          },
+          "arrivee": {
+            "type": "string",
+            "example": "Plateau"
+          },
+          "quand": {
+            "type": "string",
+            "example": "2026-10-12T10:00:00"
+          },
+          "passagers": {
+            "type": "number",
+            "example": 2
+          },
+          "bagages": {
+            "type": "number",
+            "example": 2
+          },
+          "vol": {
+            "type": "string",
+            "example": "SN 1234"
+          },
+          "message": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string",
+            "example": "123456"
+          }
+        },
+        "required": [
+          "vehiculeId",
+          "prestation",
+          "depart",
+          "quand",
+          "passagers",
+          "bagages"
+        ]
+      },
+      "RepondreDto": {
+        "type": "object",
+        "properties": {
+          "reponse": {
+            "type": "string",
+            "enum": [
+              "acceptee",
+              "refusee",
+              "indisponible"
+            ]
+          },
+          "motif": {
+            "type": "string",
+            "enum": [
+              "plus-disponible",
+              "dates-impossibles",
+              "capacite",
+              "autre"
+            ]
+          }
+        },
+        "required": [
+          "reponse"
+        ]
+      }
+    }
+  }
+}

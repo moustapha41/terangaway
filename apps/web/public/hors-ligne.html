@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hors connexion — Teranga Way</title>
+<!--
+  Page de repli servie par le service worker. Elle est volontairement autonome :
+  pas de police à télécharger, pas de feuille de style externe, pas de script.
+  C'est la seule page qui doit s'afficher quand plus rien ne répond.
+  Les trois langues y figurent ensemble, puisqu'on ne sait pas laquelle était active.
+-->
+<style>
+  :root { color-scheme: light; }
+  body {
+    margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center;
+    background: #f7f8fa; color: #17212b; padding: 24px;
+    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  main { max-width: 32rem; text-align: center; }
+  .pastille {
+    width: 64px; height: 64px; margin: 0 auto 20px; border-radius: 999px;
+    background: #e8eef4; display: flex; align-items: center; justify-content: center;
+  }
+  h1 { font-size: 24px; line-height: 32px; margin: 0 0 8px; }
+  p { font-size: 16px; line-height: 24px; color: #5b6676; margin: 0 0 8px; }
+  .autre { font-size: 14px; line-height: 20px; color: #5b6676; }
+  a.bouton {
+    display: inline-block; margin-top: 24px; min-height: 48px; line-height: 48px;
+    padding: 0 24px; border-radius: 8px; background: #001d35; color: #fff;
+    font-weight: 600; text-decoration: none;
+  }
+  .urgence { margin-top: 32px; font-size: 14px; color: #5b6676; }
+  .urgence a { color: #001d35; font-weight: 600; }
+</style>
+</head>
+<body>
+  <main>
+    <div class="pastille" aria-hidden="true">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#001d35" stroke-width="1.5"
+           stroke-linecap="round" stroke-linejoin="round">
+        <path d="M2 2 22 22M8.5 16.5a5 5 0 0 1 7 0M5 12.9a10 10 0 0 1 5.2-2.7M1.4 9.3a16 16 0 0 1 4-2.6"/>
+        <path d="M10.7 5.1A16 16 0 0 1 22.6 9.3M16.8 12.4a10 10 0 0 1 2.2 1.5M12 20h.01"/>
+      </svg>
+    </div>
+
+    <h1>Vous êtes hors connexion</h1>
+    <p>Cette page a besoin du réseau. Elle se rechargera dès qu'il revient.</p>
+    <p class="autre">You are offline. This page needs a connection.</p>
+    <p class="autre">Está sin conexión. Esta página necesita red.</p>
+
+    <a class="bouton" href="/">Réessayer</a>
+
+    <p class="urgence">
+      Urgence&nbsp;: police <a href="tel:17">17</a> · pompiers <a href="tel:18">18</a> ·
+      SAMU <a href="tel:15">15</a>
+    </p>
+  </main>
+</body>
+</html>

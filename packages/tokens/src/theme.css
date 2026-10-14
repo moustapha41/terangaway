@@ -1,0 +1,92 @@
+/* Généré par scripts/generer.mjs depuis tokens.json. Ne pas modifier à la main. */
+
+/* static : les jetons restent tous déclarés, même ceux qu’aucune classe n’emploie
+   encore — un design system qui disparaît selon l’usage est un piège. */
+@theme static {
+  /* Couleurs — dossier de conception §C.1 */
+  --color-primaire: #001D35;
+  --color-succes: #087443;
+  --color-alerte: #A15C00;
+  --color-danger: #B42318;
+  --color-accent: #F4B942;
+  --color-encre: #17212B;
+  --color-encre-douce: #5B6676;
+  --color-contour: #D9DEE5;
+  --color-contour-champ: #7E8B9C;
+  --color-surface: #FFFFFF;
+  --color-page: #F7F8FA;
+  --color-champ: #F1F3F5;
+
+  /* Teintes de fond des badges et bandeaux */
+  --color-teinte-bleu: #E8EEF4;
+  --color-teinte-vert: #E6F4EC;
+  --color-teinte-orange: #FFF3E0;
+  --color-teinte-rouge: #FDECEA;
+  --color-teinte-jaune: #FEF6E0;
+  --color-teinte-gris: #F1F3F5;
+
+  /* Couche accueil — relevé sur base/maquette.png */
+  --color-nuit: #001D35;
+  --color-nuit-clair: #0F2A47;
+  --color-ardoise: #334155;
+  --color-gris: #6B7280;
+  --color-bordure: #E5E7EB;
+  --color-fond: #F8F8F8;
+  --color-sable: #FCF2E4;
+  --color-jaune: #F5BB45;
+  --color-jaune-vif: #F4B942;
+  --color-jaune-fonce: #E8A33D;
+
+  /* Rayons */
+  --radius-control: 8px;
+  --radius-card: 12px;
+  --radius-pill: 999px;
+
+  /* Hauteurs minimales */
+  --size-control: 48px;
+  --size-touch: 44px;
+
+  /* Typographie */
+  --font-sans: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
+  --text-titre-1: 24px;
+  --text-titre-1--line-height: 32px;
+  --text-titre-1--font-weight: 600;
+  --text-titre-2: 20px;
+  --text-titre-2--line-height: 28px;
+  --text-titre-2--font-weight: 600;
+  --text-titre-3: 17px;
+  --text-titre-3--line-height: 24px;
+  --text-titre-3--font-weight: 600;
+  --text-corps: 16px;
+  --text-corps--line-height: 24px;
+  --text-corps--font-weight: 400;
+  --text-petit: 14px;
+  --text-petit--line-height: 20px;
+  --text-petit--font-weight: 400;
+  --text-legende: 12px;
+  --text-legende--line-height: 16px;
+  --text-legende--font-weight: 400;
+  --text-prix: 18px;
+  --text-prix--line-height: 24px;
+  --text-prix--font-weight: 600;
+  --text-bouton: 16px;
+  --text-bouton--line-height: 24px;
+  --text-bouton--font-weight: 600;
+
+  /* Mouvement — désactivé si le téléphone demande moins d'animations */
+  --duree-fast: 150ms;
+
+  /* Graphiques — palette validée pour le daltonisme */
+  --color-graphe-attente: #CC7A00;
+  --color-graphe-confirme: #107A4F;
+  --color-graphe-refuse: #B8321F;
+  --color-graphe-discussion: #2563B0;
+
+  /* Ombre */
+  --shadow-carte: 0 18px 40px -12px rgb(2 20 38 / 0.28), 0 4px 12px -4px rgb(2 20 38 / 0.12);
+
+  /* Points de rupture — grille §C.2 */
+  --breakpoint-telephone: 360px;
+  --breakpoint-tablette: 768px;
+  --breakpoint-ordinateur: 1200px;
+}

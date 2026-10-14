@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><title>Teranga Way — annonce verticale</title>
+<style>
+  :root { --primaire:#001D35; --jaune:#F5BB45; }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{overflow:hidden;background:var(--primaire)}
+  /* La scène fait exactement la taille de la vidéo. Les captures mobiles sont
+     en densité 2, donc 1080 de large : elles s'affichent telles quelles, nettes,
+     et les coordonnées mesurées en CSS sont simplement doublées. */
+  #scene{position:relative;overflow:hidden;background:var(--primaire)}
+  .etape{position:absolute;inset:0;overflow:hidden;opacity:0}
+  .etape img{position:absolute;left:0;top:0;display:block}
+  #curseur{position:absolute;width:44px;height:44px;opacity:0;z-index:20;
+    filter:drop-shadow(0 2px 3px rgba(0,0,0,.45))}
+  #onde{position:absolute;width:108px;height:108px;border-radius:50%;
+    border:4px solid var(--jaune);opacity:0;z-index:19}
+  .carton{position:absolute;inset:0;background:var(--primaire);display:grid;
+    place-content:center;justify-items:center;gap:30px;opacity:0;z-index:30;padding:0 56px}
+  .carton img{display:block;width:72%;max-width:680px;height:auto}
+  .sous{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    font-size:34px;line-height:1.45;color:rgba(255,255,255,.85);text-align:center}
+  .url{font-family:system-ui,-apple-system,sans-serif;font-size:36px;
+    font-weight:600;color:var(--jaune)}
+  .filet{height:4px;background:var(--jaune);border-radius:4px;width:0}
+</style></head>
+<body>
+<div id="scene">
+  <section class="etape" id="e-accueil"><img src="ecrans-mobile/accueil.png" alt=""></section>
+  <section class="etape" id="e-resultats"><img src="ecrans-mobile/resultats.png" alt=""></section>
+  <section class="etape" id="e-fiche"><img src="ecrans-mobile/fiche.png" alt=""></section>
+  <section class="etape" id="e-demande"><img src="ecrans-mobile/demande.png" alt=""></section>
+  <section class="etape" id="e-confirme"><img src="ecrans-mobile/confirme.png" alt=""></section>
+
+  <!-- Les barres fixes du mobile : elles collent au bas de l'ÉCRAN, donc du
+       cadre, et ne défilent pas avec la page. -->
+  <img id="barre-fixe" alt="" style="position:absolute;left:0;bottom:0;width:1080px;z-index:15;opacity:0">
+
+  <div id="onde"></div>
+  <svg id="curseur" viewBox="0 0 24 24"><path d="M5 2l14 10.5-6.2.7 3.5 6.6-2.9 1.5-3.4-6.6L5 19z"
+    fill="#fff" stroke="#17212B" stroke-width="1.2" stroke-linejoin="round"/></svg>
+
+  <section class="carton" id="ouverture">
+    <img src="logo-complet-clair.png" alt="Teranga Way">
+    <div class="filet" id="filet"></div>
+  </section>
+
+  <section class="carton" id="fin">
+    <img id="f-logo" src="logo-complet-clair.png" alt="Teranga Way">
+    <p class="sous" id="f-sous">Réservez sans payer en ligne.<br>Réponse sous deux heures.</p>
+    <p class="url" id="f-url">terangaway.sn</p>
+  </section>
+</div>
+<script src="film-vertical.js"></script></body></html>

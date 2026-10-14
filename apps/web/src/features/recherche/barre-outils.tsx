@@ -1,0 +1,86 @@
+"use client";
+
+import { useRouter, useSearchParams } from "next/navigation";
+import { useTransition } from "react";
+import { Icone } from "@teranga/ui";
+import { useT } from "@/lib/i18n/contexte";
+
+/**
+ * Tri et bascule liste / carte — maquette écran 02 des logements, écran 2 des
+ * transports : la même barre sert les deux, seuls les tris changent.
+ */
+const CLE_TRI: Record<string, string> = {
+  pertinence: "resultats.triPertinence",
+  "prix-croissant": "resultats.triPrixCroissant",
+  "prix-decroissant": "resultats.triPrixDecroissant",
+  capacite: "resultats.triCapacite",
+  note: "resultats.triNote",
+  places: "resultats.triPlaces",
+};
+
+const TRIS_LOGEMENT = ["pertinence", "prix-croissant", "prix-decroissant", "capacite", "note"];
+
+export function BarreOutils({
+  vue,
+  tris = TRIS_LOGEMENT,
+  avecCarte = true,
+}: {
+  vue: "liste" | "carte";
+  /** Les tris proposés ; par défaut ceux des logements. */
+  tris?: string[];
+  /** La vue carte n'a pas de sens partout : on peut ne proposer que la liste. */
+  avecCarte?: boolean;
+}) {
+  const t = useT();
+  const router = useRouter();
+  const params = useSearchParams();
+  const [, demarrer] = useTransition();
+
+  const poser = (nom: string, valeur: string | null) => {
+    const suivants = new URLSearchParams(params.toString());
+    if (valeur) suivants.set(nom, valeur);
+    else suivants.delete(nom);
+    demarrer(() => router.replace(`?${suivants.toString()}`, { scroll: false }));
+  };
+
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-3">
+      <label className="flex items-center gap-2 text-petit text-encre-douce">
+        {t("resultats.trier")}
+        <select
+          value={params.get("tri") ?? "pertinence"}
+          onChange={(e) => poser("tri", e.target.value === "pertinence" ? null : e.target.value)}
+          className="min-h-[var(--size-control)] rounded-control border border-contour-champ bg-surface px-3 text-petit text-encre"
+        >
+          {tris.map((tri) => (
+            <option key={tri} value={tri}>
+              {t(CLE_TRI[tri])}
+            </option>
+          ))}
+        </select>
+      </label>
+
+      {/* Bascule : deux boutons, un seul enfoncé — pas un interrupteur, car les
+          deux vues sont des destinations, pas un état activé/désactivé. */}
+      {avecCarte && (
+      <div role="group" aria-label={t("resultats.vueListe")} className="flex overflow-hidden rounded-control border border-contour-champ">
+        {(["liste", "carte"] as const).map((v) => (
+          <button
+            key={v}
+            type="button"
+            aria-pressed={vue === v}
+            onClick={() => poser("vue", v === "liste" ? null : v)}
+            className={
+              "inline-flex min-h-[var(--size-control)] items-center gap-2 px-4 text-petit font-semibold transition-colors " +
+              (vue === v ? "bg-primaire text-white" : "bg-surface text-encre hover:bg-champ")
+            }
+          >
+            <Icone nom={v === "liste" ? "tri" : "repere"} taille={20} />
+            {t(v === "liste" ? "resultats.vueListe" : "resultats.vueCarte")}
+          </button>
+        ))}
+      </div>
+      )}
+    </div>
+  );
+}

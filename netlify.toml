@@ -1,0 +1,27 @@
+# Déploiement Netlify du site visiteurs (apps/web).
+#
+# Le dépôt porte plusieurs projets ; Teranga Way vit dans « joj/ ». Ce dossier
+# est la seule valeur à saisir dans l'interface, en « base directory » : Netlify
+# ne lit ce fichier qu'après y être entré. Tous les chemins ci-dessous lui sont
+# relatifs.
+
+[build]
+  # Les paquets de l'atelier sont publiés en TypeScript brut et compilés par
+  # Next (transpilePackages) ; le theme.css des jetons est versionné. Rien à
+  # construire avant, donc pas besoin de turbo ici.
+  command = "pnpm -F @teranga/web build"
+  publish = "apps/web/.next"
+
+[build.environment]
+  # Le projet exige >= 20.11 ; Netlify démarre plus bas par défaut.
+  NODE_VERSION = "22"
+  # Le site part sur les fixtures : l'API NestJS est un serveur permanent, et
+  # Netlify ne sert que des fonctions courtes. Le jour où l'API est hébergée
+  # ailleurs, passer à "false" et ajouter API_URL dans l'interface — une
+  # variable d'interface l'emporte sur ce fichier.
+  NEXT_PUBLIC_API_MOCK = "true"
+
+# Déclaré plutôt que laissé à la détection : dans un monorepo, elle rate parfois
+# l'application quand le dossier publié n'est pas à la racine.
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
