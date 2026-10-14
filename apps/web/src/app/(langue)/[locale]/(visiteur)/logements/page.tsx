@@ -40,7 +40,10 @@ export default async function Resultats({
   const recherche = await searchParams;
   const t = traducteurPour(langue);
 
-  const ville = recherche.ville ?? "Dakar";
+  // Pas de ville par défaut : le catalogue est surtout sur la Petite Côte, et
+  // imposer Dakar en masquait les villas à qui n'avait rien demandé. Le champ
+  // Destination garde ses suggestions, l'URL reste maîtresse.
+  const ville = recherche.ville;
   const vue = recherche.vue === "carte" ? "carte" : "liste";
 
   // Sans critère, `/logements` est la page d'accueil du parcours (écran 01) ;
@@ -57,7 +60,7 @@ export default async function Resultats({
     // sélection « populaires » manque.
     let populaires: Logement[] = [];
     try {
-      populaires = (await chercherLogements({ ville, tri: "note" })).elements.slice(0, 4);
+      populaires = (await chercherLogements({ ville: recherche.ville, tri: "note" })).elements.slice(0, 4);
     } catch (erreur) {
       if (!(erreur instanceof ErreurServeur)) throw erreur;
       console.error("[logements] sélection populaire indisponible", erreur);
@@ -66,7 +69,7 @@ export default async function Resultats({
     return (
       <main className="bg-surface">
         <EnTete />
-        <AccueilLogement langue={langue} populaires={populaires} ville={ville} />
+        <AccueilLogement langue={langue} populaires={populaires} ville={recherche.ville} />
       </main>
     );
   }
@@ -100,7 +103,8 @@ async function Contenu({
 }: {
   langue: Langue;
   recherche: Record<string, string | undefined>;
-  ville: string;
+  /** Absente quand le visiteur n'a pas choisi de destination. */
+  ville?: string;
   vue: "liste" | "carte";
 }) {
   const t = traducteurPour(langue);
@@ -156,7 +160,9 @@ async function Contenu({
       <header className="mt-4 flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="text-titre-1 text-encre">
-            {t("resultats.titreVille", { nombre: resultats.total, ville })}
+            {ville
+              ? t("resultats.titreVille", { nombre: resultats.total, ville })
+              : t("resultats.titre", { nombre: resultats.total })}
           </h1>
           <p className="mt-1 text-petit text-encre-douce">{t("resultats.sousTitreVille")}</p>
           <p className="mt-1 text-petit text-encre-douce chiffres-tabulaires">
@@ -250,7 +256,7 @@ function Vide({ t }: { t: Traducteur }) {
   );
 }
 
-function Attente({ langue, ville }: { langue: Langue; ville: string }) {
+function Attente({ langue, ville }: { langue: Langue; ville?: string }) {
   const t = traducteurPour(langue);
   return (
     <div className="mt-4">

@@ -28,7 +28,9 @@ export function AccueilLogement({
 }: {
   langue: Langue;
   populaires: Logement[];
-  ville: string;
+  /** Absente tant qu'aucune recherche n'a été faite : la sélection porte alors
+   * sur tout le catalogue, et le titre ne nomme aucune ville. */
+  ville?: string;
 }) {
   const t = traducteurPour(langue);
 
@@ -87,10 +89,12 @@ export function AccueilLogement({
       <section className="mx-auto w-[92%] max-w-[1260px] pb-16">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <h2 className="text-titre-1 text-encre">
-            {t("accueilLogement.populaires", { ville })}
+            {ville
+              ? t("accueilLogement.populaires", { ville })
+              : t("accueilLogement.populairesPartout")}
           </h2>
           <Lien
-            href={`/logements?ville=${encodeURIComponent(ville)}`}
+            href={ville ? `/logements?ville=${encodeURIComponent(ville)}` : "/logements?tri=note"}
             className="text-petit font-semibold text-primaire underline underline-offset-4"
           >
             {t("accueilLogement.voirTous")}

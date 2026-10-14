@@ -980,6 +980,7 @@
     "aucunPaiement": "Ningún pago en línea",
     "securite": "Una estancia con total seguridad",
     "populaires": "Alojamientos populares en {ville}",
+    "populairesPartout": "Alojamientos populares",
     "voirTous": "Ver todos"
   },
   "client": {

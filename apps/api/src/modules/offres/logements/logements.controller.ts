@@ -44,14 +44,14 @@ export class ControleurLogements {
     summary: "Avis d'un logement",
     description: "Un avis ne peut être déposé qu'après un séjour terminé.",
   })
-  @ApiParam({ name: "slug", example: "villa-ngor" })
+  @ApiParam({ name: "slug", example: "villa-guereo-piscine" })
   async avis(@Param("slug") slug: string) {
     return { donnees: await this.logements.avis(slug) };
   }
 
   @Get(":slug")
   @ApiOperation({ summary: "Fiche d'un logement" })
-  @ApiParam({ name: "slug", example: "villa-ngor" })
+  @ApiParam({ name: "slug", example: "villa-guereo-piscine" })
   @ApiResponse({ status: 404, description: "`LOGEMENT_INTROUVABLE`" })
   async parSlug(@Param("slug") slug: string) {
     return { donnees: await this.logements.parSlug(slug) };

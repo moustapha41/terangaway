@@ -980,6 +980,7 @@
     "aucunPaiement": "Aucun paiement en ligne",
     "securite": "Séjour en toute sécurité",
     "populaires": "Logements populaires à {ville}",
+    "populairesPartout": "Logements populaires",
     "voirTous": "Voir tous"
   },
   "client": {

@@ -980,6 +980,7 @@
     "aucunPaiement": "No online payment",
     "securite": "A stay in safety",
     "populaires": "Popular places in {ville}",
+    "populairesPartout": "Popular places to stay",
     "voirTous": "See all"
   },
   "client": {
