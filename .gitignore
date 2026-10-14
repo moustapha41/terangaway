@@ -22,3 +22,15 @@ coverage/
 /pieces-justificatives/
 playwright-report/
 test-results/
+
+# Matière première des fiches logement : 177 Mo de photos et de vidéos reçues
+# des propriétaires. Ce qui est publié vit dans apps/web/public/images/logements,
+# redimensionné et sans métadonnées. L'original reste hors du dépôt.
+/donnee/
+
+# Matière première des fiches véhicule, même raison que donnee/ : les photos
+# publiées vivent dans apps/web/public/images/vehicules, plaques floutées.
+/v1/
+/v2/
+/v3/
+/v4/

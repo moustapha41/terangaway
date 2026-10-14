@@ -48,7 +48,7 @@ export class ControleurVehicules {
 
   @Get(":slug")
   @ApiOperation({ summary: "Fiche d'un véhicule" })
-  @ApiParam({ name: "slug", example: "toyota-land-cruiser" })
+  @ApiParam({ name: "slug", example: "toyota-prado-cuir" })
   @ApiResponse({ status: 404, description: "`VEHICULE_INTROUVABLE`" })
   async parSlug(@Param("slug") slug: string) {
     return { donnees: await this.vehicules.parSlug(slug) };

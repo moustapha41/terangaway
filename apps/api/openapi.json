@@ -184,7 +184,7 @@
             "required": true,
             "in": "path",
             "schema": {
-              "example": "villa-ngor",
+              "example": "villa-guereo-piscine",
               "type": "string"
             }
           }
@@ -209,7 +209,7 @@
             "required": true,
             "in": "path",
             "schema": {
-              "example": "villa-ngor",
+              "example": "villa-guereo-piscine",
               "type": "string"
             }
           }
@@ -490,7 +490,7 @@
             "required": true,
             "in": "path",
             "schema": {
-              "example": "toyota-land-cruiser",
+              "example": "toyota-prado-cuir",
               "type": "string"
             }
           }
