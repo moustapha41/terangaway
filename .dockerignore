@@ -1,0 +1,49 @@
+# Ce qui ne doit jamais entrer dans le contexte de construction.
+#
+# Tout ce qui est reconstruit dans l'image, tout ce qui est lourd et inutile,
+# et tout ce qui est secret. Un contexte réduit, c'est une construction plus
+# rapide et une image qui ne transporte pas ce qu'elle ignore.
+
+.git
+.github
+node_modules
+**/node_modules
+.pnpm-store
+**/.next
+**/.turbo
+**/dist
+**/coverage
+**/*.tsbuildinfo
+
+# Secrets : jamais dans une image.
+.env
+.env.*
+!.env.example
+
+# Matière première des fiches : 196 Mo de photos et vidéos reçues des
+# propriétaires. Seules les images publiées, dans apps/web/public, comptent.
+donnee
+v1
+v2
+v3
+v4
+
+# Maquettes, captures et films de présentation : rien à faire en production.
+media
+base
+a_propos
+aide
+espace_client
+logement
+prestataire
+services
+transport
+*.png
+!apps/web/public/**/*.png
+!packages/**/*.png
+
+tests
+playwright-report
+test-results
+docs
+*.log

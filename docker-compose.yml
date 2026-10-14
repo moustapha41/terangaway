@@ -1,0 +1,63 @@
+# Pile de production, telle que Dokploy la déploie.
+#
+# Deux services : le site visiteurs et l'API. Aucun port n'est publié sur
+# l'hôte — c'est le Traefik de Dokploy qui atteint les conteneurs par le
+# réseau « dokploy-network ». Les ports 3000 (tableau de bord Dokploy) et 443
+# (Traefik) sont déjà pris sur le serveur, et rien ici ne les réclame.
+#
+# Un seul domaine à déclarer dans Dokploy : celui du service « web », sur le
+# port 3100. L'API n'a pas besoin d'être publique, le navigateur ne l'appelle
+# jamais : tous les accès passent par le serveur Next, sur le réseau privé.
+#
+# Pour essayer la pile en local, voir docker-compose.dev.yml.
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: "3101"
+      # Sans appel depuis le navigateur, cette liste ne sert que le jour où un
+      # écran client appellera l'API en direct. Elle vaut mieux vide que large.
+      ORIGINES_AUTORISEES: ${ORIGINES_AUTORISEES:-http://localhost:3100}
+      DUREE_JETON_MINUTES: ${DUREE_JETON_MINUTES:-120}
+      DELAI_REPONSE_MINUTES: ${DELAI_REPONSE_MINUTES:-120}
+      DELAI_MINIMUM_HEURES: ${DELAI_MINIMUM_HEURES:-2}
+    expose:
+      - "3101"
+    networks:
+      - interne
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        # Figé dans le code à la construction : le site lit l'API, pas ses
+        # jeux d'essai. Pour revenir aux fixtures, il faut reconstruire.
+        NEXT_PUBLIC_API_MOCK: "false"
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: "3100"
+      HOSTNAME: "0.0.0.0"
+      # Nom du service sur le réseau privé : aucune adresse publique ici.
+      API_URL: http://api:3101
+    expose:
+      - "3100"
+    networks:
+      - interne
+      - dokploy-network
+
+networks:
+  # Réseau privé de la pile : l'API n'y est jointe que par le site.
+  interne:
+  # Créé par Dokploy à son installation. C'est par là que Traefik entre.
+  dokploy-network:
+    external: true

@@ -1,0 +1,22 @@
+# Essai local de la pile, sans Dokploy ni Traefik.
+#
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
+#
+# Les ports publiés évitent 3000 et 443, pris sur le serveur de déploiement ;
+# autant garder les mêmes ici pour que les deux environnements se ressemblent.
+# Le site répond alors sur http://localhost:3100 et l'API sur
+# http://localhost:3101/documentation.
+
+services:
+  api:
+    ports:
+      - "3101:3101"
+
+  web:
+    ports:
+      - "3100:3100"
+
+networks:
+  # En local, personne n'a installé Dokploy : le réseau est créé à la volée.
+  dokploy-network:
+    external: false
