@@ -1,9 +1,8 @@
 # Déploiement Netlify du site visiteurs (apps/web).
 #
-# Le dépôt porte plusieurs projets ; Teranga Way vit dans « joj/ ». Ce dossier
-# est la seule valeur à saisir dans l'interface, en « base directory » : Netlify
-# ne lit ce fichier qu'après y être entré. Tous les chemins ci-dessous lui sont
-# relatifs.
+# Ce fichier est à la racine du dépôt, donc Netlify le trouve sans « base
+# directory » : laissez ce champ vide dans l'interface. Les chemins ci-dessous
+# partent de cette racine.
 
 [build]
   # Les paquets de l'atelier sont publiés en TypeScript brut et compilés par
