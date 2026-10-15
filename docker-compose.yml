@@ -31,7 +31,9 @@ services:
       retries: 5
       start_period: 10s
     networks:
-      - interne
+      interne:
+        aliases:
+          - postgres-interne
 
   api:
     build:
@@ -62,7 +64,9 @@ services:
       retries: 5
       start_period: 25s
     networks:
-      - interne
+      interne:
+        aliases:
+          - api-interne
 
   web:
     build:
@@ -78,7 +82,7 @@ services:
       NODE_ENV: production
       PORT: "3100"
       HOSTNAME: "0.0.0.0"
-      API_URL: ${API_URL:-http://api:3101}
+      API_URL: ${API_URL:-http://api-interne:3101}
     expose:
       - "3100"
     healthcheck:
