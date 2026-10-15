@@ -9,6 +9,7 @@ FROM node:22-bookworm-slim AS base
 ENV PNPM_HOME=/pnpm
 ENV PATH=$PNPM_HOME:$PATH
 RUN corepack enable
+RUN apt-get update -y && apt-get install -y openssl ca-certificates && rm -rf /var/lib/apt/lists/*
 WORKDIR /depot
 
 # ─── Dépendances ─────────────────────────────────────────────────────────────
@@ -41,8 +42,9 @@ RUN pnpm -F @teranga/api exec nest build
 RUN pnpm deploy --filter=@teranga/api --prod /sortie
 
 # 5. Préservation des artefacts Prisma générés nécessaires à l'exécution
-RUN cp -r node_modules/.pnpm/@prisma+client@5.21.1_prisma@5.21.1/node_modules/.prisma /sortie/node_modules/.pnpm/@prisma+client@5.21.1_prisma@5.21.1/node_modules/ 2>/dev/null || true
-RUN cp -r node_modules/.pnpm/@prisma+client@5.21.1_prisma@5.21.1/node_modules/.prisma /sortie/node_modules/ 2>/dev/null || true
+RUN cp -r node_modules/.pnpm/@prisma+client*/node_modules/.prisma /sortie/node_modules/.pnpm/@prisma+client*/node_modules/ 2>/dev/null || true
+RUN cp -r node_modules/.pnpm/@prisma+client*/node_modules/.prisma /sortie/node_modules/ 2>/dev/null || true
+RUN find node_modules/.pnpm -name ".prisma" -type d -maxdepth 4 -exec cp -r {} /sortie/node_modules/ \; 2>/dev/null || true
 RUN cp -r apps/api/prisma /sortie/prisma
 
 # 6. Élimination des secrets potentiels, tests et fichiers sources bruts de l'image de sortie
@@ -63,4 +65,4 @@ EXPOSE 3101
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
   CMD node -e "fetch('http://127.0.0.1:'+(process.env.PORT||'3101')+'/sante').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
 
-CMD ["node", "--import", "tsx", "dist/main.js"]
+CMD ["sh", "-c", "npx prisma migrate deploy --schema=prisma/schema.prisma && node --import tsx dist/main.js"]
