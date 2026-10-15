@@ -10,6 +10,8 @@ describe("Persistance PostgreSQL — Module Comptes & Authentification", () => {
   let prisma: PrismaService;
   let depot: DepotComptesPrisma;
 
+  const genererTel = () => `77${Math.floor(1000000 + Math.random() * 9000000)}`;
+
   beforeAll(async () => {
     prisma = new PrismaService();
     await prisma.$connect();
@@ -22,7 +24,7 @@ describe("Persistance PostgreSQL — Module Comptes & Authentification", () => {
   });
 
   it("génère un OTP avec empreinte cryptographique en base (jamais en clair)", async () => {
-    const telephone = "771112233";
+    const telephone = genererTel();
     const { codeDemo } = await service.envoyerOtp(telephone);
 
     // Vérification directe en base PostgreSQL
@@ -40,10 +42,10 @@ describe("Persistance PostgreSQL — Module Comptes & Authentification", () => {
   });
 
   it("vérifie l'OTP avec succès, consomme le challenge (single-use) et crée une session persistée", async () => {
-    const telephone = "772223344";
+    const telephone = genererTel();
     const { codeDemo } = await service.envoyerOtp(telephone);
 
-    const resultat = await service.verifierOtp(telephone, codeDemo);
+    const resultat = await service.verifierOtp(telephone, codeDemo!);
     expect(resultat.visiteurId).toBeDefined();
     expect(resultat.token).toBeDefined();
     expect(resultat.token).toMatch(/^tws_/);
@@ -56,7 +58,7 @@ describe("Persistance PostgreSQL — Module Comptes & Authentification", () => {
     expect(challengeConsomme!.consumedAt).not.toBeNull();
 
     // Rejouer le même code doit échouer immédiatement (single-use)
-    await expect(service.verifierOtp(telephone, codeDemo)).rejects.toThrow(
+    await expect(service.verifierOtp(telephone, codeDemo!)).rejects.toThrow(
       ErreurMetier,
     );
 
@@ -75,8 +77,8 @@ describe("Persistance PostgreSQL — Module Comptes & Authentification", () => {
   });
 
   it("incrémente le compteur de tentatives en cas de mauvais code et bloque au maximum", async () => {
-    const telephone = "773334455";
-    await service.envoyerOtp(telephone);
+    const telephone = genererTel();
+    const { codeDemo } = await service.envoyerOtp(telephone);
 
     // 4 tentatives erronées
     for (let i = 0; i < 4; i++) {
@@ -97,15 +99,15 @@ describe("Persistance PostgreSQL — Module Comptes & Authentification", () => {
     );
 
     // Même avec le bon code, le challenge est verrouillé et rejeté
-    await expect(service.verifierOtp(telephone, "123456")).rejects.toThrow(
+    await expect(service.verifierOtp(telephone, codeDemo!)).rejects.toThrow(
       ErreurMetier,
     );
   });
 
   it("supporte la déconnexion en révoquant la session en base de données", async () => {
-    const telephone = "774445566";
+    const telephone = genererTel();
     const { codeDemo } = await service.envoyerOtp(telephone);
-    const { token, visiteurId } = await service.verifierOtp(telephone, codeDemo);
+    const { token, visiteurId } = await service.verifierOtp(telephone, codeDemo!);
 
     // Session valide avant déconnexion
     const avant = await service.exigerVisiteur(token);

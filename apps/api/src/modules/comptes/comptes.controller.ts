@@ -1,7 +1,9 @@
-import { Body, Controller, Headers, Post, Res } from "@nestjs/common";
+import { Body, Controller, Headers, Post, Req, Res } from "@nestjs/common";
 import { ApiHeader, ApiOperation, ApiTags } from "@nestjs/swagger";
-import type { Response } from "express";
+import type { Request, Response } from "express";
 
+import { ErreurMetier } from "../../commun/erreurs";
+import { extraireIpClientSecurisee } from "../../commun/securite/adresse-ip";
 import { ConnexionPrestataireDto, EnvoyerOtpDto, VerifierOtpDto } from "./dto/otp.dto";
 import { ServiceComptes } from "./comptes.service";
 
@@ -11,9 +13,18 @@ export class ControleurComptes {
   constructor(private readonly comptes: ServiceComptes) {}
 
   @Post("otp/envoyer")
-  @ApiOperation({ summary: "Envoyer un code OTP au visiteur (simulé)" })
-  async envoyer(@Body() corps: EnvoyerOtpDto) {
-    const resultat = await this.comptes.envoyerOtp(corps.telephone);
+  @ApiOperation({ summary: "Envoyer un code OTP au visiteur (par e-mail)" })
+  async envoyer(
+    @Body() corps: EnvoyerOtpDto,
+    @Req() req: Request,
+  ) {
+    const identifiant = corps.identifiant || corps.email || corps.telephone;
+    if (!identifiant) {
+      throw new ErreurMetier("IDENTIFIANT_REQUIS", "Veuillez fournir un e-mail ou un numéro de téléphone.");
+    }
+
+    const ip = extraireIpClientSecurisee(req);
+    const resultat = await this.comptes.envoyerOtp(identifiant, ip);
     return { donnees: resultat };
   }
 
@@ -23,7 +34,12 @@ export class ControleurComptes {
     @Body() corps: VerifierOtpDto,
     @Res({ passthrough: true }) res?: Response,
   ) {
-    const resultat = await this.comptes.verifierOtp(corps.telephone, corps.code);
+    const identifiant = corps.identifiant || corps.email || corps.telephone;
+    if (!identifiant) {
+      throw new ErreurMetier("IDENTIFIANT_REQUIS", "Veuillez fournir un e-mail ou un numéro de téléphone.");
+    }
+
+    const resultat = await this.comptes.verifierOtp(identifiant, corps.code);
 
     if (resultat.token && res?.cookie) {
       res.cookie("teranga_visiteur", resultat.token, {

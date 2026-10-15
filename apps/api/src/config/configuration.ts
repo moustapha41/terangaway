@@ -27,6 +27,18 @@ export const config = {
   delaiReponseMinutes: Number(requis("DELAI_REPONSE_MINUTES", "120")),
   /** Préavis minimal pour une prise en charge, en heures (§B.3). */
   delaiMinimumHeures: Number(requis("DELAI_MINIMUM_HEURES", "2")),
+  /** Configuration Resend & e-mails transactionnels */
+  resendApiKey:
+    (process.env.NODE_ENV ?? "development") === "production"
+      ? requis("RESEND_API_KEY")
+      : (process.env.RESEND_API_KEY ?? ""),
+  emailFrom: requis("EMAIL_FROM", "Teranga Way <auth@terangaway.sn>"),
+  appUrl: requis("APP_URL", "http://localhost:3000"),
+  /** Clé secrète dédiée pour HMAC-SHA-256 des codes OTP (exclusive à l'API, obligatoire en production) */
+  otpSecret:
+    (process.env.NODE_ENV ?? "development") === "production"
+      ? requis("OTP_SECRET")
+      : (process.env.OTP_SECRET ?? "teranga-dev-otp-hmac-secret-key-32chars-min-2026"),
 } as const;
 
 export type Config = typeof config;

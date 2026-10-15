@@ -1,13 +1,24 @@
 export interface CodeOtp {
-  telephone: string;
+  id?: string;
+  destination: string;
+  telephone?: string;
   code: string;
   expireLe: string;
   tentatives: number;
+  ipAddress?: string;
+}
+
+export interface VerificationRateLimit {
+  autorise: boolean;
+  motif?: "cooldown" | "quota_destination" | "quota_ip";
+  delaiRestantSecondes?: number;
 }
 
 export interface SessionVisiteur {
   id: string;
-  telephone: string;
+  destination?: string;
+  telephone?: string;
+  email?: string;
   creeLe: string;
   compteId?: string;
   token?: string;
@@ -23,10 +34,11 @@ export interface SessionPrestataire {
 
 export interface DepotComptes {
   enregistrerOtp(otp: CodeOtp): Promise<void>;
-  otpPour(telephone: string): Promise<CodeOtp | null>;
-  incrementerTentatives?(telephone: string): Promise<number>;
-  consommerOtp(telephone: string): Promise<void>;
-  creerSessionVisiteur(telephone: string): Promise<SessionVisiteur>;
+  otpPour(destination: string): Promise<CodeOtp | null>;
+  incrementerTentatives?(destination: string): Promise<number>;
+  consommerOtp(idOuDestination: string): Promise<boolean | void>;
+  verifierRateLimit?(destination: string, ipAddress?: string): Promise<VerificationRateLimit>;
+  creerSessionVisiteur(destination: string): Promise<SessionVisiteur>;
   sessionVisiteur(id: string): Promise<SessionVisiteur | null>;
   creerSessionPrestataire(telephone: string): Promise<SessionPrestataire>;
   sessionPrestataire(id: string): Promise<SessionPrestataire | null>;

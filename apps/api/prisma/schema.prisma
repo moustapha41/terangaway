@@ -65,6 +65,7 @@ model Account {
 model OtpChallenge {
   id          String    @id @default(cuid())
   destination String
+  ipAddress   String?
   finalite    String    @default("connexion")
   codeHash    String
   attempts    Int       @default(0)
@@ -76,6 +77,7 @@ model OtpChallenge {
   creeLe      DateTime  @default(now())
 
   @@index([destination, creeLe])
+  @@index([ipAddress, creeLe])
   @@map("otp_challenges")
 }
 

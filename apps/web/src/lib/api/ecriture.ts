@@ -98,10 +98,17 @@ export async function apiRepondreAvecJeton(
   });
 }
 
-export async function apiVerifierOtp(telephone: string, code: string) {
+export async function apiEnvoyerOtp(identifiant: string) {
+  return appelerApi<{ expireLe: string; delaiAttenteSecondes: number }>("/comptes/otp/envoyer", {
+    method: "POST",
+    corps: { identifiant },
+  });
+}
+
+export async function apiVerifierOtp(identifiant: string, code: string) {
   return appelerApi<{ visiteurId: string; token?: string }>("/comptes/otp/verifier", {
     method: "POST",
-    corps: { telephone, code },
+    corps: { identifiant, code },
   });
 }
 

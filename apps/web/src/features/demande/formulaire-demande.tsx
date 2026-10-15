@@ -13,6 +13,7 @@ import { formaterPrix } from "@/lib/prix";
 import { PrixConverti } from "@/features/preferences/prix-converti";
 import { useNaviguer } from "@/lib/i18n/naviguer";
 import { creerDemandeLogementAction } from "@/features/demande/actions";
+import { demanderCodeOtpAction } from "@/features/compte/actions";
 import { CODE_DE_DEMONSTRATION, type EtatEnvoi } from "@/mocks/api";
 
 /**
@@ -319,7 +320,10 @@ export function FormulaireDemande({
               largeur="pleine"
               enCours={enCours}
               disabled={!enLigne}
-              onClick={() => setFeuilleCode(true)}
+              onClick={() => {
+                setFeuilleCode(true);
+                if (email) demanderCodeOtpAction(email).catch(() => {});
+              }}
             >
               {t("demande.envoyerMaDemande")}
             </Bouton>
@@ -335,11 +339,15 @@ export function FormulaireDemande({
       <FeuilleBasse
         ouverte={feuilleCode}
         onFermer={() => setFeuilleCode(false)}
-        titre={t("demande.codeTitre")}
+        titre="Code de vérification"
         etiquetteFermer={t("demande.fermer")}
       >
         <div className="space-y-5">
-          <p className="text-corps text-encre-douce">{t("demande.codeTexte")}</p>
+          <p className="text-corps text-encre-douce">
+            {email
+              ? `Un code de vérification à six chiffres a été envoyé à l'adresse e-mail ${email}. Saisissez-le pour confirmer votre demande.`
+              : t("demande.codeTexte")}
+          </p>
 
           <ChampCode
             libelle={t("demande.codeLibelle")}
@@ -380,6 +388,7 @@ export function FormulaireDemande({
             onClick={() => {
               setCompteARebours(SECONDES_AVANT_RENVOI);
               setErreurCode(null);
+              if (email) demanderCodeOtpAction(email).catch(() => {});
             }}
           >
             {compteARebours > 0

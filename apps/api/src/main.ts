@@ -11,6 +11,9 @@ import { config } from "./config/configuration";
 async function demarrer() {
   const app = await NestFactory.create(AppModule, { logger: ["log", "warn", "error"] });
 
+  // Faire confiance aux proxys inverses (Traefik dans Dokploy, Next.js en réseau Docker)
+  app.getHttpAdapter().getInstance().set("trust proxy", true);
+
   // Le site envoie son cookie de session : l'origine est donc contrôlée,
   // jamais ouverte à tout le monde.
   app.enableCors({ origin: config.originesAutorisees, credentials: true });

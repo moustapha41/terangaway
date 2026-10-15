@@ -36,10 +36,23 @@ export async function appelerApi<T>(
     headers?: Record<string, string>;
   } = {},
 ): Promise<T> {
+  const forwardedHeaders: Record<string, string> = {};
+  try {
+    const { headers } = await import("next/headers");
+    const h = await headers();
+    const xForwardedFor = h.get("x-forwarded-for");
+    const xRealIp = h.get("x-real-ip");
+    if (xForwardedFor) forwardedHeaders["x-forwarded-for"] = xForwardedFor;
+    if (xRealIp) forwardedHeaders["x-real-ip"] = xRealIp;
+  } catch {
+    // Exécution hors contexte de requête Next.js (ex: compilation statique ou tests)
+  }
+
   const reponse = await fetch(`${baseUrl()}${chemin}`, {
     method: options.method ?? "GET",
     headers: {
       "Content-Type": "application/json",
+      ...forwardedHeaders,
       ...options.headers,
     },
     body: options.corps === undefined ? undefined : JSON.stringify(options.corps),
