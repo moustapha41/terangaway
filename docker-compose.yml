@@ -45,10 +45,14 @@ services:
       NODE_ENV: production
       PORT: "3101"
       DATABASE_URL: ${DATABASE_URL:-postgresql://${POSTGRES_USER:-teranga}:${POSTGRES_PASSWORD:-teranga}@postgres:5432/${POSTGRES_DB:-teranga}?schema=public}
-      ORIGINES_AUTORISEES: ${ORIGINES_AUTORISEES:-http://localhost:3100}
+      ORIGINES_AUTORISEES: ${ORIGINES_AUTORISEES:-https://teranga-way.com,http://localhost:3100}
       DUREE_JETON_MINUTES: ${DUREE_JETON_MINUTES:-120}
       DELAI_REPONSE_MINUTES: ${DELAI_REPONSE_MINUTES:-120}
       DELAI_MINIMUM_HEURES: ${DELAI_MINIMUM_HEURES:-2}
+      RESEND_API_KEY: ${RESEND_API_KEY}
+      EMAIL_FROM: ${EMAIL_FROM:-Teranga Way <auth@teranga-way.com>}
+      APP_URL: ${APP_URL:-https://teranga-way.com}
+      OTP_SECRET: ${OTP_SECRET}
     expose:
       - "3101"
     healthcheck:

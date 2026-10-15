@@ -7,7 +7,6 @@ import { ErreurMetier } from "../../commun/erreurs";
 import {
   normaliserDestination,
   verifierOtpHash,
-  verifierSha256,
 } from "../../commun/securite/hachage";
 import { config } from "../../config/configuration";
 import type { DepotComptes } from "./comptes.depot";

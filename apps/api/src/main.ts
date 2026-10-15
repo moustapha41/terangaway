@@ -44,6 +44,9 @@ async function demarrer() {
   new Logger("API").log(
     `à l'écoute sur http://localhost:${config.port} — documentation sur /documentation`,
   );
+  new Logger("API").log(
+    `Configuration : env=${config.environnement}, Resend=${config.resendApiKey ? "défini" : "absent"}, EmailFrom=${config.emailFrom}, AppUrl=${config.appUrl}, OtpSecret=${config.otpSecret ? "défini" : "absent"}`,
+  );
 }
 
 void demarrer();

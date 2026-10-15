@@ -1,44 +1,83 @@
 /**
- * Configuration de l'API, lue une fois au démarrage.
+ * Configuration de l'API, validée et chargée au démarrage.
  *
  * Toute valeur qui change entre les environnements passe par ici. Rien n'est
- * lu via `process.env` ailleurs dans le code : une valeur manquante doit faire
- * échouer le démarrage, pas une requête au hasard trois jours plus tard.
+ * lu via `process.env` de façon désordonnée ailleurs dans le code : une valeur
+ * obligatoire manquante fait échouer immédiatement le démarrage.
  */
-function requis(nom: string, defaut?: string): string {
-  const valeur = process.env[nom] ?? defaut;
-  if (valeur === undefined) {
+function requis(nom: string, defaut?: string, env: NodeJS.ProcessEnv = process.env): string {
+  const brute = env[nom];
+  const estRenseigne = brute !== undefined && brute.trim() !== "";
+  const valeur = estRenseigne ? brute.trim() : defaut;
+  if (valeur === undefined || valeur.trim() === "") {
     throw new Error(`Variable d'environnement manquante : ${nom}`);
   }
   return valeur;
 }
 
-export const config = {
-  port: Number(requis("PORT", "3001")),
-  environnement: requis("NODE_ENV", "development"),
-  /** Origines autorisées à appeler l'API, séparées par des virgules. */
-  originesAutorisees: requis("ORIGINES_AUTORISEES", "http://localhost:3000")
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean),
-  /** Durée de validité d'un jeton de réponse partenaire, en minutes (PAR-11). */
-  dureeJetonMinutes: Number(requis("DUREE_JETON_MINUTES", "120")),
-  /** Délai de réponse accordé au partenaire sur une demande, en minutes. */
-  delaiReponseMinutes: Number(requis("DELAI_REPONSE_MINUTES", "120")),
-  /** Préavis minimal pour une prise en charge, en heures (§B.3). */
-  delaiMinimumHeures: Number(requis("DELAI_MINIMUM_HEURES", "2")),
-  /** Configuration Resend & e-mails transactionnels */
-  resendApiKey:
-    (process.env.NODE_ENV ?? "development") === "production"
-      ? requis("RESEND_API_KEY")
-      : (process.env.RESEND_API_KEY ?? ""),
-  emailFrom: requis("EMAIL_FROM", "Teranga Way <auth@terangaway.sn>"),
-  appUrl: requis("APP_URL", "http://localhost:3000"),
-  /** Clé secrète dédiée pour HMAC-SHA-256 des codes OTP (exclusive à l'API, obligatoire en production) */
-  otpSecret:
-    (process.env.NODE_ENV ?? "development") === "production"
-      ? requis("OTP_SECRET")
-      : (process.env.OTP_SECRET ?? "teranga-dev-otp-hmac-secret-key-32chars-min-2026"),
-} as const;
+export function chargerConfiguration(env: NodeJS.ProcessEnv = process.env) {
+  const isProd = (env.NODE_ENV ?? "development") === "production";
+  const requisEnv = (nom: string, defaut?: string) => requis(nom, defaut, env);
 
-export type Config = typeof config;
+  // Gestion de la clé active et des clés précédentes pour rotation sécurisée sans rupture
+  const brutOtp = env.OTP_SECRET?.trim();
+  const brutPrecedent = env.OTP_PREVIOUS_SECRET?.trim();
+  if (isProd && (!brutOtp || brutOtp === "")) {
+    throw new Error("Variable d'environnement manquante : OTP_SECRET");
+  }
+
+  const secretsOtp: string[] = [];
+  if (brutOtp) {
+    for (const cleBrute of brutOtp.split(",")) {
+      const cle = cleBrute.trim();
+      if (cle && !secretsOtp.includes(cle)) {
+        secretsOtp.push(cle);
+      }
+    }
+  }
+  if (brutPrecedent) {
+    for (const cleBrute of brutPrecedent.split(",")) {
+      const cle = cleBrute.trim();
+      if (cle && !secretsOtp.includes(cle)) {
+        secretsOtp.push(cle);
+      }
+    }
+  }
+  if (secretsOtp.length === 0) {
+    const defautDev = "teranga-dev-otp-hmac-secret-key-32chars-min-2026";
+    secretsOtp.push(defautDev);
+  }
+
+  return {
+    port: Number(requisEnv("PORT", "3001")),
+    environnement: requisEnv("NODE_ENV", "development"),
+    /** Origines autorisées à appeler l'API, séparées par des virgules. */
+    originesAutorisees: requisEnv(
+      "ORIGINES_AUTORISEES",
+      "http://localhost:3000,http://localhost:3100,https://teranga-way.com,https://www.teranga-way.com",
+    )
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean),
+    /** Durée de validité d'un jeton de réponse partenaire, en minutes (PAR-11). */
+    dureeJetonMinutes: Number(requisEnv("DUREE_JETON_MINUTES", "120")),
+    /** Délai de réponse accordé au partenaire sur une demande, en minutes. */
+    delaiReponseMinutes: Number(requisEnv("DELAI_REPONSE_MINUTES", "120")),
+    /** Préavis minimal pour une prise en charge, en heures (§B.3). */
+    delaiMinimumHeures: Number(requisEnv("DELAI_MINIMUM_HEURES", "2")),
+    /** Configuration Resend & e-mails transactionnels (obligatoire en production) */
+    resendApiKey: isProd
+      ? requisEnv("RESEND_API_KEY")
+      : (env.RESEND_API_KEY?.trim() ?? ""),
+    emailFrom: requisEnv("EMAIL_FROM", "Teranga Way <auth@teranga-way.com>"),
+    appUrl: requisEnv("APP_URL", isProd ? "https://teranga-way.com" : "http://localhost:3000"),
+    /** Clé secrète dédiée pour HMAC-SHA-256 des codes OTP (clé active) */
+    otpSecret: secretsOtp[0],
+    /** Liste ordonnée de toutes les clés autorisées pour vérification (rotation) */
+    otpSecretsPourVerification: secretsOtp,
+  } as const;
+}
+
+export const config = chargerConfiguration();
+
+export type Config = ReturnType<typeof chargerConfiguration>;

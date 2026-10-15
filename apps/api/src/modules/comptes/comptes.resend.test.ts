@@ -10,7 +10,6 @@ import {
   hacherOtp,
   hacherSha256,
   verifierOtpHash,
-  verifierSha256,
 } from "../../commun/securite/hachage";
 import { config } from "../../config/configuration";
 import { DepotComptesPrisma } from "./comptes.prisma";

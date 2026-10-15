@@ -15,25 +15,43 @@ export function hacherOtp(code: string, secret = config.otpSecret): string {
     .digest("hex");
 }
 
+function verifierHmacUnitaire(code: string, hashAttendu: string, secret: string): boolean {
+  const hashCalculeHmac = hacherOtp(code, secret);
+  const bufferA = Buffer.from(hashCalculeHmac, "utf8");
+  const bufferB = Buffer.from(hashAttendu, "utf8");
+
+  if (bufferA.length !== bufferB.length) {
+    return false;
+  }
+  return timingSafeEqual(bufferA, bufferB);
+}
+
 /**
- * Vérifie un code OTP en temps constant avec son empreinte HMAC-SHA-256 (ou fallback SHA-256).
+ * Vérifie un code OTP en temps constant avec son empreinte HMAC-SHA-256.
+ * Prend en charge la rotation de clé sans compromettre les OTP déjà émis.
+ * Aucun fallback permissif : seuls les codes HMAC valides avec la clé active ou précédente sont acceptés.
  */
 export function verifierOtpHash(
   code: string,
   hashAttendu: string,
   secret = config.otpSecret,
+  secretsPourVerification: readonly string[] = config.otpSecretsPourVerification,
 ): boolean {
-  // 1. Vérification primaire HMAC-SHA-256 avec secret serveur
-  const hashCalculeHmac = hacherOtp(code, secret);
-  const bufferA = Buffer.from(hashCalculeHmac, "utf8");
-  const bufferB = Buffer.from(hashAttendu, "utf8");
-
-  if (bufferA.length === bufferB.length && timingSafeEqual(bufferA, bufferB)) {
+  // 1. Vérification primaire HMAC-SHA-256 avec secret serveur fourni ou actif
+  if (verifierHmacUnitaire(code, hashAttendu, secret)) {
     return true;
   }
 
-  // 2. Rétrocompatibilité transitoire pour d'éventuels hashs SHA-256 salés
-  return verifierSha256(code, hashAttendu, secret);
+  // 2. Vérification secondaire avec les autres clés de rotation (si plusieurs clés configurées)
+  if (Array.isArray(secretsPourVerification)) {
+    for (const autreCle of secretsPourVerification) {
+      if (autreCle !== secret && verifierHmacUnitaire(code, hashAttendu, autreCle)) {
+        return true;
+      }
+    }
+  }
+
+  return false;
 }
 
 /**
