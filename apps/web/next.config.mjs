@@ -7,7 +7,7 @@ const ici = dirname(fileURLToPath(import.meta.url));
 const nextConfig = {
   reactStrictMode: true,
   // Paquets de l'atelier publiés en TypeScript brut : Next les compile lui-même.
-  transpilePackages: ["@teranga/ui", "@teranga/tokens", "@teranga/contracts"],
+  transpilePackages: ["@teranga/ui", "@teranga/tokens", "@teranga/contracts", "@teranga/fixtures"],
   devIndicators: false,
   // Sortie autonome pour l'image Docker : Next rassemble le serveur et les
   // seules dépendances qu'il a réellement tracées. Sans cela, il faudrait

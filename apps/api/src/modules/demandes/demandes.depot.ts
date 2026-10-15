@@ -35,4 +35,5 @@ export interface DepotDemandes {
   creerLogement(entree: EntreeCreationLogement): Promise<Demande>;
   creerVehicule(entree: EntreeCreationVehicule): Promise<Demande>;
   enregistrer(demande: Demande): Promise<Demande>;
+  visiteurDe?(demandeId: string): Promise<string | null> | string | undefined;
 }

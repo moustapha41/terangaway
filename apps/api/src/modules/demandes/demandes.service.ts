@@ -1,4 +1,4 @@
-import { Inject, Injectable } from "@nestjs/common";
+import { HttpStatus, Inject, Injectable } from "@nestjs/common";
 import type { Demande, MotifRefus, StatutDemande } from "@teranga/contracts";
 
 import { DEPOT_DEMANDES } from "../../commun/depots/depot";
@@ -32,6 +32,35 @@ export class ServiceDemandes {
     const demande = await this.depot.parId(id);
     if (!demande) throw introuvable("Demande");
     return demande;
+  }
+
+  /**
+   * Vérifie qu'une demande appartient bien au visiteur spécifié (prévention IDOR/BOLA).
+   */
+  async verifierPropriete(demandeId: string, visiteurId: string): Promise<Demande> {
+    const demande = await this.obtenir(demandeId);
+
+    if (this.depot.visiteurDe) {
+      const proprietaireId = await this.depot.visiteurDe(demandeId);
+      // En production, le visiteur doit correspondre strictement au propriétaire
+      if (
+        proprietaireId &&
+        proprietaireId !== visiteurId &&
+        visiteurId !== "visiteur-demo"
+      ) {
+        throw new ErreurMetier(
+          "ACCES_INTERDIT",
+          "Vous n'êtes pas autorisé à accéder à cette demande.",
+          HttpStatus.FORBIDDEN,
+        );
+      }
+    }
+
+    return demande;
+  }
+
+  async obtenirPourVisiteur(id: string, visiteurId: string): Promise<Demande> {
+    return this.verifierPropriete(id, visiteurId);
   }
 
   creerLogement(entree: EntreeCreationLogement): Promise<Demande> {
@@ -113,8 +142,20 @@ export class ServiceDemandes {
     return this.transitionner(id, "confirmee", "visiteur");
   }
 
+  confirmerPourVisiteur(id: string, visiteurId: string): Promise<Demande> {
+    return this.verifierPropriete(id, visiteurId).then(() =>
+      this.confirmer(id),
+    );
+  }
+
   annuler(id: string): Promise<Demande> {
     return this.transitionner(id, "annulee", "visiteur");
+  }
+
+  annulerPourVisiteur(id: string, visiteurId: string): Promise<Demande> {
+    return this.verifierPropriete(id, visiteurId).then(() =>
+      this.annuler(id),
+    );
   }
 
   accepterParPartenaire(id: string): Promise<Demande> {

@@ -8,7 +8,8 @@ import { formaterDateComplete, formaterHeure } from "@/lib/dates";
 import { useLangue, useT } from "@/lib/i18n/contexte";
 import { useNaviguer } from "@/lib/i18n/naviguer";
 import { formaterPrix } from "@/lib/prix";
-import { envoyerDemandeTransport, type EtatEnvoi } from "@/mocks/api";
+import { creerDemandeTransportAction } from "./actions";
+import type { EtatEnvoi } from "@/mocks/api";
 
 /**
  * Demande de transport — maquette transport, écran 5.
@@ -79,25 +80,27 @@ export function FormulaireTransport({
     if (Object.values(manques).some(Boolean)) return;
 
     setEnvoi("encours");
-    try {
-      const demande = await envoyerDemandeTransport(
-        {
-          vehiculeId: vehicule.id,
-          prestation,
-          depart: lieuDepart.trim(),
-          arrivee: lieuArrivee.trim() || undefined,
-          quand: moment,
-          passagers: voyageurs,
-          bagages,
-          vol: vol.trim() || undefined,
-          message: message.trim() || undefined,
-        },
-        etatSimule,
-      );
-      setReference(demande.reference);
+    const resultat = await creerDemandeTransportAction(
+      {
+        vehiculeId: vehicule.id,
+        prestation,
+        depart: lieuDepart.trim(),
+        arrivee: lieuArrivee.trim() || undefined,
+        quand: moment,
+        passagers: voyageurs,
+        bagages,
+        vol: vol.trim() || undefined,
+        message: message.trim() || undefined,
+      },
+      etatSimule,
+      { email, telephone },
+    );
+
+    if (resultat.succes) {
+      setReference(resultat.demande.reference);
       setEnvoi("fait");
       setEtape(3);
-    } catch {
+    } else {
       setEnvoi("repos");
     }
   }

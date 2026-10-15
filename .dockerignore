@@ -15,20 +15,29 @@ node_modules
 **/coverage
 **/*.tsbuildinfo
 
-# Secrets : jamais dans une image.
+# Secrets et certificats : jamais dans une image Docker
 .env
 .env.*
-!.env.example
+.env*.local
+**/.env
+**/.env.*
+**/.env*.local
+!**/.env.example
+*.pem
+*.key
+*.crt
+**/*.pem
+**/*.key
+**/*.crt
 
-# Matière première des fiches : 196 Mo de photos et vidéos reçues des
-# propriétaires. Seules les images publiées, dans apps/web/public, comptent.
+# Matière première des fiches : photos et vidéos brutes non publiées
 donnee
 v1
 v2
 v3
 v4
 
-# Maquettes, captures et films de présentation : rien à faire en production.
+# Maquettes, captures, médias et dossiers de travail hors production
 media
 base
 a_propos
@@ -38,10 +47,12 @@ logement
 prestataire
 services
 transport
+apps/admin
 *.png
 !apps/web/public/**/*.png
 !packages/**/*.png
 
+# Rapports de test et documentation
 tests
 playwright-report
 test-results

@@ -6,7 +6,7 @@ import { Bandeau, Bouton, Carte, Champ, Compteur, Icone } from "@teranga/ui";
 import { CHAMPS, CHAMP_MESSAGE, type Champ as Declaration } from "./champs";
 import { useT } from "@/lib/i18n/contexte";
 import { useNaviguer } from "@/lib/i18n/naviguer";
-import { envoyerDemandeService } from "@/mocks/api";
+import { creerDemandeServiceAction } from "./actions";
 
 /**
  * Demande d'un service sans catalogue (V2).
@@ -48,18 +48,17 @@ export function FormulaireDemandeService({ service }: { service: ServiceALaDeman
     if (Object.keys(manques).length > 0) return;
 
     setEnvoi("encours");
-    try {
-      const demande = await envoyerDemandeService({
-        service,
-        details: valeurs,
-        message: message.trim() || undefined,
-      });
-      setReference(demande.reference);
+    const resultat = await creerDemandeServiceAction({
+      service,
+      details: valeurs,
+      message: message.trim() || undefined,
+    });
+
+    if (resultat.succes) {
+      setReference(resultat.demande.reference);
       setEnvoi("fait");
-    } catch (erreur) {
-      // Un envoi qui échoue doit le dire. Revenir silencieusement au repos
-      // laisse la personne cliquer dans le vide sans comprendre.
-      console.error("[service] envoi de la demande impossible", erreur);
+    } else {
+      console.error("[service] envoi de la demande impossible", resultat.erreur);
       setEnvoi("echec");
     }
   }

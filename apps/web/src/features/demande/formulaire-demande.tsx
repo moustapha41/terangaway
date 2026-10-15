@@ -5,7 +5,6 @@ import { useEffect, useRef, useState } from "react";
 import type { Logement } from "@teranga/contracts";
 import { Bandeau, Bouton, Carte, Champ, ChampCode, Compteur, FeuilleBasse, Icone } from "@teranga/ui";
 import { IndicateurEtapes } from "./indicateur-etapes";
-import { ouvrirSession } from "@/features/compte/actions";
 import { Lien } from "@/lib/i18n/lien";
 import { useLangue, useT } from "@/lib/i18n/contexte";
 import { useEnLigne } from "@/lib/hors-ligne/etat-reseau";
@@ -13,13 +12,8 @@ import { formaterDateComplete, nombreDeNuits } from "@/lib/dates";
 import { formaterPrix } from "@/lib/prix";
 import { PrixConverti } from "@/features/preferences/prix-converti";
 import { useNaviguer } from "@/lib/i18n/naviguer";
-import {
-  CODE_DE_DEMONSTRATION,
-  CodeInvalide,
-  envoyerDemande,
-  LogementPris,
-  type EtatEnvoi,
-} from "@/mocks/api";
+import { creerDemandeLogementAction } from "@/features/demande/actions";
+import { CODE_DE_DEMONSTRATION, type EtatEnvoi } from "@/mocks/api";
 
 /**
  * Écrans 4, 9 et 10 · Demande en trois étapes.
@@ -126,7 +120,7 @@ export function FormulaireDemande({
     setEnCours(true);
     setErreurCode(null);
     try {
-      const demande = await envoyerDemande(
+      const resultat = await creerDemandeLogementAction(
         {
           logementId: logement.id,
           debut,
@@ -136,19 +130,20 @@ export function FormulaireDemande({
           code: avecCode,
         },
         etatSimule,
+        { email, telephone },
       );
-      await ouvrirSession(email || demande.reference);
-      naviguer(`/demande/confirmation?reference=${demande.reference}`);
-    } catch (erreur) {
-      if (erreur instanceof CodeInvalide) {
-        // Le formulaire reste intact : seule la case du code se vide.
-        setErreurCode(erreur.raison);
+
+      if (resultat.succes) {
+        naviguer(`/demande/confirmation?reference=${resultat.demande.reference}`);
+        return;
+      }
+
+      if (resultat.erreur === "code_invalide") {
+        setErreurCode(resultat.raison ?? "faux");
         setCode("");
-      } else if (erreur instanceof LogementPris) {
+      } else if (resultat.erreur === "logement_pris") {
         setFeuilleCode(false);
-        setPris(erreur.alternatives);
-      } else {
-        throw erreur;
+        setPris(resultat.alternatives ?? []);
       }
     } finally {
       setEnCours(false);

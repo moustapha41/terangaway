@@ -7,12 +7,24 @@ import { CreerDemandeLogementDto } from "./dto/creer-demande-logement.dto";
 import { CreerDemandeVehiculeDto } from "./dto/creer-demande-vehicule.dto";
 import { ServiceDemandes } from "./demandes.service";
 
-/**
- * Création des demandes.
- *
- * L'identité du visiteur passe par la session (`X-Visiteur-Id` en démo) ou
- * par un code OTP fourni dans le corps — même mécanique que le mock actuel.
- */
+function extraireJeton(
+  visiteurHeader?: string,
+  authHeader?: string,
+  cookieHeader?: string,
+): string | undefined {
+  if (authHeader && /^Bearer\s+/i.test(authHeader)) {
+    return authHeader.replace(/^Bearer\s+/i, "").trim();
+  }
+  if (visiteurHeader) {
+    return visiteurHeader.trim();
+  }
+  if (cookieHeader) {
+    const match = cookieHeader.match(/teranga_visiteur=([^;]+)/);
+    if (match) return decodeURIComponent(match[1]);
+  }
+  return undefined;
+}
+
 @ApiTags("demandes")
 @Controller("demandes")
 export class ControleurDemandes {
@@ -24,11 +36,15 @@ export class ControleurDemandes {
   @Post("logement")
   @ApiOperation({ summary: "Envoyer une demande de logement" })
   @ApiHeader({ name: "x-visiteur-id", required: false })
+  @ApiHeader({ name: "authorization", required: false })
   async creerLogement(
     @Body() corps: CreerDemandeLogementDto,
     @Headers("x-visiteur-id") visiteurHeader?: string,
+    @Headers("authorization") authHeader?: string,
+    @Headers("cookie") cookieHeader?: string,
   ) {
-    const visiteurId = await this.comptes.exigerVisiteur(visiteurHeader, corps.code);
+    const jeton = extraireJeton(visiteurHeader, authHeader, cookieHeader);
+    const visiteurId = await this.comptes.exigerVisiteur(jeton, corps.code);
     const demande = await this.demandes.creerLogement({
       logementId: corps.logementId,
       debut: corps.debut,
@@ -44,11 +60,15 @@ export class ControleurDemandes {
   @Post("vehicule")
   @ApiOperation({ summary: "Envoyer une demande de transport" })
   @ApiHeader({ name: "x-visiteur-id", required: false })
+  @ApiHeader({ name: "authorization", required: false })
   async creerVehicule(
     @Body() corps: CreerDemandeVehiculeDto,
     @Headers("x-visiteur-id") visiteurHeader?: string,
+    @Headers("authorization") authHeader?: string,
+    @Headers("cookie") cookieHeader?: string,
   ) {
-    const visiteurId = await this.comptes.exigerVisiteur(visiteurHeader, corps.code);
+    const jeton = extraireJeton(visiteurHeader, authHeader, cookieHeader);
+    const visiteurId = await this.comptes.exigerVisiteur(jeton, corps.code);
 
     // Deux heures minimum pour un trajet (§B.3).
     if (corps.prestation === "trajet") {

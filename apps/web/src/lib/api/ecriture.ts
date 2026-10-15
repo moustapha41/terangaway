@@ -99,9 +99,23 @@ export async function apiRepondreAvecJeton(
 }
 
 export async function apiVerifierOtp(telephone: string, code: string) {
-  return appelerApi<{ visiteurId: string }>("/comptes/otp/verifier", {
+  return appelerApi<{ visiteurId: string; token?: string }>("/comptes/otp/verifier", {
     method: "POST",
     corps: { telephone, code },
+  });
+}
+
+export async function apiConnexionPrestataire(telephone: string, code: string) {
+  return appelerApi<{ prestataireId: string; token?: string }>("/comptes/prestataire/connexion", {
+    method: "POST",
+    corps: { telephone, code },
+  });
+}
+
+export async function apiDeconnexion(token?: string) {
+  return appelerApi<{ deconnecte: boolean }>("/comptes/deconnexion", {
+    method: "POST",
+    headers: token ? { "x-visiteur-id": token } : undefined,
   });
 }
 

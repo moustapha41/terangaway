@@ -21,6 +21,6 @@ import { ServiceVehicules } from "./vehicules/vehicules.service";
     { provide: DEPOT_LOGEMENTS, useClass: DepotLogementsFixtures },
     { provide: DEPOT_VEHICULES, useClass: DepotVehiculesFixtures },
   ],
-  exports: [ServiceLogements, ServiceVehicules],
+  exports: [ServiceLogements, ServiceVehicules, DEPOT_LOGEMENTS, DEPOT_VEHICULES],
 })
 export class ModuleOffres {}

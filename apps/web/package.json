@@ -8,6 +8,7 @@
     "start": "next start -p 3000",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
+    "test": "../api/node_modules/.bin/vitest run --config vitest.config.ts",
     "i18n:verifier": "node scripts/verifier-i18n.mjs",
     "i18n:cles": "node scripts/verifier-cles-appelees.mjs",
     "contraste": "node scripts/verifier-contraste.mjs",

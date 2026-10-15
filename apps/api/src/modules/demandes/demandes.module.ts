@@ -2,17 +2,18 @@ import { Module } from "@nestjs/common";
 
 import { DEPOT_DEMANDES } from "../../commun/depots/depot";
 import { ModuleComptes } from "../comptes/comptes.module";
+import { ModuleOffres } from "../offres/offres.module";
 import { ControleurDemandes } from "./demandes.controller";
-import { DepotDemandesFixtures } from "./demandes.fixtures";
+import { DepotDemandesPrisma } from "./demandes.prisma";
 import { ServiceDemandes } from "./demandes.service";
 
 @Module({
-  imports: [ModuleComptes],
+  imports: [ModuleComptes, ModuleOffres],
   controllers: [ControleurDemandes],
   providers: [
     ServiceDemandes,
-    { provide: DEPOT_DEMANDES, useClass: DepotDemandesFixtures },
+    { provide: DEPOT_DEMANDES, useClass: DepotDemandesPrisma },
   ],
-  exports: [ServiceDemandes],
+  exports: [ServiceDemandes, DEPOT_DEMANDES],
 })
 export class ModuleDemandes {}

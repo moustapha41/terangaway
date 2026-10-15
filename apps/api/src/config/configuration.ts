@@ -17,7 +17,10 @@ export const config = {
   port: Number(requis("PORT", "3001")),
   environnement: requis("NODE_ENV", "development"),
   /** Origines autorisées à appeler l'API, séparées par des virgules. */
-  originesAutorisees: requis("ORIGINES_AUTORISEES", "http://localhost:3000").split(","),
+  originesAutorisees: requis("ORIGINES_AUTORISEES", "http://localhost:3000")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean),
   /** Durée de validité d'un jeton de réponse partenaire, en minutes (PAR-11). */
   dureeJetonMinutes: Number(requis("DUREE_JETON_MINUTES", "120")),
   /** Délai de réponse accordé au partenaire sur une demande, en minutes. */

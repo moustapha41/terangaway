@@ -2,7 +2,7 @@ import { Module } from "@nestjs/common";
 
 import { DEPOT_JETONS } from "../../commun/depots/depot";
 import { ModuleDemandes } from "../demandes/demandes.module";
-import { DepotJetonsFixtures } from "./jetons.fixtures";
+import { DepotJetonsPrisma } from "./jetons.prisma";
 import { ControleurReponses } from "./reponses.controller";
 import { ServiceReponses } from "./reponses.service";
 
@@ -11,8 +11,8 @@ import { ServiceReponses } from "./reponses.service";
   controllers: [ControleurReponses],
   providers: [
     ServiceReponses,
-    { provide: DEPOT_JETONS, useClass: DepotJetonsFixtures },
+    { provide: DEPOT_JETONS, useClass: DepotJetonsPrisma },
   ],
-  exports: [ServiceReponses],
+  exports: [ServiceReponses, DEPOT_JETONS],
 })
 export class ModuleReponses {}

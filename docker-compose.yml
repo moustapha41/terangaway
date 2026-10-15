@@ -1,33 +1,62 @@
-# Pile de production, telle que Dokploy la déploie.
+# Pile de production Teranga Way — Déploiement Dokploy sur VPS
 #
-# Deux services : le site visiteurs et l'API. Aucun port n'est publié sur
-# l'hôte — c'est le Traefik de Dokploy qui atteint les conteneurs par le
-# réseau « dokploy-network ». Les ports 3000 (tableau de bord Dokploy) et 443
-# (Traefik) sont déjà pris sur le serveur, et rien ici ne les réclame.
+# Services :
+# 1. postgres : Base relationnelle PostgreSQL 16 avec volume persistant et réseau privé strict.
+# 2. api      : Backend NestJS 10 (exposé en interne sur le port 3101 et joignable par Traefik).
+# 3. web      : Frontend Next.js 15 (exposé sur le port 3100, routé par Traefik via dokploy-network).
 #
-# Un seul domaine à déclarer dans Dokploy : celui du service « web », sur le
-# port 3100. L'API n'a pas besoin d'être publique, le navigateur ne l'appelle
-# jamais : tous les accès passent par le serveur Next, sur le réseau privé.
+# Routage Dokploy / Traefik :
+# - Dokploy et Traefik utilisent le réseau Docker externe « dokploy-network ».
+# - Le service « web » est routé vers le domaine principal (ex: https://terangaway.sn).
+# - Le service « api » peut facultativement être routé vers un sous-domaine (ex: https://api.terangaway.sn).
+# - Le service « postgres » n'est JAMAIS publié sur Internet ni relié à dokploy-network.
 #
-# Pour essayer la pile en local, voir docker-compose.dev.yml.
+# Pour tester en local sans Dokploy :
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
 
 services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-teranga}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-teranga}
+      POSTGRES_DB: ${POSTGRES_DB:-teranga}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-teranga} -d $${POSTGRES_DB:-teranga}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - interne
+
   api:
     build:
       context: .
       dockerfile: apps/api/Dockerfile
     restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
     environment:
       NODE_ENV: production
       PORT: "3101"
-      # Sans appel depuis le navigateur, cette liste ne sert que le jour où un
-      # écran client appellera l'API en direct. Elle vaut mieux vide que large.
+      DATABASE_URL: ${DATABASE_URL:-postgresql://${POSTGRES_USER:-teranga}:${POSTGRES_PASSWORD:-teranga}@postgres:5432/${POSTGRES_DB:-teranga}?schema=public}
       ORIGINES_AUTORISEES: ${ORIGINES_AUTORISEES:-http://localhost:3100}
       DUREE_JETON_MINUTES: ${DUREE_JETON_MINUTES:-120}
       DELAI_REPONSE_MINUTES: ${DELAI_REPONSE_MINUTES:-120}
       DELAI_MINIMUM_HEURES: ${DELAI_MINIMUM_HEURES:-2}
     expose:
       - "3101"
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"fetch('http://127.0.0.1:' + (process.env.PORT || '3101') + '/sante').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))\""]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
     networks:
       - interne
 
@@ -36,9 +65,7 @@ services:
       context: .
       dockerfile: apps/web/Dockerfile
       args:
-        # Figé dans le code à la construction : le site lit l'API, pas ses
-        # jeux d'essai. Pour revenir aux fixtures, il faut reconstruire.
-        NEXT_PUBLIC_API_MOCK: "false"
+        NEXT_PUBLIC_API_MOCK: ${NEXT_PUBLIC_API_MOCK:-false}
     restart: unless-stopped
     depends_on:
       api:
@@ -47,17 +74,25 @@ services:
       NODE_ENV: production
       PORT: "3100"
       HOSTNAME: "0.0.0.0"
-      # Nom du service sur le réseau privé : aucune adresse publique ici.
-      API_URL: http://api:3101
+      API_URL: ${API_URL:-http://api:3101}
     expose:
       - "3100"
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"fetch('http://127.0.0.1:' + (process.env.PORT || '3100') + '/api/sante').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))\""]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
     networks:
       - interne
       - dokploy-network
 
+volumes:
+  postgres_data:
+
 networks:
-  # Réseau privé de la pile : l'API n'y est jointe que par le site.
+  # Réseau privé interne non exposé à l'extérieur
   interne:
-  # Créé par Dokploy à son installation. C'est par là que Traefik entre.
+  # Réseau Docker externe créé et géré par Dokploy pour l'entrée Traefik
   dokploy-network:
     external: true

@@ -2,6 +2,8 @@
 
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { apiDeconnexion, apiVerifierOtp } from "@/lib/api/ecriture";
+import { apiMockActive } from "@/lib/api/http";
 import { CODE_DE_DEMONSTRATION } from "@/mocks/api";
 import { COOKIE_VISITEUR } from "./cookie";
 
@@ -11,6 +13,7 @@ async function poser(identifiant: string) {
   const jar = await cookies();
   jar.set(COOKIE_VISITEUR, identifiant, {
     httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
     path: "/",
     maxAge: HUIT_HEURES,
@@ -38,6 +41,17 @@ export async function seConnecter(
   const suite = String(formData.get("suite") ?? "/mes-demandes");
 
   if (identifiant.length < 6) return { erreur: "identifiant" };
+
+  if (!apiMockActive()) {
+    try {
+      const res = await apiVerifierOtp(identifiant, code);
+      await poser(res.token ?? res.visiteurId);
+      redirect(`/fr${suite}`);
+    } catch {
+      return { erreur: "code" };
+    }
+  }
+
   if (code !== CODE_DE_DEMONSTRATION) return { erreur: "code" };
 
   await poser(identifiant);
@@ -46,6 +60,10 @@ export async function seConnecter(
 
 export async function seDeconnecter() {
   const jar = await cookies();
+  const token = jar.get(COOKIE_VISITEUR)?.value;
+  if (!apiMockActive() && token) {
+    await apiDeconnexion(token).catch(() => {});
+  }
   jar.delete(COOKIE_VISITEUR);
   redirect("/fr");
 }

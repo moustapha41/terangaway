@@ -1,0 +1,160 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum RoleCompte {
+  VISITEUR
+  PRESTATAIRE
+  ADMINISTRATEUR
+}
+
+enum TypeCompte {
+  LOGEMENT
+  TRANSPORT
+  LES_DEUX
+  VISITEUR
+}
+
+enum StatutDemandeDb {
+  envoyee
+  acceptee
+  confirmee
+  terminee
+  refusee
+  expiree
+  annulee
+}
+
+enum GenreOffreDb {
+  logement
+  trajet
+  location
+  taxi
+  service
+}
+
+model Account {
+  id             String         @id @default(cuid())
+  email          String?        @unique
+  telephone      String?        @unique
+  nom            String?
+  role           RoleCompte     @default(VISITEUR)
+  typeCompte     TypeCompte     @default(VISITEUR)
+  estVerifie     Boolean        @default(false)
+  verifieLe      DateTime?
+  charteSigneeLe DateTime?
+  creeLe         DateTime       @default(now())
+  misAJourLe     DateTime       @updatedAt
+
+  sessions       Session[]
+  otpChallenges  OtpChallenge[]
+  demandes       Demand[]                @relation("DemandesVisiteur")
+  demandesRecues Demand[]                @relation("DemandesPrestataire")
+  jetonsReponse  ProviderResponseToken[]
+
+  @@index([role])
+  @@map("accounts")
+}
+
+model OtpChallenge {
+  id          String    @id @default(cuid())
+  destination String
+  finalite    String    @default("connexion")
+  codeHash    String
+  attempts    Int       @default(0)
+  maxAttempts Int       @default(5)
+  expiresAt   DateTime
+  consumedAt  DateTime?
+  accountId   String?
+  account     Account?  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  creeLe      DateTime  @default(now())
+
+  @@index([destination, creeLe])
+  @@map("otp_challenges")
+}
+
+model Session {
+  id        String    @id @default(cuid())
+  accountId String
+  account   Account   @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique
+  expiresAt DateTime
+  revokedAt DateTime?
+  creeLe    DateTime  @default(now())
+
+  @@index([accountId])
+  @@index([tokenHash])
+  @@map("sessions")
+}
+
+model Demand {
+  id                  String          @id @default(cuid())
+  reference           String          @unique
+  visiteurId          String
+  visiteur            Account         @relation("DemandesVisiteur", fields: [visiteurId], references: [id], onDelete: Restrict)
+  prestataireId       String?
+  prestataire         Account?        @relation("DemandesPrestataire", fields: [prestataireId], references: [id], onDelete: SetNull)
+
+  genre               GenreOffreDb
+  statut              StatutDemandeDb @default(envoyee)
+
+  offreId             String?
+  offreTitre          String
+  offreVignette       String?
+
+  dateDebut           String?
+  dateFin             String?
+  personnes           Int             @default(1)
+  heureArrivee        String?
+  lieuDepart          String?
+  lieuArrivee         String?
+  prestationTransport String?
+  bagages             Int?
+  vol                 String?
+  message             String?
+
+  prixUnitaire        Int             @default(0)
+  nuits               Int?
+  fraisFixes          Json?
+  prixTotal           Int             @default(0)
+
+  coordonnees         Json?
+  frise               Json
+
+  expireLe            DateTime?
+  motifRefus          String?
+
+  creeLe              DateTime        @default(now())
+  misAJourLe          DateTime        @updatedAt
+
+  jetonsReponse       ProviderResponseToken[]
+
+  @@index([visiteurId, statut])
+  @@index([prestataireId, statut])
+  @@index([reference])
+  @@map("demands")
+}
+
+model ProviderResponseToken {
+  id            String    @id @default(cuid())
+  demandeId     String
+  demande       Demand    @relation(fields: [demandeId], references: [id], onDelete: Cascade)
+  prestataireId String
+  prestataire   Account   @relation(fields: [prestataireId], references: [id], onDelete: Cascade)
+  tokenHash     String    @unique
+  expiresAt     DateTime
+  consumedAt    DateTime?
+  reponse       String?
+  motifRefus    String?
+  creeLe        DateTime  @default(now())
+
+  @@index([demandeId])
+  @@index([prestataireId])
+  @@index([tokenHash])
+  @@map("provider_response_tokens")
+}

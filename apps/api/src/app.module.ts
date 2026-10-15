@@ -1,5 +1,6 @@
 import { Module } from "@nestjs/common";
 
+import { PrismaModule } from "./base-de-donnees/prisma.module";
 import { ModuleAdministration } from "./modules/administration/administration.module";
 import { ModuleAssistance } from "./modules/assistance/assistance.module";
 import { ModuleComptes } from "./modules/comptes/comptes.module";
@@ -28,6 +29,7 @@ import { ModuleVisiteurs } from "./modules/visiteurs/visiteurs.module";
  */
 @Module({
   imports: [
+    PrismaModule,
     ModuleSante,
     // Lecture
     ModuleOffres,
