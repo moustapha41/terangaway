@@ -3,6 +3,8 @@ import type { Demande, MotifRefus, StatutDemande } from "@teranga/contracts";
 
 import { DEPOT_DEMANDES } from "../../commun/depots/depot";
 import { ErreurMetier, introuvable } from "../../commun/erreurs";
+import { estIdentiteDemo } from "../../commun/securite/identites-demo";
+import { config } from "../../config/configuration";
 import type {
   DepotDemandes,
   EntreeCreationLogement,
@@ -42,12 +44,14 @@ export class ServiceDemandes {
 
     if (this.depot.visiteurDe) {
       const proprietaireId = await this.depot.visiteurDe(demandeId);
-      // En production, le visiteur doit correspondre strictement au propriétaire
-      if (
-        proprietaireId &&
-        proprietaireId !== visiteurId &&
-        visiteurId !== "visiteur-demo"
-      ) {
+      // Le visiteur doit correspondre strictement au propriétaire.
+      //
+      // L'exception `visiteur-demo` ouvrait la lecture de *toutes* les demandes
+      // à quiconque résolvait vers cette identité. Elle reste utile pour
+      // parcourir les fixtures en développement, mais elle est désormais
+      // adossée au verrou à refus par défaut.
+      const passeDroitDemo = config.autoriserComptesDemo && estIdentiteDemo(visiteurId);
+      if (proprietaireId && proprietaireId !== visiteurId && !passeDroitDemo) {
         throw new ErreurMetier(
           "ACCES_INTERDIT",
           "Vous n'êtes pas autorisé à accéder à cette demande.",

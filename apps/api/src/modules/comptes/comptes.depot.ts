@@ -1,3 +1,6 @@
+/** À quoi sert ce code ? Un code d'inscription ne connecte pas, et inversement. */
+export type FinaliteOtp = "connexion_visiteur" | "inscription";
+
 export interface CodeOtp {
   id?: string;
   destination: string;
@@ -6,6 +9,25 @@ export interface CodeOtp {
   expireLe: string;
   tentatives: number;
   ipAddress?: string;
+  /** Par défaut `connexion_visiteur`, pour ne rien changer aux appels existants. */
+  finalite?: FinaliteOtp;
+}
+
+/**
+ * Un compte vu depuis le parcours d'inscription.
+ *
+ * `motDePasseHash` n'en fait pas partie : le service n'a pas besoin de le voir
+ * pour décider, et une empreinte qui ne sort pas du dépôt est une empreinte
+ * qui ne fuite pas dans un journal. La vérification se fait par
+ * `verifierMotDePasseCompte`, qui compare à l'intérieur du dépôt.
+ */
+export interface CompteResume {
+  id: string;
+  email?: string | null;
+  nom?: string | null;
+  estVerifie: boolean;
+  /** Ce compte a-t-il un mot de passe, ou se connecte-t-il seulement par code ? */
+  aUnMotDePasse: boolean;
 }
 
 export interface VerificationRateLimit {
@@ -34,7 +56,14 @@ export interface SessionPrestataire {
 
 export interface DepotComptes {
   enregistrerOtp(otp: CodeOtp): Promise<void>;
-  otpPour(destination: string): Promise<CodeOtp | null>;
+  /**
+   * Le code actif pour cette destination.
+   *
+   * `finalite` filtre : un code émis pour une inscription ne doit pas pouvoir
+   * servir sur la route de connexion, et inversement. Sans argument, le
+   * comportement d'origine est conservé.
+   */
+  otpPour(destination: string, finalite?: FinaliteOtp): Promise<CodeOtp | null>;
   incrementerTentatives?(destination: string): Promise<number>;
   consommerOtp(idOuDestination: string): Promise<boolean | void>;
   verifierRateLimit?(destination: string, ipAddress?: string): Promise<VerificationRateLimit>;
@@ -43,4 +72,29 @@ export interface DepotComptes {
   creerSessionPrestataire(telephone: string): Promise<SessionPrestataire>;
   sessionPrestataire(id: string): Promise<SessionPrestataire | null>;
   revoquerSession?(idOuToken: string): Promise<void>;
+
+  /* ───────────────────────────── Inscription ───────────────────────────── */
+
+  /** Le compte portant cette adresse, ou `null`. */
+  compteParEmail(email: string): Promise<CompteResume | null>;
+
+  /**
+   * Crée ou complète une inscription en attente : compte non vérifié, nom et
+   * empreinte du mot de passe posés. N'ouvre aucune session.
+   *
+   * Complète plutôt que de refuser, car une simple demande de code crée déjà un
+   * compte non vérifié sans mot de passe : ces coquilles ne doivent pas bloquer
+   * à vie l'adresse de quelqu'un.
+   */
+  preparerInscription(entree: {
+    email: string;
+    nom: string;
+    motDePasseHash: string;
+  }): Promise<CompteResume>;
+
+  /** Marque l'adresse confirmée et le compte actif. */
+  activerCompte(compteId: string): Promise<CompteResume>;
+
+  /** Compare un mot de passe à l'empreinte du compte, sans la faire sortir du dépôt. */
+  verifierMotDePasseCompte(compteId: string, motDePasse: string): Promise<boolean>;
 }

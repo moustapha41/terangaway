@@ -1,26 +1,9 @@
 import { Controller, Get, Headers, Param, Post } from "@nestjs/common";
 import { ApiHeader, ApiOperation, ApiParam, ApiTags } from "@nestjs/swagger";
 
+import { extraireJetonRequete } from "../../commun/securite/hachage";
 import { ServiceComptes } from "../comptes/comptes.service";
 import { ServiceDemandes } from "../demandes/demandes.service";
-
-function extraireJeton(
-  visiteurHeader?: string,
-  authHeader?: string,
-  cookieHeader?: string,
-): string | undefined {
-  if (authHeader && /^Bearer\s+/i.test(authHeader)) {
-    return authHeader.replace(/^Bearer\s+/i, "").trim();
-  }
-  if (visiteurHeader) {
-    return visiteurHeader.trim();
-  }
-  if (cookieHeader) {
-    const match = cookieHeader.match(/teranga_visiteur=([^;]+)/);
-    if (match) return decodeURIComponent(match[1]);
-  }
-  return undefined;
-}
 
 @ApiTags("visiteurs")
 @Controller("visiteurs")
@@ -39,7 +22,7 @@ export class ControleurVisiteurs {
     @Headers("authorization") authHeader?: string,
     @Headers("cookie") cookieHeader?: string,
   ) {
-    const identifiant = extraireJeton(visiteurHeader, authHeader, cookieHeader);
+    const identifiant = extraireJetonRequete(visiteurHeader, authHeader, cookieHeader);
     const visiteurId = await this.comptes.exigerVisiteur(identifiant);
     const liste = await this.demandes.listerPourVisiteur(visiteurId);
     return { donnees: liste };
@@ -56,7 +39,7 @@ export class ControleurVisiteurs {
     @Headers("authorization") authHeader?: string,
     @Headers("cookie") cookieHeader?: string,
   ) {
-    const identifiant = extraireJeton(visiteurHeader, authHeader, cookieHeader);
+    const identifiant = extraireJetonRequete(visiteurHeader, authHeader, cookieHeader);
     const visiteurId = await this.comptes.exigerVisiteur(identifiant);
     const demande = await this.demandes.obtenirPourVisiteur(id, visiteurId);
     return { donnees: demande };
@@ -73,7 +56,7 @@ export class ControleurVisiteurs {
     @Headers("authorization") authHeader?: string,
     @Headers("cookie") cookieHeader?: string,
   ) {
-    const identifiant = extraireJeton(visiteurHeader, authHeader, cookieHeader);
+    const identifiant = extraireJetonRequete(visiteurHeader, authHeader, cookieHeader);
     const visiteurId = await this.comptes.exigerVisiteur(identifiant);
     const demande = await this.demandes.confirmerPourVisiteur(id, visiteurId);
     return { donnees: demande };
@@ -90,7 +73,7 @@ export class ControleurVisiteurs {
     @Headers("authorization") authHeader?: string,
     @Headers("cookie") cookieHeader?: string,
   ) {
-    const identifiant = extraireJeton(visiteurHeader, authHeader, cookieHeader);
+    const identifiant = extraireJetonRequete(visiteurHeader, authHeader, cookieHeader);
     const visiteurId = await this.comptes.exigerVisiteur(identifiant);
     const demande = await this.demandes.annulerPourVisiteur(id, visiteurId);
     return { donnees: demande };

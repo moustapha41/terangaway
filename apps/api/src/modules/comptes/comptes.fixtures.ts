@@ -1,9 +1,17 @@
 import { Injectable } from "@nestjs/common";
 
-import { normaliserDestination } from "../../commun/securite/hachage";
+import { normaliserDestination, verifierMotDePasse } from "../../commun/securite/hachage";
+import {
+  estIdentiteDemo,
+  TELEPHONE_VISITEUR_DEMO,
+  VISITEUR_DEMO,
+} from "../../commun/securite/identites-demo";
+import { config } from "../../config/configuration";
 import type {
   CodeOtp,
+  CompteResume,
   DepotComptes,
+  FinaliteOtp,
   SessionPrestataire,
   SessionVisiteur,
   VerificationRateLimit,
@@ -59,8 +67,13 @@ export class DepotComptesFixtures implements DepotComptes {
     return { autorise: true };
   }
 
-  async otpPour(destination: string): Promise<CodeOtp | null> {
-    return this.otps.get(normaliserDestination(destination)) ?? null;
+  async otpPour(destination: string, finalite?: FinaliteOtp): Promise<CodeOtp | null> {
+    const code = this.otps.get(normaliserDestination(destination)) ?? null;
+    if (!code) return null;
+    // Même règle que le dépôt Prisma : un code d'inscription ne sert pas à se
+    // connecter. Les codes enregistrés sans finalité valent `connexion_visiteur`.
+    if (finalite && (code.finalite ?? "connexion_visiteur") !== finalite) return null;
+    return code;
   }
 
   async incrementerTentatives(destination: string): Promise<number> {
@@ -95,15 +108,27 @@ export class DepotComptesFixtures implements DepotComptes {
   }
 
   async sessionVisiteur(id: string): Promise<SessionVisiteur | null> {
-    if (id === "visiteur-demo") {
+    if (estIdentiteDemo(id)) {
+      // Refus par défaut, comme le dépôt Prisma : le même verrou des deux côtés.
+      if (!config.autoriserComptesDemo) return null;
       return {
-        id: "visiteur-demo",
-        destination: "770000000",
-        telephone: "770000000",
+        id: VISITEUR_DEMO,
+        destination: TELEPHONE_VISITEUR_DEMO,
+        telephone: TELEPHONE_VISITEUR_DEMO,
+        email: "demo@terangaway.sn",
         creeLe: new Date().toISOString(),
       };
     }
     return this.sessionsVisiteur.get(id) ?? null;
+  }
+
+  async revoquerSession(idOuToken: string): Promise<void> {
+    const s = this.sessionsVisiteur.get(idOuToken);
+    if (s) {
+      this.sessionsVisiteur.delete(s.id);
+      if (s.token) this.sessionsVisiteur.delete(s.token);
+    }
+    this.sessionsVisiteur.delete(idOuToken);
   }
 
   async creerSessionPrestataire(telephone: string): Promise<SessionPrestataire> {
@@ -119,4 +144,81 @@ export class DepotComptesFixtures implements DepotComptes {
   async sessionPrestataire(id: string): Promise<SessionPrestataire | null> {
     return this.sessionsPrestataire.get(id) ?? null;
   }
+
+  /* ───────────────────────────── Inscription ───────────────────────────── */
+
+  /**
+   * Les comptes, en mémoire, par adresse normalisée.
+   *
+   * L'empreinte du mot de passe est gardée ici et ne sort jamais par
+   * `CompteResume` : le dépôt en mémoire respecte la même discipline que celui
+   * sur Postgres, sinon les tests ne prouveraient rien.
+   */
+  private readonly comptes = new Map<
+    string,
+    { id: string; email: string; nom: string | null; estVerifie: boolean; motDePasseHash: string | null }
+  >();
+
+  async compteParEmail(email: string): Promise<CompteResume | null> {
+    const normalise = normaliserDestination(email);
+    const compte = this.comptes.get(normalise);
+    return compte ? resumerCompte(compte) : null;
+  }
+
+  async preparerInscription(entree: {
+    email: string;
+    nom: string;
+    motDePasseHash: string;
+  }): Promise<CompteResume> {
+    const email = normaliserDestination(entree.email);
+    const existant = this.comptes.get(email);
+
+    const compte = {
+      id: existant?.id ?? `cmp-${email}`,
+      email,
+      nom: entree.nom,
+      // L'inscription n'est pas acquise avant la vérification du code.
+      estVerifie: false,
+      motDePasseHash: entree.motDePasseHash,
+    };
+    this.comptes.set(email, compte);
+    return resumerCompte(compte);
+  }
+
+  async activerCompte(compteId: string): Promise<CompteResume> {
+    for (const [cle, compte] of this.comptes) {
+      if (compte.id === compteId) {
+        const actif = { ...compte, estVerifie: true };
+        this.comptes.set(cle, actif);
+        return resumerCompte(actif);
+      }
+    }
+    throw new Error(`Compte inconnu : ${compteId}`);
+  }
+
+  async verifierMotDePasseCompte(compteId: string, motDePasse: string): Promise<boolean> {
+    for (const compte of this.comptes.values()) {
+      if (compte.id === compteId) {
+        return verifierMotDePasse(motDePasse, compte.motDePasseHash);
+      }
+    }
+    return false;
+  }
+}
+
+/** Vue publique d'un compte : la présence d'un mot de passe, jamais l'empreinte. */
+function resumerCompte(compte: {
+  id: string;
+  email: string;
+  nom: string | null;
+  estVerifie: boolean;
+  motDePasseHash: string | null;
+}): CompteResume {
+  return {
+    id: compte.id,
+    email: compte.email,
+    nom: compte.nom,
+    estVerifie: compte.estVerifie,
+    aUnMotDePasse: Boolean(compte.motDePasseHash),
+  };
 }

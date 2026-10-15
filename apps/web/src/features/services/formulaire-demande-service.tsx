@@ -33,6 +33,7 @@ export function FormulaireDemandeService({ service }: { service: ServiceALaDeman
   const [message, setMessage] = useState("");
   const [erreurs, setErreurs] = useState<Record<string, boolean>>({});
   const [envoi, setEnvoi] = useState<"repos" | "encours" | "fait" | "echec">("repos");
+  const [motifEchec, setMotifEchec] = useState<string | null>(null);
   const [reference, setReference] = useState("");
 
   const poser = (cle: string, valeur: string) =>
@@ -59,6 +60,10 @@ export function FormulaireDemandeService({ service }: { service: ServiceALaDeman
       setEnvoi("fait");
     } else {
       console.error("[service] envoi de la demande impossible", resultat.erreur);
+      // L'action nomme la cause (session non ouverte, trop de tentatives…).
+      // L'afficher vaut mieux qu'un message générique : le visiteur sait alors
+      // s'il doit redemander un code ou simplement réessayer.
+      setMotifEchec(resultat.message ?? null);
       setEnvoi("echec");
     }
   }
@@ -119,7 +124,7 @@ export function FormulaireDemandeService({ service }: { service: ServiceALaDeman
       {envoi === "echec" && (
         <Bandeau variante="erreur">
           <strong className="block font-semibold">{t("demandeService.echecTitre")}</strong>
-          {t("demandeService.echecTexte")}
+          {motifEchec ?? t("demandeService.echecTexte")}
         </Bandeau>
       )}
 

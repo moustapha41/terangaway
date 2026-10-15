@@ -1,4 +1,4 @@
-import { Inject, Injectable } from "@nestjs/common";
+import { HttpStatus, Inject, Injectable } from "@nestjs/common";
 import type { Demand } from "@prisma/client";
 import type { Demande } from "@teranga/contracts";
 
@@ -10,6 +10,12 @@ import {
   genererJetonPartenaire,
   hacherJetonDirect,
 } from "../../commun/securite/hachage";
+import {
+  estIdentiteDemo,
+  TELEPHONE_VISITEUR_DEMO,
+  VISITEUR_DEMO,
+} from "../../commun/securite/identites-demo";
+import { config } from "../../config/configuration";
 import type { DepotLogements } from "../offres/logements/logements.depot";
 import type { DepotVehicules } from "../offres/vehicules/vehicules.depot";
 import type {
@@ -212,16 +218,28 @@ export class DepotDemandesPrisma implements DepotDemandes {
     });
     if (existant) return existant;
 
-    if (visiteurId === "visiteur-demo") {
+    if (estIdentiteDemo(visiteurId)) {
+      // Garde-fou local : rattacher une réservation au compte de démonstration
+      // la rend visible par tous ceux qui résolvent vers cette identité. En
+      // amont, `exigerVisiteur` ne renvoie plus jamais cette valeur hors mode
+      // démo ; on le vérifie ici aussi, au plus près de l'écriture.
+      if (!config.autoriserComptesDemo) {
+        throw new ErreurMetier(
+          "NON_AUTHENTIFIE",
+          "Session invalide ou expirée.",
+          HttpStatus.UNAUTHORIZED,
+        );
+      }
+
       const demoExistant = await this.prisma.account.findFirst({
-        where: { OR: [{ id: "visiteur-demo" }, { telephone: "770000000" }] },
+        where: { OR: [{ id: VISITEUR_DEMO }, { telephone: TELEPHONE_VISITEUR_DEMO }] },
       });
       if (demoExistant) return demoExistant;
 
       return this.prisma.account.create({
         data: {
-          id: "visiteur-demo",
-          telephone: "770000000",
+          id: VISITEUR_DEMO,
+          telephone: TELEPHONE_VISITEUR_DEMO,
           nom: "Visiteur Démo",
           role: "VISITEUR",
           typeCompte: "VISITEUR",

@@ -2,6 +2,7 @@ import { BarreDuBas } from "@/components/layout/barre-du-bas";
 import { PiedDePage } from "@/components/layout/pied-de-page";
 import { estLangue } from "@/lib/i18n/langues";
 import { attendUneAction, listerDemandes } from "@/mocks/api";
+import { visiteurConnecte } from "@/features/compte/session";
 
 /**
  * Enveloppe des écrans visiteur.
@@ -17,9 +18,19 @@ import { attendUneAction, listerDemandes } from "@/mocks/api";
  */
 async function compterEnAttente(): Promise<number> {
   try {
+    const visiteur = await visiteurConnecte();
+    if (!visiteur) return 0;
     const demandes = await listerDemandes();
     return demandes.filter(attendUneAction).length;
   } catch (erreur) {
+    if (
+      typeof erreur === "object" &&
+      erreur !== null &&
+      "digest" in erreur &&
+      (erreur as { digest?: unknown }).digest === "DYNAMIC_SERVER_USAGE"
+    ) {
+      throw erreur;
+    }
     // Journalisé côté serveur : une pastille muette ne doit pas masquer une
     // panne d'API à l'équipe.
     console.error("[layout visiteur] comptage des demandes indisponible", erreur);

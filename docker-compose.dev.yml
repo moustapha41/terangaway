@@ -15,6 +15,17 @@ services:
   api:
     ports:
       - "3101:3101"
+    environment:
+      # Les raccourcis de démonstration — compte `visiteur-demo`, code OTP fixe,
+      # code renvoyé dans la réponse, session résolue depuis un identifiant de
+      # compte — sont à refus par défaut dans l'API. Ils se réclament ici, et
+      # **uniquement** dans ce fichier d'essai local, jamais dans
+      # `docker-compose.yml` qui sert la production.
+      #
+      # `NODE_ENV=production` les referme de toute façon : c'est volontairement
+      # un double verrou. Sur le déploiement public, ces accès étaient restés
+      # ouverts parce qu'une seule variable les gardait.
+      AUTORISER_COMPTES_DEMO: "true"
 
   web:
     ports:

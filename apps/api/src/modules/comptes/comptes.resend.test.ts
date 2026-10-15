@@ -13,6 +13,7 @@ import {
 } from "../../commun/securite/hachage";
 import { config } from "../../config/configuration";
 import { DepotComptesPrisma } from "./comptes.prisma";
+import { avecPosture, enProduction } from "../../commun/securite/posture.test-utils";
 import { ServiceComptes } from "./comptes.service";
 
 describe("Module Comptes — Intégration Resend & Sécurité OTP", () => {
@@ -347,20 +348,45 @@ describe("Module Comptes — Intégration Resend & Sécurité OTP", () => {
     expect(extraireIpClientSecurisee(reqChaine)).toBe("198.51.100.77");
   });
 
-  it("15. Parcours téléphone : refus strict en production sans fournisseur SMS", async () => {
-    const envOriginal = process.env.NODE_ENV;
-    try {
-      // Simulation de l'environnement de production
-      (config as { environnement: string }).environnement = "production";
-
+  it("15. Parcours téléphone : refus strict hors mode démo, sans fournisseur SMS", async () => {
+    // Le refus ne dépend plus de la seule lecture de NODE_ENV mais du verrou à
+    // refus par défaut : un conteneur dont NODE_ENV serait mal renseigné
+    // refuse quand même.
+    await enProduction(async () => {
       await expect(service.envoyerOtp("771234567")).rejects.toThrow(
         "L'envoi de codes par SMS n'est pas disponible actuellement. Veuillez utiliser votre adresse e-mail pour recevoir votre code de vérification.",
       );
       // Ne doit jamais tenter d'envoyer un e-mail avec un numéro de téléphone
       expect(mockSend).not.toHaveBeenCalled();
-    } finally {
-      (config as { environnement: string }).environnement = envOriginal ?? "development";
-    }
+    });
+  });
+
+  it("15b. Parcours téléphone : refusé même si NODE_ENV n'est pas production", async () => {
+    // Le cas exact observé en production : l'environnement n'était pas celui
+    // qu'on croyait, et les raccourcis étaient restés ouverts.
+    await avecPosture({ comptesDemo: false, environnement: "development" }, async () => {
+      const erreur = await service
+        .envoyerOtp("771234567")
+        .then(() => null)
+        .catch((e: unknown) => e);
+      expect(erreur).toBeInstanceOf(ErreurMetier);
+      // `ErreurMetier` porte son code stable dans le corps de la réponse HTTP.
+      expect((erreur as ErreurMetier).getResponse()).toMatchObject({
+        code: "FOURNISSEUR_SMS_NON_DISPONIBLE",
+      });
+      expect(mockSend).not.toHaveBeenCalled();
+    });
+  });
+
+  it("15c. Le code OTP ne revient jamais dans la réponse hors mode démo", async () => {
+    // Renvoyer `codeDemo` sur un déploiement public permet de prendre la main
+    // sur n'importe quel compte : demander un code, puis le lire dans la
+    // réponse. Ce test verrouille le contraire.
+    await enProduction(async () => {
+      const reponse = await service.envoyerOtp(`posture.codedemo.${Date.now()}@terangaway.sn`);
+      expect(reponse.codeDemo).toBeUndefined();
+      expect(Object.keys(reponse)).not.toContain("codeDemo");
+    });
   });
 
   it("16. Absence des variables obligatoires en production (RESEND_API_KEY et OTP_SECRET)", () => {

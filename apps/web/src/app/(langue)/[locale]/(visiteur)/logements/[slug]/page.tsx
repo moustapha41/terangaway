@@ -9,6 +9,7 @@ import { OngletsFiche } from "@/features/logement/onglets-fiche";
 import { Lien } from "@/lib/i18n/lien";
 import { estLangue, type Langue } from "@/lib/i18n/langues";
 import { traducteurPour } from "@/lib/i18n/messages";
+import { BandeauCatalogueDemo } from "@/components/visiteur/bandeau-catalogue-demo";
 import { SEJOUR_DEFAUT } from "@/lib/dates/sejour";
 import { avisLogement, obtenirLogement } from "@/mocks/api";
 
@@ -58,6 +59,8 @@ export default async function FicheLogement({
           <span className="mx-2">›</span>
           <span className="text-encre">{logement.titre}</span>
         </nav>
+
+        <BandeauCatalogueDemo t={t} className="mb-4" />
 
         <GalerieMosaique photos={logement.photos} logementId={logement.id} verifie={logement.verifie} />
 

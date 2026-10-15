@@ -8,6 +8,7 @@ import { GalerieLogement } from "@/components/visiteur/galerie-logement";
 import { Lien } from "@/lib/i18n/lien";
 import { estLangue, type Langue } from "@/lib/i18n/langues";
 import { traducteurPour } from "@/lib/i18n/messages";
+import { BandeauCatalogueDemo } from "@/components/visiteur/bandeau-catalogue-demo";
 import type { Traducteur } from "@/lib/i18n/traducteur";
 import { formaterPrix } from "@/lib/prix";
 import { obtenirVehicule } from "@/mocks/api";
@@ -68,6 +69,8 @@ export default async function FicheVehicule({
             {vehicule.marque} {vehicule.modele}
           </span>
         </nav>
+
+        <BandeauCatalogueDemo t={t} className="mt-4" />
 
         <div className="mt-5 grid gap-8 lg:grid-cols-[1.5fr_1fr] lg:items-start">
           <div className="space-y-8">

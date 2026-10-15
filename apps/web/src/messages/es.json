@@ -397,7 +397,16 @@
     "titreEtape2": "Resumen",
     "nomRequis": "Indique su nombre.",
     "emailRequis": "Indique un correo electrónico válido.",
-    "telephoneRequis": "Indique un número de teléfono."
+    "telephoneRequis": "Indique un número de teléfono.",
+    "echecTitre": "No se pudo enviar su solicitud",
+    "echecTexte": "No se guardó nada y sus datos se conservan. Vuelva a intentarlo en un momento.",
+    "echecSession": "No se pudo abrir su sesión. Vuelva a verificar el código.",
+    "echecTentatives": "Demasiados intentos con este código. Solicite un nuevo código de verificación.",
+    "echecReessayer": "Reintentar",
+    "codeNonEnvoye": "No se pudo enviar el código a esta dirección. Compruebe el correo electrónico e inténtelo de nuevo.",
+    "codeEnvoye": "Código enviado. Es válido durante diez minutos.",
+    "plutotUnCompte": "¿Prefiere una cuenta?",
+    "creerUnCompte": "Crear una cuenta"
   },
   "confirmation": {
     "titre": "Su solicitud se ha enviado",
@@ -931,7 +940,16 @@
     "seDeconnecter": "Cerrar sesión",
     "donnees": "Sus datos",
     "donneesTexte": "Conservamos su correo o su número para identificarle y avisarle, nada más. Nunca pedimos una tarjeta bancaria.",
-    "supprimer": "Para eliminar su cuenta, llame a asistencia."
+    "supprimer": "Para eliminar su cuenta, llame a asistencia.",
+    "motDePasse": "Contraseña",
+    "seConnecterMotDePasse": "Iniciar sesión",
+    "pasEncoreDeCompte": "¿Todavía no tiene cuenta?",
+    "creerUnCompte": "Crear una cuenta",
+    "ouParCode": "O reciba un código por correo",
+    "parCodeTexte": "Las cuentas creadas antes de la contraseña se conectan con un código de seis cifras.",
+    "connexionEchec": "Error al iniciar sesión",
+    "compteNonVerifie": "Su dirección aún no está confirmada. Verifique su cuenta para continuar.",
+    "allerVerifier": "Verificar mi cuenta"
   },
   "public": {
     "aProposTitre": "Acerca de Teranga Way",
@@ -1211,7 +1229,8 @@
     "envoyeeTitre": "Su solicitud ha sido enviada",
     "envoyeeTexte": "Recibirá una respuesta por correo y en su cuenta.",
     "voirMesDemandes": "Ver mis solicitudes",
-    "retourAccueil": "Volver al inicio"
+    "retourAccueil": "Volver al inicio",
+    "delaiTropCourt": "La recogida debe solicitarse con al menos dos horas de antelación. Elija un horario posterior."
   },
   "resultatsTransport": {
     "titre": "{nombre} vehículo disponible",
@@ -1336,5 +1355,36 @@
     "aucunPaiement": "Ningún pago ahora. Se le propondrá un precio antes de cualquier compromiso.",
     "echecTitre": "Su solicitud no se ha enviado",
     "echecTexte": "Inténtelo de nuevo en un momento. Si vuelve a ocurrir, llame al equipo."
+  },
+  "catalogue": {
+    "demoTitre": "Catálogo de demostración",
+    "demoTexte": "Los alojamientos y vehículos mostrados son ejemplos para pruebas. No son ofertas reservables."
+  },
+  "inscription": {
+    "titre": "Cree su cuenta",
+    "texte": "Una cuenta le permite seguir sus solicitudes y reservar sin volver a escribir sus datos.",
+    "nomComplet": "Nombre completo",
+    "email": "Correo electrónico",
+    "motDePasse": "Contraseña",
+    "motDePasseAide": "Al menos {longueur} caracteres. Una frase es más segura y más fácil de recordar que una palabra complicada.",
+    "confirmation": "Confirmar la contraseña",
+    "creerMonCompte": "Crear mi cuenta",
+    "dejaUnCompte": "¿Ya tiene una cuenta?",
+    "seConnecter": "Iniciar sesión",
+    "dejaInscrit": "Esta dirección ya tiene una cuenta. Inicie sesión para continuar.",
+    "verificationTitre": "Verifique su correo electrónico",
+    "verificationTexte": "Hemos enviado un código de seis cifras a {email}. Es válido durante diez minutos.",
+    "codeLibelle": "Código de seis cifras",
+    "verifierMonCompte": "Verificar mi cuenta",
+    "renvoyerCode": "Reenviar el código",
+    "renvoyerDans": "Reenviar el código en {secondes} s",
+    "codeRenvoye": "Se acaba de enviar un nuevo código.",
+    "corrigerEmail": "¿No es la dirección correcta?",
+    "corrigerEmailAction": "Corregir mi dirección",
+    "attenteExpiree": "Su registro ha caducado. Vuelva a empezar.",
+    "reprendre": "Reiniciar el registro",
+    "echecTitre": "El registro no se completó",
+    "confirmationErreur": "Las dos contraseñas no coinciden.",
+    "motDePasseCourtErreur": "Demasiado corta: se necesitan al menos {longueur} caracteres."
   }
 }

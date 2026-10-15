@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import type { Demande, Logement } from "@teranga/contracts";
 import {
   annulerDemande,
@@ -9,11 +10,22 @@ import {
   envoyerDemandeTransport,
   CodeInvalide,
   LogementPris,
+  CODE_DE_DEMONSTRATION,
   type EntreeDemande,
   type EntreeDemandeTransport,
   type EtatEnvoi,
 } from "@/mocks/api";
 import { ouvrirSession } from "@/features/compte/actions";
+import {
+  effacerBrouillon,
+  poserBrouillon,
+  type BrouillonDemande,
+} from "@/features/demande/brouillon";
+import { visiteurConnecte } from "@/features/compte/session";
+import { verifierCodeEtOuvrirSession } from "@/features/compte/verification-otp";
+import { apiMockActive } from "@/lib/api/http";
+import { resoudreDestination } from "@/features/compte/destination";
+import { estLangue, type Langue } from "@/lib/i18n/langues";
 
 /**
  * Actions serveur de l'écran 6.
@@ -41,7 +53,13 @@ export type ResultatDemandeLogement =
   | { succes: true; demande: Demande }
   | {
       succes: false;
-      erreur: "code_invalide" | "logement_pris" | "validation" | "serveur";
+      erreur:
+        | "code_invalide"
+        | "trop_de_tentatives"
+        | "session"
+        | "logement_pris"
+        | "validation"
+        | "serveur";
       raison?: "faux" | "expire";
       alternatives?: Logement[];
       message?: string;
@@ -68,6 +86,36 @@ export async function creerDemandeLogementAction(
     return { succes: false, erreur: "validation", message: "Nombre de personnes invalide." };
   }
 
+  // Vérifier si une session visiteur valide existe déjà
+  const sessionActive = await visiteurConnecte();
+
+  if (!sessionActive) {
+    const codeOtp = entree.code?.trim();
+    if (!codeOtp && !apiMockActive()) {
+      return { succes: false, erreur: "code_invalide", raison: "faux" };
+    }
+
+    if (codeOtp) {
+      if (!apiMockActive()) {
+        const email = contact?.email?.trim();
+        if (!email) {
+          return { succes: false, erreur: "validation", message: "Adresse e-mail requise pour valider le code." };
+        }
+        const verification = await verifierCodeEtOuvrirSession(email, codeOtp);
+        if (!verification.ok) {
+          return { succes: false, ...verification.echec };
+        }
+      } else {
+        if (codeOtp !== CODE_DE_DEMONSTRATION) {
+          return { succes: false, erreur: "code_invalide", raison: "faux" };
+        }
+        const email = contact?.email?.trim() || "visiteur@teranga-way.com";
+        const mockToken = `session-mock-${Buffer.from(email).toString("hex")}`;
+        await ouvrirSession(mockToken);
+      }
+    }
+  }
+
   try {
     const demande = await envoyerDemande(
       {
@@ -77,14 +125,15 @@ export async function creerDemandeLogementAction(
         personnes,
         heureArrivee: entree.heureArrivee?.trim(),
         message: entree.message ? entree.message.slice(0, 2000).trim() : undefined,
-        code: entree.code ? entree.code.trim() : undefined,
       },
       etatSimule,
     );
 
-    // Ouvre la session visiteur directement sur le serveur via le cookie sécurisé
-    const identifiantSession = contact?.email?.trim() || contact?.telephone?.trim() || demande.reference;
-    await ouvrirSession(identifiantSession);
+    if (!sessionActive && apiMockActive()) {
+      const email = contact?.email?.trim() || "visiteur@teranga-way.com";
+      const mockToken = `session-mock-${Buffer.from(email).toString("hex")}`;
+      await ouvrirSession(mockToken);
+    }
 
     revalidatePath("/[locale]/mes-demandes", "page");
     revalidatePath("/[locale]/compte", "page");
@@ -111,7 +160,13 @@ export type ResultatDemandeTransport =
   | { succes: true; demande: Demande }
   | {
       succes: false;
-      erreur: "code_invalide" | "delai_trop_court" | "validation" | "serveur";
+      erreur:
+        | "code_invalide"
+        | "trop_de_tentatives"
+        | "session"
+        | "delai_trop_court"
+        | "validation"
+        | "serveur";
       raison?: "faux" | "expire";
       message?: string;
     };
@@ -140,6 +195,36 @@ export async function creerDemandeTransportAction(
     return { succes: false, erreur: "validation", message: "Nombre de passagers invalide." };
   }
 
+  // Vérifier si une session visiteur valide existe déjà
+  const sessionActive = await visiteurConnecte();
+
+  if (!sessionActive) {
+    const codeOtp = entree.code?.trim();
+    if (!codeOtp && !apiMockActive()) {
+      return { succes: false, erreur: "code_invalide", raison: "faux" };
+    }
+
+    if (codeOtp) {
+      if (!apiMockActive()) {
+        const email = contact?.email?.trim();
+        if (!email) {
+          return { succes: false, erreur: "validation", message: "Adresse e-mail requise pour valider le code." };
+        }
+        const verification = await verifierCodeEtOuvrirSession(email, codeOtp);
+        if (!verification.ok) {
+          return { succes: false, ...verification.echec };
+        }
+      } else {
+        if (codeOtp !== CODE_DE_DEMONSTRATION) {
+          return { succes: false, erreur: "code_invalide", raison: "faux" };
+        }
+        const email = contact?.email?.trim() || "visiteur@teranga-way.com";
+        const mockToken = `session-mock-${Buffer.from(email).toString("hex")}`;
+        await ouvrirSession(mockToken);
+      }
+    }
+  }
+
   try {
     const demande = await envoyerDemandeTransport(
       {
@@ -152,14 +237,15 @@ export async function creerDemandeTransportAction(
         bagages: entree.bagages ? Math.max(0, Number(entree.bagages)) : 0,
         vol: entree.vol?.trim() || undefined,
         message: entree.message ? entree.message.slice(0, 2000).trim() : undefined,
-        code: entree.code ? entree.code.trim() : undefined,
       },
       etatSimule,
     );
 
-    // Ouvre la session visiteur directement sur le serveur
-    const identifiantSession = contact?.email?.trim() || contact?.telephone?.trim() || demande.reference;
-    await ouvrirSession(identifiantSession);
+    if (!sessionActive && apiMockActive()) {
+      const email = contact?.email?.trim() || "visiteur@teranga-way.com";
+      const mockToken = `session-mock-${Buffer.from(email).toString("hex")}`;
+      await ouvrirSession(mockToken);
+    }
 
     revalidatePath("/[locale]/mes-demandes", "page");
     revalidatePath("/[locale]/compte", "page");
@@ -175,4 +261,36 @@ export async function creerDemandeTransportAction(
       message: erreur instanceof Error ? erreur.message : "Erreur inattendue",
     };
   }
+}
+
+/* ──────────────── Mise de côté d'une demande, le temps de s'inscrire ─────── */
+
+/**
+ * Met la saisie de côté et envoie vers l'inscription.
+ *
+ * Appelée quand quelqu'un préfère créer un compte plutôt que de saisir un code
+ * dans la feuille basse. Le parcours sort de la page : sans ce brouillon, le
+ * visiteur reviendrait sur un formulaire vide après avoir choisi ses dates et
+ * écrit son message.
+ *
+ * `suite` est la page où revenir — relue et bornée par `resoudreDestination`
+ * avant toute redirection, jamais utilisée telle quelle.
+ */
+export async function mettreDemandeDeCoteEtSInscrire(
+  brouillon: BrouillonDemande,
+  suite: string,
+  langue = "fr",
+): Promise<void> {
+  await poserBrouillon(brouillon);
+
+  const cible: Langue = estLangue(langue) ? langue : "fr";
+  const destination = resoudreDestination(suite, cible);
+  // `suite` repart en paramètre : la vérification s'en servira pour ramener
+  // ici, et `resoudreDestination` la revalidera à ce moment-là.
+  redirect(`/${cible}/inscription?suite=${encodeURIComponent(destination)}`);
+}
+
+/** La demande est partie : le brouillon n'a plus de raison d'être. */
+export async function oublierBrouillonAction(): Promise<void> {
+  await effacerBrouillon();
 }

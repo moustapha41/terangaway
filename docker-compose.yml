@@ -74,6 +74,7 @@ services:
       dockerfile: apps/web/Dockerfile
       args:
         NEXT_PUBLIC_API_MOCK: ${NEXT_PUBLIC_API_MOCK:-false}
+        NEXT_PUBLIC_CATALOGUE_DEMO: ${NEXT_PUBLIC_CATALOGUE_DEMO:-true}
     restart: unless-stopped
     depends_on:
       api:

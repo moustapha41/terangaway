@@ -2,28 +2,11 @@ import { Body, Controller, Headers, Post } from "@nestjs/common";
 import { ApiHeader, ApiOperation, ApiTags } from "@nestjs/swagger";
 
 import { ErreurMetier } from "../../commun/erreurs";
+import { extraireJetonRequete } from "../../commun/securite/hachage";
 import { ServiceComptes } from "../comptes/comptes.service";
 import { CreerDemandeLogementDto } from "./dto/creer-demande-logement.dto";
 import { CreerDemandeVehiculeDto } from "./dto/creer-demande-vehicule.dto";
 import { ServiceDemandes } from "./demandes.service";
-
-function extraireJeton(
-  visiteurHeader?: string,
-  authHeader?: string,
-  cookieHeader?: string,
-): string | undefined {
-  if (authHeader && /^Bearer\s+/i.test(authHeader)) {
-    return authHeader.replace(/^Bearer\s+/i, "").trim();
-  }
-  if (visiteurHeader) {
-    return visiteurHeader.trim();
-  }
-  if (cookieHeader) {
-    const match = cookieHeader.match(/teranga_visiteur=([^;]+)/);
-    if (match) return decodeURIComponent(match[1]);
-  }
-  return undefined;
-}
 
 @ApiTags("demandes")
 @Controller("demandes")
@@ -43,7 +26,7 @@ export class ControleurDemandes {
     @Headers("authorization") authHeader?: string,
     @Headers("cookie") cookieHeader?: string,
   ) {
-    const jeton = extraireJeton(visiteurHeader, authHeader, cookieHeader);
+    const jeton = extraireJetonRequete(visiteurHeader, authHeader, cookieHeader);
     const visiteurId = await this.comptes.exigerVisiteur(jeton, corps.code);
     const demande = await this.demandes.creerLogement({
       logementId: corps.logementId,
@@ -67,7 +50,7 @@ export class ControleurDemandes {
     @Headers("authorization") authHeader?: string,
     @Headers("cookie") cookieHeader?: string,
   ) {
-    const jeton = extraireJeton(visiteurHeader, authHeader, cookieHeader);
+    const jeton = extraireJetonRequete(visiteurHeader, authHeader, cookieHeader);
     const visiteurId = await this.comptes.exigerVisiteur(jeton, corps.code);
 
     // Deux heures minimum pour un trajet (§B.3).

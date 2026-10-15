@@ -48,9 +48,33 @@ export function chargerConfiguration(env: NodeJS.ProcessEnv = process.env) {
     secretsOtp.push(defautDev);
   }
 
+  // Les accès de démonstration — compte `visiteur-demo`, code OTP fixe,
+  // résolution d'une session depuis un simple identifiant de compte — sont une
+  // commodité de développement, jamais un mécanisme d'authentification.
+  //
+  // Ils sont donc à **refus par défaut** : il faut les réclamer explicitement
+  // par `AUTORISER_COMPTES_DEMO=true`, et `NODE_ENV=production` les referme
+  // quoi qu'il arrive. Le double verrou n'est pas une ceinture de plus : en
+  // production, ces accès étaient restés ouverts parce que le code ne lisait
+  // que `NODE_ENV`, et que cette variable ne valait pas ce qu'on croyait dans
+  // le conteneur. Une variable d'environnement absente doit fermer la porte,
+  // pas l'ouvrir.
+  const demoReclamee = (env.AUTORISER_COMPTES_DEMO ?? "").trim().toLowerCase() === "true";
+  const autoriserComptesDemo = demoReclamee && !isProd;
+
   return {
     port: Number(requisEnv("PORT", "3001")),
     environnement: requisEnv("NODE_ENV", "development"),
+    /** `true` seulement si NODE_ENV n'est pas `production`. Jamais une garantie à lui seul. */
+    estProduction: isProd,
+    /**
+     * Les raccourcis de démonstration sont-ils ouverts ? Refus par défaut.
+     * C'est **cette** valeur que le code d'authentification doit consulter,
+     * jamais `environnement` directement.
+     */
+    autoriserComptesDemo,
+    /** `true` quand quelqu'un a réclamé le mode démo mais que la production l'a refusé : à journaliser. */
+    demoRefuseeEnProduction: demoReclamee && isProd,
     /** Origines autorisées à appeler l'API, séparées par des virgules. */
     originesAutorisees: requisEnv(
       "ORIGINES_AUTORISEES",

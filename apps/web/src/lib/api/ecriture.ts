@@ -35,38 +35,42 @@ export async function apiCreerDemandeVehicule(corps: {
   return appelerApi<Demande>("/demandes/vehicule", { method: "POST", corps });
 }
 
-export async function apiListerDemandes(visiteurId = "visiteur-demo"): Promise<Demande[]> {
-  return appelerApi<Demande[]>("/visiteurs/moi/demandes", {
-    headers: { "x-visiteur-id": visiteurId },
-  });
+export async function apiListerDemandes(visiteurId?: string): Promise<Demande[]> {
+  const headers: Record<string, string> = {};
+  if (visiteurId) headers["x-visiteur-id"] = visiteurId;
+  return appelerApi<Demande[]>("/visiteurs/moi/demandes", { headers });
 }
 
 export async function apiObtenirDemande(
   id: string,
-  visiteurId = "visiteur-demo",
+  visiteurId?: string,
 ): Promise<Demande> {
-  return appelerApi<Demande>(`/visiteurs/moi/demandes/${id}`, {
-    headers: { "x-visiteur-id": visiteurId },
-  });
+  const headers: Record<string, string> = {};
+  if (visiteurId) headers["x-visiteur-id"] = visiteurId;
+  return appelerApi<Demande>(`/visiteurs/moi/demandes/${id}`, { headers });
 }
 
 export async function apiConfirmerDemande(
   id: string,
-  visiteurId = "visiteur-demo",
+  visiteurId?: string,
 ): Promise<Demande> {
+  const headers: Record<string, string> = {};
+  if (visiteurId) headers["x-visiteur-id"] = visiteurId;
   return appelerApi<Demande>(`/visiteurs/moi/demandes/${id}/confirmer`, {
     method: "POST",
-    headers: { "x-visiteur-id": visiteurId },
+    headers,
   });
 }
 
 export async function apiAnnulerDemande(
   id: string,
-  visiteurId = "visiteur-demo",
+  visiteurId?: string,
 ): Promise<Demande> {
+  const headers: Record<string, string> = {};
+  if (visiteurId) headers["x-visiteur-id"] = visiteurId;
   return appelerApi<Demande>(`/visiteurs/moi/demandes/${id}/annuler`, {
     method: "POST",
-    headers: { "x-visiteur-id": visiteurId },
+    headers,
   });
 }
 
@@ -112,6 +116,62 @@ export async function apiVerifierOtp(identifiant: string, code: string) {
   });
 }
 
+/* ─────────────────────────────── Inscription ────────────────────────────── */
+
+/**
+ * Le compte, tel que l'API le décrit après une inscription ou une connexion.
+ *
+ * Volontairement maigre : aucune empreinte, aucun jeton d'une autre session.
+ * `aUnMotDePasse` sert à savoir si ce compte peut se connecter par mot de passe
+ * ou s'il relève encore du parcours par code.
+ */
+export interface CompteApi {
+  id: string;
+  email?: string | null;
+  nom?: string | null;
+  estVerifie: boolean;
+  aUnMotDePasse: boolean;
+}
+
+/**
+ * Ouvre une inscription en attente : le compte est créé non vérifié et un code
+ * part vers l'adresse. **Aucune session n'est ouverte à cette étape.**
+ */
+export async function apiInscrire(corps: {
+  nom: string;
+  email: string;
+  motDePasse: string;
+}) {
+  return appelerApi<{ email: string; expireLe: string; delaiAttenteSecondes: number }>(
+    "/comptes/inscription",
+    { method: "POST", corps },
+  );
+}
+
+/** Vérifie le code d'inscription, active le compte et ouvre la session. */
+export async function apiVerifierInscription(email: string, code: string) {
+  return appelerApi<{ visiteurId: string; token?: string; compte: CompteApi }>(
+    "/comptes/inscription/verifier",
+    { method: "POST", corps: { email, code } },
+  );
+}
+
+/** Renvoie le code d'inscription, sous la limitation de débit de l'API. */
+export async function apiRenvoyerCodeInscription(email: string) {
+  return appelerApi<{ expireLe: string; delaiAttenteSecondes: number }>(
+    "/comptes/inscription/renvoyer",
+    { method: "POST", corps: { email } },
+  );
+}
+
+/** Connecte un compte existant par adresse e-mail et mot de passe. */
+export async function apiConnexionMotDePasse(email: string, motDePasse: string) {
+  return appelerApi<{ visiteurId: string; token?: string; compte: CompteApi }>(
+    "/comptes/connexion",
+    { method: "POST", corps: { email, motDePasse } },
+  );
+}
+
 export async function apiConnexionPrestataire(telephone: string, code: string) {
   return appelerApi<{ prestataireId: string; token?: string }>("/comptes/prestataire/connexion", {
     method: "POST",
@@ -119,10 +179,31 @@ export async function apiConnexionPrestataire(telephone: string, code: string) {
   });
 }
 
+export async function apiObtenirSession(token?: string) {
+  const headers: Record<string, string> = {};
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+    headers["x-visiteur-id"] = token;
+  }
+  return appelerApi<{
+    visiteur: {
+      compteId: string;
+      email: string;
+      telephone?: string | null;
+      token: string;
+    };
+  }>("/comptes/session", { headers });
+}
+
 export async function apiDeconnexion(token?: string) {
+  const headers: Record<string, string> = {};
+  if (token) {
+    headers["x-visiteur-id"] = token;
+    headers["Authorization"] = `Bearer ${token}`;
+  }
   return appelerApi<{ deconnecte: boolean }>("/comptes/deconnexion", {
     method: "POST",
-    headers: token ? { "x-visiteur-id": token } : undefined,
+    headers: Object.keys(headers).length > 0 ? headers : undefined,
   });
 }
 

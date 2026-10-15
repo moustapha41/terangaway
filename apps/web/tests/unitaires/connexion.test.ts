@@ -48,9 +48,17 @@ vi.mock("@/lib/api/ecriture", () => ({
     if (code === "888888") {
       throw new Error("Ce code a expiré.");
     }
+    if (code === "777777") {
+      // Code correct, mais l'API ne renvoie pas de jeton de session : on ne
+      // doit surtout pas retomber sur `visiteurId`, qui n'est pas un secret.
+      return { visiteurId: "visiteur-123" };
+    }
     return {
       visiteurId: "visiteur-123",
-      token: "jwt-token-xyz",
+      // Forme réelle d'un jeton de session (`genererJetonSession` côté API) :
+      // `tws_` suivi de 64 caractères hexadécimaux. Un jeton court était une
+      // fixture irréaliste, que la validation refuse désormais à juste titre.
+      token: "tws_a1b2c3d4a1b2c3d4a1b2c3d4a1b2c3d4a1b2c3d4a1b2c3d4a1b2c3d4a1b2c3d4",
     };
   }),
   apiDeconnexion: vi.fn(async () => ({ deconnecte: true })),
@@ -155,7 +163,7 @@ describe("Parcours de connexion et vérification OTP visiteur", () => {
 
       // Le cookie de session visiteur doit avoir été posé
       expect(mockCookieJar.has("teranga_visiteur")).toBe(true);
-      expect(mockCookieJar.get("teranga_visiteur").value).toBe("jwt-token-xyz");
+      expect(mockCookieJar.get("teranga_visiteur").value).toBe("tws_a1b2c3d4a1b2c3d4a1b2c3d4a1b2c3d4a1b2c3d4a1b2c3d4a1b2c3d4a1b2c3d4");
     });
   });
 

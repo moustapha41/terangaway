@@ -9,6 +9,7 @@
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "test": "../api/node_modules/.bin/vitest run --config vitest.config.ts",
+    "test:e2e": "../api/node_modules/.bin/vitest run --config vitest.e2e.config.ts",
     "i18n:verifier": "node scripts/verifier-i18n.mjs",
     "i18n:cles": "node scripts/verifier-cles-appelees.mjs",
     "contraste": "node scripts/verifier-contraste.mjs",

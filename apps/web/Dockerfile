@@ -35,6 +35,10 @@ RUN pnpm -F @teranga/tokens generer
 # 2. Variables de build Next.js (inlinées dans le bundle JavaScript client)
 ARG NEXT_PUBLIC_API_MOCK=false
 ENV NEXT_PUBLIC_API_MOCK=$NEXT_PUBLIC_API_MOCK
+# Le catalogue est encore un jeu d'exemples : le bandeau qui le signale est donc
+# actif par défaut. À passer à `false` le jour où un vrai catalogue est branché.
+ARG NEXT_PUBLIC_CATALOGUE_DEMO=true
+ENV NEXT_PUBLIC_CATALOGUE_DEMO=$NEXT_PUBLIC_CATALOGUE_DEMO
 ENV NEXT_TELEMETRY_DISABLED=1
 
 # 3. Compilation Next.js (génère .next/standalone grâce à output: "standalone")
