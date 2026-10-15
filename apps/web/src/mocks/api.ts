@@ -12,6 +12,7 @@ import type {
 import {
   apiAnnulerDemande,
   apiConfirmerDemande,
+  apiConnexionPrestataire,
   apiCreerDemandeLogement,
   apiCreerDemandeService,
   apiCreerDemandeVehicule,
@@ -21,21 +22,7 @@ import {
   apiRepondreAvecJeton,
 } from "@/lib/api/ecriture";
 import { apiMockActive, ErreurApi } from "@/lib/api/http";
-import {
-  apiChercherLogements,
-  apiChercherVehicules,
-  apiEstimerTaxi,
-  apiObtenirLogement,
-  apiObtenirVehicule,
-  apiFacettesVehicules,
-  apiLogementParId,
-  apiVehiculeParId,
-  apiAvisLogement,
-  apiLieux,
-  apiVilles,
-  type FacettesVehicules,
-  type Lieu,
-} from "@/lib/api/lecture";
+import type { FacettesVehicules, Lieu } from "@/lib/api/lecture";
 import { LOGEMENTS } from "./fixtures/logements";
 import { avisDe } from "./fixtures/avis";
 import { LIEUX } from "./fixtures/vehicules";
@@ -119,39 +106,14 @@ function calculerFacettes(logements: Logement[]): Facettes {
   };
 }
 
-/**
- * Toute panne de lecture devient un `ErreurServeur`.
- *
- * Les écrans savent le traiter ; ils ne savent pas quoi faire d'un échec de
- * `fetch`. Une erreur métier de l'API (introuvable, invalide) passe en
- * revanche telle quelle : elle n'est pas une panne.
- */
-function enErreurServeur(erreur: unknown): Error {
-  if (erreur instanceof ErreurApi && erreur.statut < 500) return erreur;
-  return new ErreurServeur();
-}
 
 export async function chercherLogements(
   criteres: Partial<CriteresLogement>,
   etat: EtatSimule = "normal",
 ): Promise<ResultatsLogements> {
-  // Les états simulés restent côté mock : ils servent à montrer les écrans
-  // d'erreur et de lenteur, que l'API n'a aucune raison de produire sur commande.
-  if (!apiMockActive() && etat === "normal") {
-    try {
-      return await apiChercherLogements(criteres);
-    } catch (erreur) {
-      // L'écran de résultats sait déjà afficher une panne (§B.7). Encore
-      // faut-il qu'elle lui arrive sous la forme qu'il attend : une API
-      // injoignable remonte sinon une erreur de transport, et la page tombe
-      // en 500 au lieu d'afficher « réessayer ».
-      throw enErreurServeur(erreur);
-    }
-  }
-
   if (etat === "erreur") throw new ErreurServeur();
   if (etat === "lent") await attendre(3000);
-  else await attendre(120);
+  else if (apiMockActive()) await attendre(120);
 
   // La ville borne le catalogue ; les facettes se calculent sur ce périmètre.
   const perimetre = criteres.ville
@@ -181,17 +143,8 @@ export async function chercherLogements(
 }
 
 export async function obtenirLogement(slug: string): Promise<Logement | null> {
-  if (!apiMockActive()) {
-    try {
-      return await apiObtenirLogement(slug);
-    } catch (e) {
-      // Une fiche absente n'est pas une panne : le site affiche « introuvable ».
-      if (e instanceof ErreurApi && e.code === "LOGEMENT_INTROUVABLE") return null;
-      throw enErreurServeur(e);
-    }
-  }
-
-  await attendre(80);
+  if (!slug) return null;
+  if (apiMockActive()) await attendre(80);
   return LOGEMENTS.find((l) => l.slug === slug) ?? null;
 }
 
@@ -680,25 +633,12 @@ export async function chercherVehicules(
   criteres: { passagers?: number; bagages?: number; quand?: string },
   etat: EtatSimule = "normal",
 ): Promise<Vehicule[]> {
-  if (!apiMockActive() && etat === "normal") {
-    try {
-      return await apiChercherVehicules(besoin, criteres);
-    } catch (erreur) {
-      // Le préavis de deux heures est une règle, pas une panne : l'écran a son
-      // propre message pour elle.
-      if (erreur instanceof ErreurApi && erreur.code === "DELAI_TROP_COURT") {
-        throw new DelaiTropCourt();
-      }
-      throw enErreurServeur(erreur);
-    }
-  }
-
   if (etat === "erreur") throw new ErreurServeur();
   if (besoin === "trajet" && criteres.quand && !delaiSuffisant(criteres.quand)) {
     throw new DelaiTropCourt();
   }
   if (etat === "lent") await attendre(3000);
-  else await attendre(120);
+  else if (apiMockActive()) await attendre(120);
   if (etat === "vide") return [];
 
   const offre = besoin === "trajet" ? "trajet-avec-chauffeur" : "location-avec-chauffeur";
@@ -720,16 +660,8 @@ export async function chercherVehicules(
  */
 export async function facettesVehicules(
   besoin: BesoinTransport,
-  criteres: Record<string, unknown> = {},
+  _criteres: Record<string, unknown> = {},
 ): Promise<FacettesVehicules> {
-  if (!apiMockActive()) {
-    try {
-      return await apiFacettesVehicules(besoin, criteres);
-    } catch (e) {
-      throw enErreurServeur(e);
-    }
-  }
-
   const offre = besoin === "trajet" ? "trajet-avec-chauffeur" : "location-avec-chauffeur";
   const perimetre = VEHICULES.filter((v) => v.offresProposees.includes(offre));
   const compter = <T extends string>(valeurs: readonly T[], test: (v: Vehicule, x: T) => boolean) =>
@@ -761,41 +693,20 @@ export async function facettesVehicules(
  * slug visible dans l'URL.
  */
 export async function logementParId(id: string): Promise<Logement | null> {
-  if (!apiMockActive()) {
-    try {
-      return await apiLogementParId(id);
-    } catch (e) {
-      if (e instanceof ErreurApi && e.code === "LOGEMENT_INTROUVABLE") return null;
-      throw enErreurServeur(e);
-    }
-  }
-  await attendre(60);
+  if (!id) return null;
+  if (apiMockActive()) await attendre(60);
   return LOGEMENTS.find((l) => l.id === id) ?? null;
 }
 
 export async function vehiculeParId(id: string): Promise<Vehicule | null> {
-  if (!apiMockActive()) {
-    try {
-      return await apiVehiculeParId(id);
-    } catch (e) {
-      if (e instanceof ErreurApi && e.code === "VEHICULE_INTROUVABLE") return null;
-      throw enErreurServeur(e);
-    }
-  }
-  await attendre(60);
+  if (!id) return null;
+  if (apiMockActive()) await attendre(60);
   return VEHICULES.find((v) => v.id === id) ?? null;
 }
 
 /** Les avis d'un logement. Déposés après un séjour terminé, jamais avant. */
 export async function avisLogement(slug: string, nombre: number): Promise<Avis[]> {
-  if (!apiMockActive()) {
-    try {
-      return await apiAvisLogement(slug);
-    } catch (e) {
-      throw enErreurServeur(e);
-    }
-  }
-  await attendre(60);
+  if (apiMockActive()) await attendre(60);
   const logement = LOGEMENTS.find((l) => l.slug === slug);
   return avisDe(logement?.id ?? "", nombre);
 }
@@ -806,15 +717,8 @@ export async function avisLogement(slug: string, nombre: number): Promise<Avis[]
  * Jamais l'adresse d'un partenaire — elle n'apparaît qu'après confirmation.
  */
 export async function lieux(): Promise<Lieu[]> {
-  if (!apiMockActive()) {
-    try {
-      return await apiLieux();
-    } catch (e) {
-      throw enErreurServeur(e);
-    }
-  }
-  await attendre(40);
-  return LIEUX;
+  if (apiMockActive()) await attendre(40);
+  return [...LIEUX];
 }
 
 /**
@@ -826,28 +730,13 @@ export async function lieux(): Promise<Lieu[]> {
  * suggestion.
  */
 export async function villes(): Promise<string[]> {
-  if (!apiMockActive()) {
-    try {
-      return await apiVilles();
-    } catch (e) {
-      throw enErreurServeur(e);
-    }
-  }
-  await attendre(40);
+  if (apiMockActive()) await attendre(40);
   return VILLES.map((v) => v.valeur);
 }
 
 export async function obtenirVehicule(slug: string): Promise<Vehicule | null> {
-  if (!apiMockActive()) {
-    try {
-      return await apiObtenirVehicule(slug);
-    } catch (e) {
-      if (e instanceof ErreurApi && e.code === "VEHICULE_INTROUVABLE") return null;
-      throw enErreurServeur(e);
-    }
-  }
-
-  await attendre(80);
+  if (!slug) return null;
+  if (apiMockActive()) await attendre(80);
   return VEHICULES.find((v) => v.slug === slug) ?? null;
 }
 
@@ -857,15 +746,7 @@ export async function obtenirVehicule(slug: string): Promise<Vehicule | null> {
  * confirmation, il n'y a donc pas d'étape 6 pour le visiteur.
  */
 export async function estimerTaxi(passagers: number): Promise<{ bas: number; haut: number }> {
-  if (!apiMockActive()) {
-    try {
-      return await apiEstimerTaxi(passagers);
-    } catch (e) {
-      throw enErreurServeur(e);
-    }
-  }
-
-  await attendre(120);
+  if (apiMockActive()) await attendre(120);
   const base = passagers > 4 ? 8000 : 5000;
   return { bas: base, haut: Math.round(base * 1.6) };
 }
@@ -873,6 +754,14 @@ export async function estimerTaxi(passagers: number): Promise<{ bas: number; hau
 /* ───────────────────────── Espace prestataire ───────────────────────── */
 
 export async function connexionPrestataire(telephone: string, code: string): Promise<boolean> {
+  if (!apiMockActive()) {
+    try {
+      const res = await apiConnexionPrestataire(telephone, code);
+      return Boolean(res?.prestataireId);
+    } catch {
+      throw new CodeInvalide("faux");
+    }
+  }
   await attendre(400);
   if (code !== CODE_PRESTATAIRE) throw new CodeInvalide("faux");
   return telephone.replace(/\D/g, "").length >= 9;
