@@ -75,6 +75,20 @@ export async function demanderCodeOtpAction(
 
 export type EtatConnexionVisiteur = { erreur?: "code" | "identifiant" | "envoi"; message?: string };
 
+/**
+ * Résout et sécurise la destination après connexion :
+ * - Empêche les attaques par redirection ouverte (open redirect).
+ * - Préserve ou ajoute le préfixe de langue sans duplication.
+ */
+function resoudreDestination(suite: string): string {
+  const propre = suite.trim();
+  const cible = propre.startsWith("/") && !propre.startsWith("//") ? propre : "/mes-demandes";
+  if (cible.startsWith("/fr") || cible.startsWith("/en") || cible.startsWith("/es")) {
+    return cible;
+  }
+  return `/fr${cible}`;
+}
+
 export async function seConnecter(
   _precedent: EtatConnexionVisiteur,
   formData: FormData,
@@ -85,21 +99,33 @@ export async function seConnecter(
 
   if (identifiant.length < 6) return { erreur: "identifiant" };
 
+  const destination = resoudreDestination(suite);
+
   if (!apiMockActive()) {
     try {
       const res = await apiVerifierOtp(identifiant, code);
       await poser(res.token ?? res.visiteurId);
-      redirect(`/fr${suite}`);
     } catch (err) {
+      if (
+        (err instanceof Error && err.message === "NEXT_REDIRECT") ||
+        (typeof err === "object" &&
+          err !== null &&
+          "digest" in err &&
+          String((err as { digest?: unknown }).digest).startsWith("NEXT_REDIRECT"))
+      ) {
+        throw err;
+      }
       const msg = err instanceof Error ? err.message : undefined;
       return { erreur: "code", message: msg };
     }
+
+    redirect(destination);
   }
 
   if (code !== CODE_DE_DEMONSTRATION) return { erreur: "code" };
 
   await poser(identifiant);
-  redirect(`/fr${suite}`);
+  redirect(destination);
 }
 
 export async function seDeconnecter() {
