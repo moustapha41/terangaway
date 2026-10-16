@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { detecterLangue, estLangue } from "@/lib/i18n/langues";
 import { COOKIE_SESSION } from "@/features/prestataire/cookie";
-import { COOKIE_VISITEUR } from "@/features/compte/cookie";
+import { COOKIE_VISITEUR, estJetonSessionValide } from "@/features/compte/cookie";
 
 /**
  * Détection de la langue (§B.2, étape 1) et préfixe d'URL.
@@ -55,7 +55,8 @@ function proteger(requete: NextRequest, langue: string) {
   }
 
   if (VISITEUR_PROTEGE.some((protege) => nu.startsWith(protege))) {
-    if (requete.cookies.get(COOKIE_VISITEUR)) return NextResponse.next();
+    const jeton = requete.cookies.get(COOKIE_VISITEUR)?.value;
+    if (estJetonSessionValide(jeton)) return NextResponse.next();
     return versConnexion(requete, langue, "/connexion", nu);
   }
 

@@ -397,7 +397,16 @@
     "titreEtape2": "Summary",
     "nomRequis": "Enter your name.",
     "emailRequis": "Enter a valid email address.",
-    "telephoneRequis": "Enter a phone number."
+    "telephoneRequis": "Enter a phone number.",
+    "echecTitre": "Your request could not be sent",
+    "echecTexte": "Nothing was saved and your entries are kept. Please try again in a moment.",
+    "echecSession": "Your session could not be opened. Please verify your code again.",
+    "echecTentatives": "Too many attempts with this code. Please request a new verification code.",
+    "echecReessayer": "Try again",
+    "codeNonEnvoye": "The code could not be sent to this address. Check the email address, then try again.",
+    "codeEnvoye": "Code sent. It is valid for ten minutes.",
+    "plutotUnCompte": "Would you rather have an account?",
+    "creerUnCompte": "Create an account"
   },
   "confirmation": {
     "titre": "Your request has been sent",
@@ -940,7 +949,16 @@
     "seDeconnecter": "Sign out",
     "donnees": "Your data",
     "donneesTexte": "We keep your email or your number to identify you and to tell you what happens, nothing else. We never ask for a bank card.",
-    "supprimer": "To delete your account, call support."
+    "supprimer": "To delete your account, call support.",
+    "motDePasse": "Password",
+    "seConnecterMotDePasse": "Sign in",
+    "pasEncoreDeCompte": "Don't have an account yet?",
+    "creerUnCompte": "Create an account",
+    "ouParCode": "Or receive a code by email",
+    "parCodeTexte": "Accounts created before passwords were introduced sign in with a six-digit code.",
+    "connexionEchec": "Sign-in failed",
+    "compteNonVerifie": "Your address is not confirmed yet. Verify your account to continue.",
+    "allerVerifier": "Verify my account"
   },
   "public": {
     "aProposTitre": "About Teranga Way",
@@ -1220,7 +1238,8 @@
     "envoyeeTitre": "Your request has been sent",
     "envoyeeTexte": "You will get an answer by email and in your account.",
     "voirMesDemandes": "See my requests",
-    "retourAccueil": "Back to the home page"
+    "retourAccueil": "Back to the home page",
+    "delaiTropCourt": "Pickup must be requested at least two hours in advance. Please choose a later time."
   },
   "resultatsTransport": {
     "titre": "{nombre} vehicle available",
@@ -1345,5 +1364,32 @@
     "aucunPaiement": "No payment now. You will be quoted a price before committing to anything.",
     "echecTitre": "Your request was not sent",
     "echecTexte": "Try again in a moment. If it happens again, call the team."
+  },
+  "inscription": {
+    "titre": "Create your account",
+    "texte": "An account lets you track your requests and book without re-entering your details.",
+    "nomComplet": "Full name",
+    "email": "Email address",
+    "motDePasse": "Password",
+    "motDePasseAide": "At least {longueur} characters. A phrase is safer and easier to remember than a complicated word.",
+    "confirmation": "Confirm password",
+    "creerMonCompte": "Create my account",
+    "dejaUnCompte": "Already have an account?",
+    "seConnecter": "Sign in",
+    "dejaInscrit": "This address already has an account. Sign in to continue.",
+    "verificationTitre": "Verify your email address",
+    "verificationTexte": "We sent a six-digit code to {email}. It is valid for ten minutes.",
+    "codeLibelle": "Six-digit code",
+    "verifierMonCompte": "Verify my account",
+    "renvoyerCode": "Resend the code",
+    "renvoyerDans": "Resend the code in {secondes}s",
+    "codeRenvoye": "A new code has just been sent.",
+    "corrigerEmail": "Not the right address?",
+    "corrigerEmailAction": "Correct my address",
+    "attenteExpiree": "Your registration has expired. Please start again.",
+    "reprendre": "Start registration again",
+    "echecTitre": "Registration did not complete",
+    "confirmationErreur": "The two passwords do not match.",
+    "motDePasseCourtErreur": "Too short: at least {longueur} characters are required."
   }
 }

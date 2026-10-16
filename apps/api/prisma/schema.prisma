@@ -48,6 +48,14 @@ model Account {
   typeCompte     TypeCompte     @default(VISITEUR)
   estVerifie     Boolean        @default(false)
   verifieLe      DateTime?
+
+  /// Empreinte scrypt du mot de passe : `scrypt$N$r$p$sel$empreinte`.
+  ///
+  /// Nullable, et c'est le point : les comptes créés avant l'inscription par
+  /// mot de passe — ou nés d'une simple demande de code — n'en ont pas, et
+  /// continuent de se connecter par code à usage unique. `NULL` veut dire
+  /// « ce compte n'a pas de mot de passe », jamais « mot de passe vide ».
+  motDePasseHash String?
   charteSigneeLe DateTime?
   creeLe         DateTime       @default(now())
   misAJourLe     DateTime       @updatedAt

@@ -38,8 +38,12 @@ export class ServiceEmail {
     const modele = genererEmailOtp(code, minutesValidite);
 
     if (!this.resend) {
-      if (config.environnement === "production") {
-        this.logger.error("Tentative d'envoi d'e-mail en production sans clé RESEND_API_KEY");
+      // Sans fournisseur, le mode démo écrit le code dans le journal. C'est
+      // acceptable sur un poste de développement, jamais sur un déploiement :
+      // les journaux sont consultables et conservés. Hors mode démo, on refuse
+      // plutôt que de prétendre avoir envoyé l'e-mail.
+      if (!config.autoriserComptesDemo) {
+        this.logger.error("Tentative d'envoi d'e-mail sans clé RESEND_API_KEY configurée");
         throw new ErreurMetier(
           "SERVICE_EMAIL_NON_CONFIGURE",
           "Le service d'envoi d'e-mails n'est pas configuré.",

@@ -47,6 +47,29 @@ async function demarrer() {
   new Logger("API").log(
     `Configuration : env=${config.environnement}, Resend=${config.resendApiKey ? "défini" : "absent"}, EmailFrom=${config.emailFrom}, AppUrl=${config.appUrl}, OtpSecret=${config.otpSecret ? "défini" : "absent"}`,
   );
+
+  // La posture de sécurité, dite au démarrage et en clair.
+  //
+  // Il a fallu déduire ces valeurs du comportement du site public pour
+  // s'apercevoir que les accès de démonstration étaient restés ouverts. Une
+  // ligne de journal au démarrage aurait suffi, et ne coûte rien.
+  const journalPosture = new Logger("Posture");
+  if (config.autoriserComptesDemo) {
+    journalPosture.warn(
+      "COMPTES DE DÉMONSTRATION OUVERTS (AUTORISER_COMPTES_DEMO=true) : " +
+        "le compte visiteur-demo, le code OTP fixe et la résolution de session " +
+        "par identifiant de compte sont acceptés. À ne jamais déployer publiquement.",
+    );
+  } else {
+    journalPosture.log(
+      "Comptes de démonstration refusés : seule une session à jeton vérifié authentifie.",
+    );
+  }
+  if (config.demoRefuseeEnProduction) {
+    journalPosture.warn(
+      "AUTORISER_COMPTES_DEMO=true a été ignoré : NODE_ENV=production referme ces accès.",
+    );
+  }
 }
 
 void demarrer();

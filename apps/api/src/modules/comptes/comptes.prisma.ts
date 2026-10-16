@@ -1,16 +1,25 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { PrismaService } from "../../base-de-donnees/prisma.service";
 import {
+  estIdentiteDemo,
+  TELEPHONE_VISITEUR_DEMO,
+  VISITEUR_DEMO,
+} from "../../commun/securite/identites-demo";
+import { config } from "../../config/configuration";
+import {
   genererJetonSession,
   hacherJetonDirect,
   hacherOtp,
   hacherSha256,
   normaliserDestination,
   normaliserTelephone,
+  verifierMotDePasse,
 } from "../../commun/securite/hachage";
 import type {
   CodeOtp,
+  CompteResume,
   DepotComptes,
+  FinaliteOtp,
   SessionPrestataire,
   SessionVisiteur,
   VerificationRateLimit,
@@ -59,7 +68,7 @@ export class DepotComptesPrisma implements DepotComptes {
         data: {
           destination,
           ipAddress: otp.ipAddress,
-          finalite: "connexion_visiteur",
+          finalite: otp.finalite ?? "connexion_visiteur",
           codeHash: hacherOtp(otp.code),
           attempts: otp.tentatives ?? 0,
           maxAttempts: 5,
@@ -126,12 +135,14 @@ export class DepotComptesPrisma implements DepotComptes {
     return { autorise: true };
   }
 
-  async otpPour(destination: string): Promise<CodeOtp | null> {
+  async otpPour(destination: string, finalite?: FinaliteOtp): Promise<CodeOtp | null> {
     const dest = normaliserDestination(destination);
     const challenge = await this.prisma.otpChallenge.findFirst({
       where: {
         destination: dest,
         consumedAt: null,
+        // Un code d'inscription ne vaut rien sur la route de connexion.
+        ...(finalite ? { finalite } : {}),
       },
       orderBy: { creeLe: "desc" },
     });
@@ -216,9 +227,10 @@ export class DepotComptesPrisma implements DepotComptes {
           },
         });
 
+    const DUREE_SESSION_JOURS = 30;
     const token = genererJetonSession();
     const tokenHash = hacherJetonDirect(token);
-    const expiresAt = new Date(Date.now() + 8 * 3600 * 1000); // 8 heures
+    const expiresAt = new Date(Date.now() + DUREE_SESSION_JOURS * 24 * 3600 * 1000); // 30 jours
 
     const session = await this.prisma.session.create({
       data: {
@@ -240,14 +252,19 @@ export class DepotComptesPrisma implements DepotComptes {
   }
 
   async sessionVisiteur(idOuToken: string): Promise<SessionVisiteur | null> {
-    // 1. Démo isolée de développement
-    if (idOuToken === "visiteur-demo") {
+    // 1. Démo isolée de développement, refusée par défaut (voir
+    //    `config.autoriserComptesDemo`). Elle ne crée un compte que si elle est
+    //    explicitement ouverte : sinon on ne touche même pas à la base.
+    if (estIdentiteDemo(idOuToken)) {
+      if (!config.autoriserComptesDemo) {
+        return null;
+      }
       const demo = await this.prisma.account.upsert({
-        where: { id: "visiteur-demo" },
+        where: { id: VISITEUR_DEMO },
         update: {},
         create: {
-          id: "visiteur-demo",
-          telephone: "770000000",
+          id: VISITEUR_DEMO,
+          telephone: TELEPHONE_VISITEUR_DEMO,
           nom: "Visiteur Démo",
           role: "VISITEUR",
           typeCompte: "VISITEUR",
@@ -257,7 +274,7 @@ export class DepotComptesPrisma implements DepotComptes {
       });
       return {
         id: demo.id,
-        telephone: demo.telephone ?? "770000000",
+        telephone: demo.telephone ?? TELEPHONE_VISITEUR_DEMO,
         creeLe: demo.creeLe.toISOString(),
         compteId: demo.id,
       };
@@ -265,7 +282,7 @@ export class DepotComptesPrisma implements DepotComptes {
 
     const maintenant = new Date();
 
-    // 2. Recherche par empreinte de jeton session
+    // 2. Recherche par empreinte de jeton session (mécanisme primaire sécurisé)
     const tokenHash = hacherJetonDirect(idOuToken);
     const sessionParToken = await this.prisma.session.findUnique({
       where: { tokenHash },
@@ -280,42 +297,57 @@ export class DepotComptesPrisma implements DepotComptes {
       return {
         id: sessionParToken.id,
         telephone: sessionParToken.account.telephone ?? "",
+        email: sessionParToken.account.email ?? undefined,
         creeLe: sessionParToken.creeLe.toISOString(),
         compteId: sessionParToken.accountId,
         token: idOuToken,
       };
     }
 
-    // 3. Recherche par identifiant de session
-    const sessionParId = await this.prisma.session.findUnique({
-      where: { id: idOuToken },
-      include: { account: true },
-    });
+    // 3. Recherches de transition historiques, refusées par défaut.
+    //
+    // Résoudre une session depuis un `session.id` ou, pire, un `account.id`
+    // revient à accepter un identifiant non secret comme preuve d'identité :
+    // ces deux valeurs circulent dans les URL, les journaux et les exports.
+    // Seul le condensé du jeton (étape 2) prouve quelque chose.
+    //
+    // Le garde-fou se lit sur `autoriserComptesDemo`, et non sur NODE_ENV :
+    // c'est exactement cette lecture qui avait laissé la porte ouverte en
+    // production.
+    if (config.autoriserComptesDemo) {
+      // Recherche par identifiant de session (hors production uniquement)
+      const sessionParId = await this.prisma.session.findUnique({
+        where: { id: idOuToken },
+        include: { account: true },
+      });
 
-    if (
-      sessionParId &&
-      !sessionParId.revokedAt &&
-      sessionParId.expiresAt > maintenant
-    ) {
-      return {
-        id: sessionParId.id,
-        telephone: sessionParId.account.telephone ?? "",
-        creeLe: sessionParId.creeLe.toISOString(),
-        compteId: sessionParId.accountId,
-      };
-    }
+      if (
+        sessionParId &&
+        !sessionParId.revokedAt &&
+        sessionParId.expiresAt > maintenant
+      ) {
+        return {
+          id: sessionParId.id,
+          telephone: sessionParId.account.telephone ?? "",
+          email: sessionParId.account.email ?? undefined,
+          creeLe: sessionParId.creeLe.toISOString(),
+          compteId: sessionParId.accountId,
+        };
+      }
 
-    // 4. Recherche par identifiant de compte (compatibilité de transition)
-    const account = await this.prisma.account.findUnique({
-      where: { id: idOuToken },
-    });
-    if (account) {
-      return {
-        id: account.id,
-        telephone: account.telephone ?? "",
-        creeLe: account.creeLe.toISOString(),
-        compteId: account.id,
-      };
+      // Recherche par identifiant de compte (hors production uniquement)
+      const account = await this.prisma.account.findUnique({
+        where: { id: idOuToken },
+      });
+      if (account) {
+        return {
+          id: account.id,
+          telephone: account.telephone ?? "",
+          email: account.email ?? undefined,
+          creeLe: account.creeLe.toISOString(),
+          compteId: account.id,
+        };
+      }
     }
 
     return null;
@@ -448,5 +480,88 @@ export class DepotComptesPrisma implements DepotComptes {
       },
       data: { revokedAt: maintenant },
     });
+  }
+
+  /* ───────────────────────────── Inscription ───────────────────────────── */
+
+  async compteParEmail(email: string): Promise<CompteResume | null> {
+    const normalise = normaliserDestination(email);
+    if (!normalise.includes("@")) return null;
+
+    const compte = await this.prisma.account.findUnique({
+      where: { email: normalise },
+      select: { id: true, email: true, nom: true, estVerifie: true, motDePasseHash: true },
+    });
+    if (!compte) return null;
+
+    return this.resumer(compte);
+  }
+
+  async preparerInscription(entree: {
+    email: string;
+    nom: string;
+    motDePasseHash: string;
+  }): Promise<CompteResume> {
+    const email = normaliserDestination(entree.email);
+
+    // `upsert` et non `create` : une demande de code antérieure a pu laisser un
+    // compte non vérifié et sans mot de passe sur cette adresse. Le service a
+    // déjà refusé le cas d'un compte réellement inscrit — ici, on complète.
+    //
+    // Le compte reste `estVerifie: false` : l'inscription n'est pas acquise
+    // avant la vérification du code.
+    const compte = await this.prisma.account.upsert({
+      where: { email },
+      update: {
+        nom: entree.nom,
+        motDePasseHash: entree.motDePasseHash,
+      },
+      create: {
+        email,
+        nom: entree.nom,
+        motDePasseHash: entree.motDePasseHash,
+        role: "VISITEUR",
+        typeCompte: "VISITEUR",
+        estVerifie: false,
+      },
+      select: { id: true, email: true, nom: true, estVerifie: true, motDePasseHash: true },
+    });
+
+    return this.resumer(compte);
+  }
+
+  async activerCompte(compteId: string): Promise<CompteResume> {
+    const compte = await this.prisma.account.update({
+      where: { id: compteId },
+      data: { estVerifie: true, verifieLe: new Date() },
+      select: { id: true, email: true, nom: true, estVerifie: true, motDePasseHash: true },
+    });
+    return this.resumer(compte);
+  }
+
+  async verifierMotDePasseCompte(compteId: string, motDePasse: string): Promise<boolean> {
+    const compte = await this.prisma.account.findUnique({
+      where: { id: compteId },
+      select: { motDePasseHash: true },
+    });
+    // L'empreinte ne quitte pas cette méthode.
+    return verifierMotDePasse(motDePasse, compte?.motDePasseHash);
+  }
+
+  /** Vue publique d'un compte : jamais l'empreinte, seulement sa présence. */
+  private resumer(compte: {
+    id: string;
+    email: string | null;
+    nom: string | null;
+    estVerifie: boolean;
+    motDePasseHash: string | null;
+  }): CompteResume {
+    return {
+      id: compte.id,
+      email: compte.email,
+      nom: compte.nom,
+      estVerifie: compte.estVerifie,
+      aUnMotDePasse: Boolean(compte.motDePasseHash),
+    };
   }
 }

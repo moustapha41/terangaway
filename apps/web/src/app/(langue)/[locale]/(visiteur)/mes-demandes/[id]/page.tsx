@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import type { CoordonneesLogement, Demande, StatutDemande } from "@teranga/contracts";
 import { STATUTS_TERMINAUX } from "@teranga/contracts";
 import { BadgeStatut, Bandeau, Bouton, Carte, FriseStatut, Icone, type EtapeFrise } from "@teranga/ui";
@@ -11,6 +11,7 @@ import type { Traducteur } from "@/lib/i18n/traducteur";
 import { formaterDateComplete, formaterHeure } from "@/lib/dates";
 import { formaterPrix } from "@/lib/prix";
 import { obtenirDemande } from "@/mocks/api";
+import { visiteurConnecte } from "@/features/compte/session";
 
 /**
  * Écran 6 · Détail d'une demande (§C.7).
@@ -32,6 +33,18 @@ export default async function DetailDemande({
   const { locale, id } = await params;
   const langue: Langue = estLangue(locale) ? locale : "fr";
   const t = traducteurPour(langue);
+
+  // Route privée : la session se vérifie ici, côté serveur, et pas seulement
+  // dans le middleware. Le middleware ne juge que la *forme* du cookie ; seul
+  // cet appel confronte le jeton aux sessions vivantes de l'API.
+  //
+  // Sans lui, un cookie de forme plausible arrivait jusqu'à l'appel API, qui
+  // répondait 401, et le visiteur tombait sur l'écran de panne au lieu d'être
+  // renvoyé vers la connexion.
+  const visiteur = await visiteurConnecte();
+  if (!visiteur) {
+    redirect(`/${langue}/connexion?suite=${encodeURIComponent(`/mes-demandes/${id}`)}`);
+  }
 
   const demande = await obtenirDemande(id);
   if (!demande) notFound();

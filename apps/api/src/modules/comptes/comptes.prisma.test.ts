@@ -2,6 +2,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { PrismaService } from "../../base-de-donnees/prisma.service";
 import { ErreurMetier } from "../../commun/erreurs";
+import { enProduction } from "../../commun/securite/posture.test-utils";
 import { DepotComptesPrisma } from "./comptes.prisma";
 import { ServiceComptes } from "./comptes.service";
 
@@ -125,5 +126,55 @@ describe("Persistance PostgreSQL — Module Comptes & Authentification", () => {
 
     // Après révocation, l'accès est refusé
     await expect(service.exigerVisiteur(token)).rejects.toThrow(ErreurMetier);
+  });
+
+  it("établit une session de 30 jours et rejette une session expirée", async () => {
+    const telephone = genererTel();
+    const { codeDemo } = await service.envoyerOtp(telephone);
+    const { token, visiteurId } = await service.verifierOtp(telephone, codeDemo!);
+
+    const session = await prisma.session.findFirst({
+      where: { accountId: visiteurId },
+      orderBy: { creeLe: "desc" },
+    });
+    expect(session).toBeDefined();
+
+    // Vérifie que l'expiration est bien fixée à ~30 jours (+/- 1 heure de tolérance)
+    const diffJours =
+      (session!.expiresAt.getTime() - session!.creeLe.getTime()) /
+      (1000 * 60 * 60 * 24);
+    expect(Math.round(diffJours)).toBe(30);
+
+    // Faire expirer la session artificiellement dans le passé
+    await prisma.session.update({
+      where: { id: session!.id },
+      data: { expiresAt: new Date(Date.now() - 1000 * 60) },
+    });
+
+    // La session expirée doit être formellement rejetée
+    await expect(service.exigerVisiteur(token)).rejects.toThrow(ErreurMetier);
+  });
+
+  it("fournit le profil visiteur complet avec email, téléphone et token", async () => {
+    const telephone = genererTel();
+    const { codeDemo } = await service.envoyerOtp(telephone);
+    const { token, visiteurId } = await service.verifierOtp(telephone, codeDemo!);
+
+    const profil = await service.profilVisiteur(token!);
+    expect(profil.compteId).toBe(visiteurId);
+    expect(profil.token).toBe(token);
+    expect(profil.telephone).toContain(telephone);
+  });
+
+  it("rejette formellement visiteur-demo et les accountId arbitraires sans token valide en production", async () => {
+    await enProduction(async () => {
+      // 1. visiteur-demo est formellement rejeté
+      await expect(service.exigerVisiteur("visiteur-demo")).rejects.toThrow(ErreurMetier);
+      await expect(depot.sessionVisiteur("visiteur-demo")).resolves.toBeNull();
+
+      // 2. Un simple identifiant de compte sans token valide est rejeté
+      await expect(service.exigerVisiteur("acc_test_arbitraire")).rejects.toThrow(ErreurMetier);
+      await expect(depot.sessionVisiteur("acc_test_arbitraire")).resolves.toBeNull();
+    });
   });
 });

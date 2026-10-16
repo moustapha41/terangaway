@@ -8,6 +8,8 @@ import { traducteurPour } from "@/lib/i18n/messages";
 import { SEJOUR_DEFAUT } from "@/lib/dates/sejour";
 import { FormulaireTransport } from "@/features/demande/formulaire-transport";
 import { logementParId, vehiculeParId, type EtatEnvoi } from "@/mocks/api";
+import { visiteurConnecte, nomLisible } from "@/features/compte/session";
+import { lireBrouillonLogement, lireBrouillonTransport } from "@/features/demande/brouillon";
 
 /**
  * Écran 4 · Demande.
@@ -17,8 +19,6 @@ import { logementParId, vehiculeParId, type EtatEnvoi } from "@/mocks/api";
  */
 type Params = Promise<{ locale: string; offreId: string }>;
 type Recherche = Promise<Record<string, string | undefined>>;
-
-
 
 export default async function Demande({
   params,
@@ -31,6 +31,12 @@ export default async function Demande({
   const langue: Langue = estLangue(locale) ? locale : "fr";
   const recherche = await searchParams;
   const t = traducteurPour(langue);
+
+  const visiteur = await visiteurConnecte();
+  const nomEnTete = visiteur ? nomLisible(visiteur.identifiant) : undefined;
+  const visiteurProp = visiteur
+    ? { email: visiteur.email, telephone: visiteur.telephone, identifiant: visiteur.identifiant }
+    : undefined;
 
   // Une demande porte sur un logement **ou** sur un véhicule : le contrat
   // `Demande` prévoit les deux genres. Cette page ne cherchait que parmi les
@@ -47,7 +53,7 @@ export default async function Demande({
 
     return (
       <main className="bg-page pb-16">
-        <EnTete />
+        <EnTete visiteur={nomEnTete} />
 
         <div className="mx-auto w-[87.5%] max-w-[760px] pt-6">
           <Lien
@@ -70,6 +76,8 @@ export default async function Demande({
             quand={recherche.quand ?? `${SEJOUR_DEFAUT.debut}T10:00`}
             passagers={Number(recherche.passagers ?? recherche.personnes ?? 2)}
             etatSimule={(recherche.etat as EtatEnvoi) ?? "normal"}
+            visiteur={visiteurProp}
+            brouillon={await lireBrouillonTransport(vehicule.id)}
           />
         </div>
       </main>
@@ -80,7 +88,7 @@ export default async function Demande({
 
   return (
     <main className="bg-page pb-16">
-      <EnTete />
+      <EnTete visiteur={nomEnTete} />
 
       <div className="mx-auto w-[87.5%] max-w-[760px] pt-6">
         <Lien
@@ -99,6 +107,8 @@ export default async function Demande({
           fin={recherche.fin ?? SEJOUR_DEFAUT.fin}
           personnes={Number(recherche.personnes ?? 2)}
           etatSimule={(recherche.etat as EtatEnvoi) ?? "normal"}
+          visiteur={visiteurProp}
+          brouillon={await lireBrouillonLogement(logement.id)}
         />
       </div>
     </main>

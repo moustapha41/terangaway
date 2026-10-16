@@ -48,6 +48,22 @@ export async function appelerApi<T>(
     // Exécution hors contexte de requête Next.js (ex: compilation statique ou tests)
   }
 
+  try {
+    const { cookies } = await import("next/headers");
+    const jar = await cookies();
+    const token = jar.get("teranga_visiteur")?.value;
+    if (
+      token &&
+      !options.headers?.["authorization"] &&
+      !options.headers?.["Authorization"] &&
+      !options.headers?.["x-visiteur-id"]
+    ) {
+      forwardedHeaders["authorization"] = `Bearer ${token}`;
+    }
+  } catch {
+    // Exécution hors contexte de cookies Next.js
+  }
+
   const reponse = await fetch(`${baseUrl()}${chemin}`, {
     method: options.method ?? "GET",
     headers: {

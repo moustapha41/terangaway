@@ -2,14 +2,22 @@
 
 import { revalidatePath } from "next/cache";
 import type { Demande } from "@teranga/contracts";
-import { envoyerDemandeService, type EntreeDemandeService, CodeInvalide } from "@/mocks/api";
+import { envoyerDemandeService, type EntreeDemandeService, CodeInvalide, CODE_DE_DEMONSTRATION } from "@/mocks/api";
 import { ouvrirSession } from "@/features/compte/actions";
+import { visiteurConnecte } from "@/features/compte/session";
+import { verifierCodeEtOuvrirSession } from "@/features/compte/verification-otp";
+import { apiMockActive } from "@/lib/api/http";
 
 export type ResultatDemandeService =
   | { succes: true; demande: Demande }
   | {
       succes: false;
-      erreur: "code_invalide" | "validation" | "serveur";
+      erreur:
+        | "code_invalide"
+        | "trop_de_tentatives"
+        | "session"
+        | "validation"
+        | "serveur";
       raison?: "faux" | "expire";
       message?: string;
     };
@@ -30,17 +38,48 @@ export async function creerDemandeServiceAction(
     return { succes: false, erreur: "validation", message: "Détails du service requis." };
   }
 
+  // Vérifier si une session visiteur valide existe déjà
+  const sessionActive = await visiteurConnecte();
+
+  if (!sessionActive) {
+    const codeOtp = entree.code?.trim();
+    if (!codeOtp && !apiMockActive()) {
+      return { succes: false, erreur: "code_invalide", raison: "faux" };
+    }
+
+    if (codeOtp) {
+      if (!apiMockActive()) {
+        const email = contact?.email?.trim();
+        if (!email) {
+          return { succes: false, erreur: "validation", message: "Adresse e-mail requise pour valider le code." };
+        }
+        const verification = await verifierCodeEtOuvrirSession(email, codeOtp);
+        if (!verification.ok) {
+          return { succes: false, ...verification.echec };
+        }
+      } else {
+        if (codeOtp !== CODE_DE_DEMONSTRATION) {
+          return { succes: false, erreur: "code_invalide", raison: "faux" };
+        }
+        const email = contact?.email?.trim() || "visiteur@teranga-way.com";
+        const mockToken = `session-mock-${Buffer.from(email).toString("hex")}`;
+        await ouvrirSession(mockToken);
+      }
+    }
+  }
+
   try {
     const demande = await envoyerDemandeService({
       service: entree.service,
       details: entree.details,
       message: entree.message ? entree.message.slice(0, 2000).trim() : undefined,
-      code: entree.code ? entree.code.trim() : undefined,
     });
 
-    // Ouvre la session visiteur directement sur le serveur
-    const identifiantSession = contact?.email?.trim() || contact?.telephone?.trim() || demande.reference;
-    await ouvrirSession(identifiantSession);
+    if (!sessionActive && apiMockActive()) {
+      const email = contact?.email?.trim() || "visiteur@teranga-way.com";
+      const mockToken = `session-mock-${Buffer.from(email).toString("hex")}`;
+      await ouvrirSession(mockToken);
+    }
 
     revalidatePath("/[locale]/mes-demandes", "page");
     revalidatePath("/[locale]/compte", "page");

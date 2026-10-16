@@ -4,6 +4,7 @@ import { Lien } from "@/lib/i18n/lien";
 import { estLangue, type Langue } from "@/lib/i18n/langues";
 import { traducteurPour } from "@/lib/i18n/messages";
 import { CODE_PRESTATAIRE } from "@/mocks/fixtures/prestataire";
+import { apiMockActive } from "@/lib/api/http";
 
 /** Connexion par code à usage unique : aucun mot de passe à retenir ni à perdre. */
 export default async function Connexion({ params }: { params: Promise<{ locale: string }> }) {
@@ -20,11 +21,14 @@ export default async function Connexion({ params }: { params: Promise<{ locale: 
         <FormulaireConnexion />
       </Carte>
 
-      <div className="mt-5">
-        <Bandeau variante="information">
-          {t("prestataire.codeDemo", { code: CODE_PRESTATAIRE })}
-        </Bandeau>
-      </div>
+      {/* Même règle que côté visiteur : le code fixe ne s'annonce que sous le mock. */}
+      {apiMockActive() && (
+        <div className="mt-5">
+          <Bandeau variante="information">
+            {t("prestataire.codeDemo", { code: CODE_PRESTATAIRE })}
+          </Bandeau>
+        </div>
+      )}
 
       <p className="mt-8 text-center text-petit text-encre-douce">
         {t("prestataire.pasDeCompte")}{" "}

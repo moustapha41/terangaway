@@ -5,29 +5,64 @@ import { redirect } from "next/navigation";
 import { apiDeconnexion, apiEnvoyerOtp, apiVerifierOtp } from "@/lib/api/ecriture";
 import { apiMockActive } from "@/lib/api/http";
 import { CODE_DE_DEMONSTRATION } from "@/mocks/api";
-import { COOKIE_VISITEUR } from "./cookie";
+import { COOKIE_VISITEUR, DUREE_SESSION_SECONDES, estJetonSessionValide } from "./cookie";
+import { resoudreDestination } from "./destination";
 
-const HUIT_HEURES = 60 * 60 * 8;
-
-async function poser(identifiant: string) {
+async function poser(jeton: string) {
   const jar = await cookies();
-  jar.set(COOKIE_VISITEUR, identifiant, {
+  jar.set(COOKIE_VISITEUR, jeton, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
     path: "/",
-    maxAge: HUIT_HEURES,
+    maxAge: DUREE_SESSION_SECONDES,
   });
 }
 
 /**
- * Ouvre la session après l'envoi d'une demande.
+ * Ouvre ou met à jour la session avec un vrai jeton de session.
  *
- * Le visiteur vient de saisir son code : lui redemander de se connecter pour
- * suivre la demande qu'il vient d'envoyer serait absurde.
+ * Rejette les adresses e-mail et les valeurs non valides, pour ne jamais
+ * écraser un jeton cryptographique existant par une donnée publique.
+ *
+ * Renvoie `false` quand elle refuse : l'appelant doit le savoir. Dans la
+ * version déployée, cette fonction échouait en silence, et le visiteur se
+ * retrouvait déconnecté juste après avoir saisi un code correct, sans qu'aucune
+ * trace n'explique pourquoi.
  */
-export async function ouvrirSession(identifiant: string) {
-  await poser(identifiant);
+export async function ouvrirSession(jeton: string): Promise<boolean> {
+  if (!estJetonSessionValide(jeton)) {
+    console.error(
+      "[compte] jeton de session refusé : ni e-mail, ni valeur publique, ni chaîne courte ne peut ouvrir une session.",
+    );
+    return false;
+  }
+  await poser(jeton);
+  return true;
+}
+
+/**
+ * Ouvre la session à partir de la réponse de `POST /comptes/otp/verifier`.
+ *
+ * `visiteurId` est un identifiant de compte : il circule dans les URL et les
+ * journaux, et l'API ne résout plus de session à partir de lui. Retomber dessus
+ * posait un cookie que l'API refusait ensuite systématiquement — le visiteur
+ * paraissait déconnecté juste après un code correct. On exige donc le jeton,
+ * et on échoue bruyamment s'il manque.
+ */
+export async function ouvrirSessionVerifiee(verification: {
+  visiteurId: string;
+  token?: string;
+}): Promise<boolean> {
+  const jeton = verification.token?.trim();
+  if (!jeton) {
+    console.error(
+      "[compte] /comptes/otp/verifier n'a pas renvoyé de jeton de session : " +
+        "aucune session ouverte (un identifiant de compte n'est pas un jeton).",
+    );
+    return false;
+  }
+  return ouvrirSession(jeton);
 }
 
 export type ResultatDemandeOtp =
@@ -75,20 +110,6 @@ export async function demanderCodeOtpAction(
 
 export type EtatConnexionVisiteur = { erreur?: "code" | "identifiant" | "envoi"; message?: string };
 
-/**
- * Résout et sécurise la destination après connexion :
- * - Empêche les attaques par redirection ouverte (open redirect).
- * - Préserve ou ajoute le préfixe de langue sans duplication.
- */
-function resoudreDestination(suite: string): string {
-  const propre = suite.trim();
-  const cible = propre.startsWith("/") && !propre.startsWith("//") ? propre : "/mes-demandes";
-  if (cible.startsWith("/fr") || cible.startsWith("/en") || cible.startsWith("/es")) {
-    return cible;
-  }
-  return `/fr${cible}`;
-}
-
 export async function seConnecter(
   _precedent: EtatConnexionVisiteur,
   formData: FormData,
@@ -104,7 +125,14 @@ export async function seConnecter(
   if (!apiMockActive()) {
     try {
       const res = await apiVerifierOtp(identifiant, code);
-      await poser(res.token ?? res.visiteurId);
+      const ouverte = await ouvrirSessionVerifiee(res);
+      if (!ouverte) {
+        return {
+          erreur: "envoi",
+          message:
+            "Votre code est correct, mais la session n'a pas pu être ouverte. Veuillez réessayer dans un instant.",
+        };
+      }
     } catch (err) {
       if (
         (err instanceof Error && err.message === "NEXT_REDIRECT") ||
@@ -124,7 +152,8 @@ export async function seConnecter(
 
   if (code !== CODE_DE_DEMONSTRATION) return { erreur: "code" };
 
-  await poser(identifiant);
+  const jetonMock = `session-mock-${Buffer.from(identifiant).toString("hex")}`;
+  await poser(jetonMock);
   redirect(destination);
 }
 

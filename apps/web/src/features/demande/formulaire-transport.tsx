@@ -1,15 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Vehicule } from "@teranga/contracts";
-import { Bandeau, Bouton, Carte, Champ, Compteur, Icone } from "@teranga/ui";
+import { Bandeau, Bouton, Carte, Champ, ChampCode, Compteur, FeuilleBasse, Icone } from "@teranga/ui";
 import { IndicateurEtapes } from "./indicateur-etapes";
 import { formaterDateComplete, formaterHeure } from "@/lib/dates";
 import { useLangue, useT } from "@/lib/i18n/contexte";
 import { useNaviguer } from "@/lib/i18n/naviguer";
 import { formaterPrix } from "@/lib/prix";
 import { creerDemandeTransportAction } from "./actions";
-import type { EtatEnvoi } from "@/mocks/api";
+import { demanderCodeOtpAction } from "@/features/compte/actions";
+import { nomLisible } from "@/features/compte/cookie";
+import { CODE_DE_DEMONSTRATION, type EtatEnvoi } from "@/mocks/api";
+import { apiMockActive } from "@/lib/api/http";
+import { mettreDemandeDeCoteEtSInscrire, oublierBrouillonAction } from "./actions";
+import type { BrouillonTransport } from "./brouillon";
 
 /**
  * Demande de transport — maquette transport, écran 5.
@@ -29,6 +34,8 @@ export function FormulaireTransport({
   quand,
   passagers,
   etatSimule = "normal",
+  visiteur,
+  brouillon,
 }: {
   vehicule: Vehicule;
   prestation: "trajet" | "journee" | "taxi";
@@ -37,25 +44,78 @@ export function FormulaireTransport({
   quand: string;
   passagers: number;
   etatSimule?: EtatEnvoi;
+  visiteur?: { email: string; telephone?: string | null; identifiant: string };
+  /** Saisie mise de côté avant de créer un compte, à retrouver au retour. */
+  brouillon?: BrouillonTransport | null;
 }) {
   const t = useT();
   const langue = useLangue();
   const naviguer = useNaviguer();
 
-  const [etape, setEtape] = useState(1);
-  const [lieuDepart, setLieuDepart] = useState(depart);
-  const [lieuArrivee, setLieuArrivee] = useState(arrivee);
-  const [moment, setMoment] = useState(quand);
-  const [voyageurs, setVoyageurs] = useState(passagers);
-  const [bagages, setBagages] = useState(1);
-  const [vol, setVol] = useState("");
-  const [nom, setNom] = useState("");
-  const [email, setEmail] = useState("");
-  const [telephone, setTelephone] = useState("");
-  const [message, setMessage] = useState("");
+  // Au retour d'une inscription, la saisie est rétablie et on repart au
+  // récapitulatif. La session a priorité sur le brouillon pour le contact :
+  // elle vient de l'API, lui du navigateur.
+  const [etape, setEtape] = useState(brouillon ? 2 : 1);
+  const [lieuDepart, setLieuDepart] = useState(brouillon?.depart ?? depart);
+  const [lieuArrivee, setLieuArrivee] = useState(brouillon?.arrivee ?? arrivee);
+  const [moment, setMoment] = useState(brouillon?.quand ?? quand);
+  const [voyageurs, setVoyageurs] = useState(brouillon?.passagers ?? passagers);
+  const [bagages, setBagages] = useState(brouillon?.bagages ?? 1);
+  const [vol, setVol] = useState(brouillon?.vol ?? "");
+  const [nom, setNom] = useState(
+    visiteur ? nomLisible(visiteur.identifiant) : (brouillon?.nom ?? ""),
+  );
+  const [email, setEmail] = useState(visiteur?.email ?? brouillon?.email ?? "");
+  const [telephone, setTelephone] = useState(visiteur?.telephone ?? brouillon?.telephone ?? "");
+  const [message, setMessage] = useState(brouillon?.message ?? "");
   const [erreurs, setErreurs] = useState<Record<string, boolean>>({});
   const [envoi, setEnvoi] = useState<"repos" | "encours" | "fait">("repos");
   const [reference, setReference] = useState("");
+
+  const [code, setCode] = useState("");
+  const [feuilleCode, setFeuilleCode] = useState(false);
+  const [erreurCode, setErreurCode] = useState<"faux" | "expire" | null>(null);
+  /** Message d'échec de l'envoi : une demande refusée doit se voir. */
+  const [echec, setEchec] = useState<string | null>(null);
+  /** Le code a-t-il réellement été envoyé ? */
+  const [etatCode, setEtatCode] = useState<"inconnu" | "envoye" | "echec">("inconnu");
+  const [compteARebours, setCompteARebours] = useState(30);
+  const minuterie = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    if (!feuilleCode) return;
+    setCompteARebours(30);
+    minuterie.current = setInterval(
+      () => setCompteARebours((reste) => (reste <= 1 ? 0 : reste - 1)),
+      1000,
+    );
+    return () => {
+      if (minuterie.current) clearInterval(minuterie.current);
+    };
+  }, [feuilleCode]);
+
+  /** L'indice « le code est 123456 » n'a de sens que si le mock répond. */
+  const indiceDemo = apiMockActive()
+    ? t("demande.codeDemo", { code: CODE_DE_DEMONSTRATION })
+    : etatCode === "envoye"
+      ? t("demande.codeEnvoye")
+      : undefined;
+
+  /** Demande un code et lit le résultat de l'envoi, au lieu de l'ignorer. */
+  async function demanderCode() {
+    setErreurCode(null);
+    if (!email) {
+      setEtatCode("echec");
+      return;
+    }
+    try {
+      const resultat = await demanderCodeOtpAction(email);
+      setEtatCode(resultat.succes ? "envoye" : "echec");
+      if (!resultat.succes) setEchec(resultat.erreur);
+    } catch {
+      setEtatCode("echec");
+    }
+  }
 
   const prix =
     prestation === "journee"
@@ -70,7 +130,7 @@ export function FormulaireTransport({
     if (!manques.depart) setEtape(2);
   }
 
-  async function envoyer() {
+  async function envoyer(avecCode?: string) {
     const manques = {
       nom: nom.trim().length < 2,
       email: !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email),
@@ -79,29 +139,75 @@ export function FormulaireTransport({
     setErreurs(manques);
     if (Object.values(manques).some(Boolean)) return;
 
-    setEnvoi("encours");
-    const resultat = await creerDemandeTransportAction(
-      {
-        vehiculeId: vehicule.id,
-        prestation,
-        depart: lieuDepart.trim(),
-        arrivee: lieuArrivee.trim() || undefined,
-        quand: moment,
-        passagers: voyageurs,
-        bagages,
-        vol: vol.trim() || undefined,
-        message: message.trim() || undefined,
-      },
-      etatSimule,
-      { email, telephone },
-    );
+    if (!visiteur && !avecCode) {
+      setEtatCode("inconnu");
+      setFeuilleCode(true);
+      void demanderCode();
+      return;
+    }
 
-    if (resultat.succes) {
-      setReference(resultat.demande.reference);
-      setEnvoi("fait");
-      setEtape(3);
-    } else {
+    setEnvoi("encours");
+    setErreurCode(null);
+    setEchec(null);
+    try {
+      const resultat = await creerDemandeTransportAction(
+        {
+          vehiculeId: vehicule.id,
+          prestation,
+          depart: lieuDepart.trim(),
+          arrivee: lieuArrivee.trim() || undefined,
+          quand: moment,
+          passagers: voyageurs,
+          bagages,
+          vol: vol.trim() || undefined,
+          message: message.trim() || undefined,
+          code: avecCode,
+        },
+        etatSimule,
+        { email, telephone },
+      );
+
+      if (resultat.succes) {
+        await oublierBrouillonAction().catch(() => {});
+        setFeuilleCode(false);
+        setReference(resultat.demande.reference);
+        setEnvoi("fait");
+        setEtape(3);
+      } else {
+        setEnvoi("repos");
+        // Comme pour le logement : aucune issue ne se termine en silence.
+        switch (resultat.erreur) {
+          case "code_invalide":
+            setErreurCode(resultat.raison ?? "faux");
+            setCode("");
+            break;
+          case "trop_de_tentatives":
+            setFeuilleCode(false);
+            setEchec(resultat.message ?? t("demande.echecTentatives"));
+            break;
+          case "session":
+            setFeuilleCode(false);
+            setEchec(resultat.message ?? t("demande.echecSession"));
+            break;
+          case "delai_trop_court":
+            setFeuilleCode(false);
+            setEtape(1);
+            setEchec(resultat.message ?? t("demandeTransport.delaiTropCourt"));
+            break;
+          case "validation":
+            setFeuilleCode(false);
+            setEtape(1);
+            setEchec(resultat.message ?? t("demande.echecTexte"));
+            break;
+          default:
+            setFeuilleCode(false);
+            setEchec(resultat.message ?? t("demande.echecTexte"));
+        }
+      }
+    } catch {
       setEnvoi("repos");
+      setFeuilleCode(false);
+      setEchec(t("demande.echecTexte"));
     }
   }
 
@@ -112,6 +218,24 @@ export function FormulaireTransport({
         courante={etape}
         resume={t("demandeTransport.etapeSur", { index: etape })}
       />
+
+      {echec && (
+        <Bandeau
+          variante="erreur"
+          action={
+            <button
+              type="button"
+              onClick={() => setEchec(null)}
+              className="shrink-0 font-semibold underline underline-offset-2"
+            >
+              {t("demande.fermer")}
+            </button>
+          }
+        >
+          <strong className="block font-semibold">{t("demande.echecTitre")}</strong>
+          {echec}
+        </Bandeau>
+      )}
 
       {/* Le véhicule demandé, visible à chaque étape : on sait ce qu'on réserve. */}
       {etape < 3 && (
@@ -314,6 +438,101 @@ export function FormulaireTransport({
           </div>
         </div>
       )}
+
+      <FeuilleBasse
+        ouverte={feuilleCode}
+        onFermer={() => setFeuilleCode(false)}
+        titre="Code de vérification"
+        etiquetteFermer={t("demande.fermer")}
+      >
+        <div className="space-y-5">
+          <p className="text-corps text-encre-douce">
+            {email
+              ? `Un code de vérification à six chiffres a été envoyé à l'adresse e-mail ${email}. Saisissez-le pour confirmer votre demande.`
+              : t("demande.codeTexte")}
+          </p>
+
+          <ChampCode
+            libelle={t("demande.codeLibelle")}
+            valeur={code}
+            onChange={setCode}
+            etat={
+              envoi === "encours"
+                ? "verification"
+                : erreurCode === "expire"
+                  ? "expire"
+                  : erreurCode
+                    ? "erreur"
+                    : "vide"
+            }
+            message={
+              erreurCode === "expire"
+                ? t("demande.codeExpire")
+                : erreurCode === "faux"
+                  ? t("demande.codeFaux")
+                  : etatCode === "echec"
+                    ? t("demande.codeNonEnvoye")
+                    : indiceDemo
+            }
+          />
+
+          <Bouton
+            variante="principal"
+            largeur="pleine"
+            enCours={envoi === "encours"}
+            disabled={code.length < 6}
+            onClick={() => void envoyer(code)}
+          >
+            {t("demandeTransport.envoyer")}
+          </Bouton>
+
+          <Bouton
+            variante="secondaire"
+            largeur="pleine"
+            disabled={compteARebours > 0}
+            onClick={() => {
+              setCompteARebours(30);
+              void demanderCode();
+            }}
+          >
+            {compteARebours > 0
+              ? t("demande.codeRenvoyerDans", { secondes: compteARebours })
+              : t("demande.codeRenvoyer")}
+          </Bouton>
+
+          {/* Même sortie que côté logement : un vrai compte, sans perdre la saisie. */}
+          <p className="text-center text-petit text-encre-douce">
+            {t("demande.plutotUnCompte")}{" "}
+            <button
+              type="button"
+              className="font-semibold text-primaire underline underline-offset-2"
+              onClick={() =>
+                void mettreDemandeDeCoteEtSInscrire(
+                  {
+                    genre: "vehicule",
+                    vehiculeId: vehicule.id,
+                    prestation,
+                    depart: lieuDepart,
+                    arrivee: lieuArrivee || undefined,
+                    quand: moment,
+                    passagers: voyageurs,
+                    bagages,
+                    vol: vol || undefined,
+                    nom,
+                    email,
+                    telephone,
+                    message,
+                  },
+                  `/demande/${vehicule.id}?prestation=${prestation}&quand=${encodeURIComponent(moment)}&passagers=${voyageurs}`,
+                  langue,
+                )
+              }
+            >
+              {t("demande.creerUnCompte")}
+            </button>
+          </p>
+        </div>
+      </FeuilleBasse>
     </div>
   );
 }

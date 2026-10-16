@@ -397,7 +397,16 @@
     "titreEtape2": "Récapitulatif",
     "nomRequis": "Indiquez votre nom.",
     "emailRequis": "Indiquez une adresse e-mail valide.",
-    "telephoneRequis": "Indiquez un numéro de téléphone."
+    "telephoneRequis": "Indiquez un numéro de téléphone.",
+    "echecTitre": "Votre demande n'a pas pu être envoyée",
+    "echecTexte": "Rien n'a été enregistré et votre saisie est conservée. Réessayez dans un instant.",
+    "echecSession": "Votre session n'a pas pu être ouverte. Reprenez la vérification du code.",
+    "echecTentatives": "Trop de tentatives sur ce code. Demandez un nouveau code de vérification.",
+    "echecReessayer": "Réessayer",
+    "codeNonEnvoye": "Le code n'a pas pu être envoyé à cette adresse. Vérifiez l'adresse e-mail, puis réessayez.",
+    "codeEnvoye": "Code envoyé. Il est valable dix minutes.",
+    "plutotUnCompte": "Vous préférez un compte ?",
+    "creerUnCompte": "Créer un compte"
   },
   "confirmation": {
     "titre": "Votre demande est envoyée",
@@ -940,7 +949,16 @@
     "seDeconnecter": "Se déconnecter",
     "donnees": "Vos données",
     "donneesTexte": "Nous conservons votre e-mail ou votre numéro pour vous identifier et vous prévenir, rien d'autre. Nous ne demandons jamais de carte bancaire.",
-    "supprimer": "Pour supprimer votre compte, appelez l'assistance."
+    "supprimer": "Pour supprimer votre compte, appelez l'assistance.",
+    "motDePasse": "Mot de passe",
+    "seConnecterMotDePasse": "Se connecter",
+    "pasEncoreDeCompte": "Vous n'avez pas encore de compte ?",
+    "creerUnCompte": "Créer un compte",
+    "ouParCode": "Ou recevez un code par e-mail",
+    "parCodeTexte": "Les comptes créés avant l'arrivée du mot de passe se connectent avec un code à six chiffres.",
+    "connexionEchec": "La connexion a échoué",
+    "compteNonVerifie": "Votre adresse n'est pas encore confirmée. Vérifiez votre compte pour continuer.",
+    "allerVerifier": "Vérifier mon compte"
   },
   "public": {
     "aProposTitre": "À propos de Teranga Way",
@@ -1220,7 +1238,8 @@
     "envoyeeTitre": "Votre demande est envoyée",
     "envoyeeTexte": "Vous recevrez une réponse par e-mail et dans votre compte.",
     "voirMesDemandes": "Voir mes demandes",
-    "retourAccueil": "Revenir à l'accueil"
+    "retourAccueil": "Revenir à l'accueil",
+    "delaiTropCourt": "La prise en charge doit être demandée au moins deux heures à l'avance. Choisissez un horaire plus tardif."
   },
   "resultatsTransport": {
     "titre": "{nombre} véhicule disponible",
@@ -1345,5 +1364,32 @@
     "aucunPaiement": "Aucun paiement maintenant. Le prix vous sera proposé avant tout engagement.",
     "echecTitre": "Votre demande n'est pas partie",
     "echecTexte": "Réessayez dans un instant. Si cela se reproduit, appelez l'équipe."
+  },
+  "inscription": {
+    "titre": "Créer votre compte",
+    "texte": "Un compte vous permet de suivre vos demandes et de réserver sans ressaisir vos informations.",
+    "nomComplet": "Nom complet",
+    "email": "Adresse e-mail",
+    "motDePasse": "Mot de passe",
+    "motDePasseAide": "Au moins {longueur} caractères. Une phrase est plus sûre et plus facile à retenir qu'un mot compliqué.",
+    "confirmation": "Confirmation du mot de passe",
+    "creerMonCompte": "Créer mon compte",
+    "dejaUnCompte": "Vous avez déjà un compte ?",
+    "seConnecter": "Se connecter",
+    "dejaInscrit": "Cette adresse a déjà un compte. Connectez-vous pour continuer.",
+    "verificationTitre": "Vérifiez votre adresse e-mail",
+    "verificationTexte": "Nous avons envoyé un code à six chiffres à {email}. Il est valable dix minutes.",
+    "codeLibelle": "Code à six chiffres",
+    "verifierMonCompte": "Vérifier mon compte",
+    "renvoyerCode": "Renvoyer le code",
+    "renvoyerDans": "Renvoyer le code dans {secondes} s",
+    "codeRenvoye": "Un nouveau code vient d'être envoyé.",
+    "corrigerEmail": "Ce n'est pas la bonne adresse ?",
+    "corrigerEmailAction": "Corriger mon adresse",
+    "attenteExpiree": "Votre inscription a expiré. Reprenez-la depuis le début.",
+    "reprendre": "Reprendre l'inscription",
+    "echecTitre": "L'inscription n'a pas abouti",
+    "confirmationErreur": "Les deux mots de passe ne correspondent pas.",
+    "motDePasseCourtErreur": "Trop court : il faut au moins {longueur} caractères."
   }
 }

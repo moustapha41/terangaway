@@ -14,7 +14,11 @@ import { PrixConverti } from "@/features/preferences/prix-converti";
 import { useNaviguer } from "@/lib/i18n/naviguer";
 import { creerDemandeLogementAction } from "@/features/demande/actions";
 import { demanderCodeOtpAction } from "@/features/compte/actions";
+import { nomLisible } from "@/features/compte/cookie";
 import { CODE_DE_DEMONSTRATION, type EtatEnvoi } from "@/mocks/api";
+import { apiMockActive } from "@/lib/api/http";
+import { mettreDemandeDeCoteEtSInscrire, oublierBrouillonAction } from "./actions";
+import type { BrouillonLogement } from "./brouillon";
 
 /**
  * Écrans 4, 9 et 10 · Demande en trois étapes.
@@ -54,30 +58,51 @@ export function FormulaireDemande({
   fin,
   personnes,
   etatSimule,
+  visiteur,
+  brouillon,
 }: {
   logement: Logement;
   debut: string;
   fin: string;
   personnes: number;
   etatSimule: EtatEnvoi;
+  visiteur?: { email: string; telephone?: string | null; identifiant: string };
+  /** Saisie mise de côté avant de créer un compte, à retrouver au retour. */
+  brouillon?: BrouillonLogement | null;
 }) {
   const t = useT();
   const langue = useLangue();
   const naviguer = useNaviguer();
   const enLigne = useEnLigne();
 
-  const [etape, setEtape] = useState<1 | 2>(1);
-  const [nom, setNom] = useState("");
-  const [email, setEmail] = useState("");
+  // Au retour d'une inscription, on reprend là où la saisie s'était arrêtée :
+  // directement au récapitulatif, avec les informations déjà données. La
+  // session a priorité sur le brouillon pour le contact — elle vient de l'API,
+  // lui du navigateur.
+  const [etape, setEtape] = useState<1 | 2>(brouillon ? 2 : 1);
+  const [nom, setNom] = useState(
+    visiteur ? nomLisible(visiteur.identifiant) : (brouillon?.nom ?? ""),
+  );
+  const [email, setEmail] = useState(visiteur?.email ?? brouillon?.email ?? "");
   const [indicatif, setIndicatif] = useState("+221");
-  const [telephone, setTelephone] = useState("");
-  const [voyageurs, setVoyageurs] = useState(personnes);
-  const [message, setMessage] = useState("");
+  const [telephone, setTelephone] = useState(visiteur?.telephone ?? brouillon?.telephone ?? "");
+  const [voyageurs, setVoyageurs] = useState(brouillon?.personnes ?? personnes);
+  const [message, setMessage] = useState(brouillon?.message ?? "");
 
   const [code, setCode] = useState("");
   const [feuilleCode, setFeuilleCode] = useState(false);
   const [enCours, setEnCours] = useState(false);
   const [erreurCode, setErreurCode] = useState<"faux" | "expire" | null>(null);
+  /**
+   * Message d'échec de l'envoi, affiché tel quel.
+   *
+   * Sans lui, une demande refusée par l'API arrêtait simplement le bouton de
+   * tourner : aucun message, aucune explication, et le visiteur n'avait aucun
+   * moyen de savoir que rien n'était parti.
+   */
+  const [echec, setEchec] = useState<string | null>(null);
+  /** Le code a-t-il réellement été envoyé ? Le silence n'est pas une réponse. */
+  const [etatCode, setEtatCode] = useState<"inconnu" | "envoye" | "echec">("inconnu");
   const [erreurs, setErreurs] = useState<Record<string, boolean>>({});
   const [pris, setPris] = useState<Logement[] | null>(null);
   const [compteARebours, setCompteARebours] = useState(SECONDES_AVANT_RENVOI);
@@ -94,6 +119,40 @@ export function FormulaireDemande({
       if (minuterie.current) clearInterval(minuterie.current);
     };
   }, [feuilleCode]);
+
+  /**
+   * L'indice « le code est 123456 », et seulement là où il est vrai.
+   *
+   * `apiMockActive()` lit `NEXT_PUBLIC_API_MOCK`, figé à la construction : la
+   * valeur est donc la même côté serveur et côté navigateur, sans aller-retour.
+   */
+  const indiceDemo = apiMockActive()
+    ? t("demande.codeDemo", { code: CODE_DE_DEMONSTRATION })
+    : etatCode === "envoye"
+      ? t("demande.codeEnvoye")
+      : undefined;
+
+  /**
+   * Demande un code et **regarde si l'envoi a réussi**.
+   *
+   * L'appel était auparavant `demanderCodeOtpAction(email).catch(() => {})` :
+   * si Resend tombait, ou si l'adresse était limitée en débit, la feuille
+   * s'ouvrait exactement comme si un code était parti.
+   */
+  async function demanderCode() {
+    setErreurCode(null);
+    if (!email) {
+      setEtatCode("echec");
+      return;
+    }
+    try {
+      const resultat = await demanderCodeOtpAction(email);
+      setEtatCode(resultat.succes ? "envoye" : "echec");
+      if (!resultat.succes) setEchec(resultat.erreur);
+    } catch {
+      setEtatCode("echec");
+    }
+  }
 
   const nuits = nombreDeNuits(new Date(`${debut}T00:00:00`), new Date(`${fin}T00:00:00`)) || 1;
   const fraisFixes = logement.fraisFixes ?? [];
@@ -120,6 +179,7 @@ export function FormulaireDemande({
   async function envoyer(avecCode?: string) {
     setEnCours(true);
     setErreurCode(null);
+    setEchec(null);
     try {
       const resultat = await creerDemandeLogementAction(
         {
@@ -135,17 +195,47 @@ export function FormulaireDemande({
       );
 
       if (resultat.succes) {
+        // La demande est partie : le brouillon n'a plus de raison d'être, et le
+        // laisser repréremplirait le formulaire d'une réservation déjà envoyée.
+        await oublierBrouillonAction().catch(() => {});
         naviguer(`/demande/confirmation?reference=${resultat.demande.reference}`);
         return;
       }
 
-      if (resultat.erreur === "code_invalide") {
-        setErreurCode(resultat.raison ?? "faux");
-        setCode("");
-      } else if (resultat.erreur === "logement_pris") {
-        setFeuilleCode(false);
-        setPris(resultat.alternatives ?? []);
+      // Chaque issue a sa suite. Aucune ne doit se terminer par un écran muet :
+      // c'est précisément ce que faisait la version déployée pour « serveur »
+      // et « validation », les deux cas les plus fréquents en production.
+      switch (resultat.erreur) {
+        case "code_invalide":
+          setErreurCode(resultat.raison ?? "faux");
+          setCode("");
+          break;
+        case "trop_de_tentatives":
+          setFeuilleCode(false);
+          setEchec(resultat.message ?? t("demande.echecTentatives"));
+          break;
+        case "session":
+          setFeuilleCode(false);
+          setEchec(resultat.message ?? t("demande.echecSession"));
+          break;
+        case "logement_pris":
+          setFeuilleCode(false);
+          setPris(resultat.alternatives ?? []);
+          break;
+        case "validation":
+          setFeuilleCode(false);
+          setEtape(1);
+          setEchec(resultat.message ?? t("demande.echecTexte"));
+          break;
+        default:
+          setFeuilleCode(false);
+          setEchec(resultat.message ?? t("demande.echecTexte"));
       }
+    } catch {
+      // Action serveur injoignable : le dire, plutôt que d'arrêter le bouton
+      // de tourner sans un mot.
+      setFeuilleCode(false);
+      setEchec(t("demande.echecTexte"));
     } finally {
       setEnCours(false);
     }
@@ -160,6 +250,24 @@ export function FormulaireDemande({
         courante={etape}
         resume={t("demande.etapeSur", { index: etape, total: 3 })}
       />
+
+      {echec && (
+        <Bandeau
+          variante="erreur"
+          action={
+            <button
+              type="button"
+              onClick={() => setEchec(null)}
+              className="shrink-0 font-semibold underline underline-offset-2"
+            >
+              {t("demande.fermer")}
+            </button>
+          }
+        >
+          <strong className="block font-semibold">{t("demande.echecTitre")}</strong>
+          {echec}
+        </Bandeau>
+      )}
 
       {etape === 1 ? (
         <form
@@ -321,8 +429,14 @@ export function FormulaireDemande({
               enCours={enCours}
               disabled={!enLigne}
               onClick={() => {
-                setFeuilleCode(true);
-                if (email) demanderCodeOtpAction(email).catch(() => {});
+                if (visiteur) {
+                  // Session valide : aucun code à redemander (§B.1).
+                  void envoyer();
+                } else {
+                  setEtatCode("inconnu");
+                  setFeuilleCode(true);
+                  void demanderCode();
+                }
               }}
             >
               {t("demande.envoyerMaDemande")}
@@ -367,7 +481,12 @@ export function FormulaireDemande({
                 ? t("demande.codeExpire")
                 : erreurCode === "faux"
                   ? t("demande.codeFaux")
-                  : t("demande.codeDemo", { code: CODE_DE_DEMONSTRATION })
+                  : etatCode === "echec"
+                    ? t("demande.codeNonEnvoye")
+                    : // Le code fixe n'existe que dans le mock. L'annoncer quand
+                      // la vraie API répond, c'était afficher « le code est
+                      // 123456 » sur le site public.
+                      indiceDemo
             }
           />
 
@@ -387,14 +506,45 @@ export function FormulaireDemande({
             disabled={compteARebours > 0}
             onClick={() => {
               setCompteARebours(SECONDES_AVANT_RENVOI);
-              setErreurCode(null);
-              if (email) demanderCodeOtpAction(email).catch(() => {});
+              void demanderCode();
             }}
           >
             {compteARebours > 0
               ? t("demande.codeRenvoyerDans", { secondes: compteARebours })
               : t("demande.codeRenvoyer")}
           </Bouton>
+
+          {/*
+            La sortie vers un vrai compte. La saisie est mise de côté côté
+            serveur avant de quitter la page : au retour, le récapitulatif est
+            rétabli tel quel et la demande part sans nouveau code.
+          */}
+          <p className="text-center text-petit text-encre-douce">
+            {t("demande.plutotUnCompte")}{" "}
+            <button
+              type="button"
+              className="font-semibold text-primaire underline underline-offset-2"
+              onClick={() =>
+                void mettreDemandeDeCoteEtSInscrire(
+                  {
+                    genre: "logement",
+                    logementId: logement.id,
+                    debut,
+                    fin,
+                    personnes: voyageurs,
+                    nom,
+                    email,
+                    telephone,
+                    message,
+                  },
+                  `/demande/${logement.id}?debut=${debut}&fin=${fin}&personnes=${voyageurs}`,
+                  langue,
+                )
+              }
+            >
+              {t("demande.creerUnCompte")}
+            </button>
+          </p>
         </div>
       </FeuilleBasse>
     </div>
