@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { ArrowRight } from "lucide-react";
 import type { Vehicule } from "@teranga/contracts";
 import { Bandeau, Bouton, Carte, Champ, ChampCode, Compteur, FeuilleBasse, Icone } from "@teranga/ui";
 import { IndicateurEtapes } from "./indicateur-etapes";
@@ -315,9 +316,23 @@ export function FormulaireTransport({
             onChange={(e) => setVol(e.target.value)}
           />
 
-          <Bouton type="submit" variante="principal" largeur="pleine">
-            {t("demandeTransport.continuer")}
-          </Bouton>
+          <button
+            type="submit"
+            className={
+              "group relative flex h-[50px] w-full items-center justify-center gap-2.5 rounded-pill " +
+              "border border-transparent bg-primaire text-[16px] font-semibold text-white " +
+              "shadow-[0_4px_16px_-4px_rgb(0_29_53/0.4)] transition-all duration-200 " +
+              "hover:border-jaune-vif hover:bg-[#072c4e] hover:shadow-[0_6px_24px_-4px_rgba(244,185,66,0.35)] " +
+              "hover:ring-2 hover:ring-jaune-vif/50 focus-visible:outline-2 focus-visible:outline-offset-2 " +
+              "focus-visible:outline-primaire active:scale-[0.99]"
+            }
+          >
+            <span>{t("demandeTransport.continuer")}</span>
+            <ArrowRight
+              strokeWidth={2.2}
+              className="h-5 w-5 transition-transform duration-200 group-hover:translate-x-1"
+            />
+          </button>
         </form>
       )}
 
@@ -392,17 +407,31 @@ export function FormulaireTransport({
           <Bandeau variante="information">{t("demandeTransport.coordonneesApres")}</Bandeau>
 
           <div className="flex flex-col gap-3 sm:flex-row-reverse">
-            <Bouton
+            <button
               type="submit"
-              variante="principal"
-              largeur="pleine"
-              enCours={envoi === "encours"}
+              disabled={envoi === "encours"}
+              className={
+                "group relative flex h-[50px] flex-1 items-center justify-center gap-2.5 rounded-pill " +
+                "border border-transparent bg-primaire text-[16px] font-semibold text-white " +
+                "shadow-[0_4px_16px_-4px_rgb(0_29_53/0.4)] transition-all duration-200 " +
+                "hover:border-jaune-vif hover:bg-[#072c4e] hover:shadow-[0_6px_24px_-4px_rgba(244,185,66,0.35)] " +
+                "hover:ring-2 hover:ring-jaune-vif/50 focus-visible:outline-2 focus-visible:outline-offset-2 " +
+                "focus-visible:outline-primaire active:scale-[0.99] disabled:opacity-45"
+              }
             >
-              {t("demandeTransport.envoyer")}
-            </Bouton>
-            <Bouton variante="secondaire" largeur="pleine" onClick={() => setEtape(1)}>
+              <span>{envoi === "encours" ? t("demande.envoiEnCours") : t("demandeTransport.envoyer")}</span>
+              <ArrowRight
+                strokeWidth={2.2}
+                className="h-5 w-5 transition-transform duration-200 group-hover:translate-x-1"
+              />
+            </button>
+            <button
+              type="button"
+              onClick={() => setEtape(1)}
+              className="flex h-[50px] items-center justify-center rounded-pill border border-contour bg-surface px-6 text-[15px] font-semibold text-encre transition-colors hover:bg-champ focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primaire"
+            >
               {t("demandeTransport.precedent")}
-            </Bouton>
+            </button>
           </div>
         </form>
       )}
@@ -425,16 +454,28 @@ export function FormulaireTransport({
           </div>
 
           <div className="mx-auto mt-7 max-w-[320px] space-y-3">
-            <Bouton
-              variante="principal"
-              largeur="pleine"
+            <button
+              type="button"
               onClick={() => naviguer("/mes-demandes")}
+              className={
+                "group relative flex h-[50px] w-full items-center justify-center gap-2.5 rounded-pill " +
+                "border border-transparent bg-primaire text-[16px] font-semibold text-white " +
+                "shadow-[0_4px_16px_-4px_rgb(0_29_53/0.4)] transition-all duration-200 " +
+                "hover:border-jaune-vif hover:bg-[#072c4e] hover:shadow-[0_6px_24px_-4px_rgba(244,185,66,0.35)] " +
+                "hover:ring-2 hover:ring-jaune-vif/50 focus-visible:outline-2 focus-visible:outline-offset-2 " +
+                "focus-visible:outline-primaire active:scale-[0.99]"
+              }
             >
-              {t("demandeTransport.voirMesDemandes")}
-            </Bouton>
-            <Bouton variante="secondaire" largeur="pleine" onClick={() => naviguer("/")}>
+              <span>{t("demandeTransport.voirMesDemandes")}</span>
+              <ArrowRight strokeWidth={2.2} className="h-5 w-5 transition-transform group-hover:translate-x-1" />
+            </button>
+            <button
+              type="button"
+              onClick={() => naviguer("/")}
+              className="flex h-[46px] w-full items-center justify-center rounded-pill border border-contour bg-surface text-[14.5px] font-semibold text-encre transition-colors hover:bg-champ"
+            >
               {t("demandeTransport.retourAccueil")}
-            </Bouton>
+            </button>
           </div>
         </div>
       )}
@@ -476,29 +517,36 @@ export function FormulaireTransport({
             }
           />
 
-          <Bouton
-            variante="principal"
-            largeur="pleine"
-            enCours={envoi === "encours"}
-            disabled={code.length < 6}
+          <button
+            type="button"
+            disabled={code.length < 6 || envoi === "encours"}
             onClick={() => void envoyer(code)}
+            className={
+              "group relative flex h-[50px] w-full items-center justify-center gap-2.5 rounded-pill " +
+              "border border-transparent bg-primaire text-[16px] font-semibold text-white " +
+              "shadow-[0_4px_16px_-4px_rgb(0_29_53/0.4)] transition-all duration-200 " +
+              "hover:border-jaune-vif hover:bg-[#072c4e] hover:shadow-[0_6px_24px_-4px_rgba(244,185,66,0.35)] " +
+              "hover:ring-2 hover:ring-jaune-vif/50 focus-visible:outline-2 focus-visible:outline-offset-2 " +
+              "focus-visible:outline-primaire active:scale-[0.99] disabled:opacity-45"
+            }
           >
-            {t("demandeTransport.envoyer")}
-          </Bouton>
+            <span>{envoi === "encours" ? t("demande.envoiEnCours") : t("demandeTransport.envoyer")}</span>
+            <ArrowRight strokeWidth={2.2} className="h-5 w-5 transition-transform group-hover:translate-x-1" />
+          </button>
 
-          <Bouton
-            variante="secondaire"
-            largeur="pleine"
+          <button
+            type="button"
             disabled={compteARebours > 0}
             onClick={() => {
               setCompteARebours(30);
               void demanderCode();
             }}
+            className="flex h-[46px] w-full items-center justify-center rounded-pill border border-contour bg-surface text-[14.5px] font-semibold text-encre transition-colors hover:bg-champ disabled:opacity-50"
           >
             {compteARebours > 0
               ? t("demande.codeRenvoyerDans", { secondes: compteARebours })
               : t("demande.codeRenvoyer")}
-          </Bouton>
+          </button>
 
           {/* Même sortie que côté logement : un vrai compte, sans perdre la saisie. */}
           <p className="text-center text-petit text-encre-douce">
