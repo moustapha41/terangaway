@@ -572,8 +572,7 @@ export const LOGEMENTS: Logement[] = [
   // Chacune porte en commentaire ce qui manquait et ce qui a été décidé.
 
   {
-    // Dossier 1. L'annonce ne portait aucun prix : 130 000 arrêté par le client,
-    // aligné sur la villa trois chambres avec piscine de Saly.
+    // Dossier 1. L'annonce ne portait aucun prix : 70 000 donné par le client.
     id: "l-018",
     slug: "villa-saly-diambars",
     type: "villa",
@@ -584,7 +583,7 @@ export const LOGEMENTS: Logement[] = [
     chambres: 2,
     lits: 2,
     sallesDeBain: 2,
-    prixParNuit: 130000,
+    prixParNuit: 70000,
     inclus: ["eau", "electricite"],
     equipements: ["piscine", "climatisation", "wifi", "tv", "lave-linge", "cuisine", "gardien", "balcon-terrasse"],
     conditionsAnnulation: ANNULATION,
