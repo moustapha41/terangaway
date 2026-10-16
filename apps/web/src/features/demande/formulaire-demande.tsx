@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import type { Logement } from "@teranga/contracts";
+import { ArrowRight, ChevronDown, Mail, Phone, User, Users } from "lucide-react";
 import { Bandeau, Bouton, Carte, Champ, ChampCode, Compteur, FeuilleBasse, Icone } from "@teranga/ui";
 import { IndicateurEtapes } from "./indicateur-etapes";
 import { Lien } from "@/lib/i18n/lien";
@@ -51,6 +52,36 @@ const INDICATIFS = [
 ];
 
 const SECONDES_AVANT_RENVOI = 30;
+
+const CHAMP =
+  "min-w-0 flex-1 bg-transparent text-[15px] sm:text-[15.5px] text-encre outline-none placeholder:text-encre-douce";
+
+function Cadre({
+  icone,
+  apres,
+  children,
+  erreur,
+}: {
+  icone: React.ReactNode;
+  apres?: React.ReactNode;
+  children: React.ReactNode;
+  erreur?: boolean;
+}) {
+  return (
+    <div
+      className={
+        "flex h-[50px] items-center gap-3 rounded-[14px] border px-4 transition-all " +
+        (erreur
+          ? "border-danger bg-teinte-rouge/30 focus-within:border-danger focus-within:ring-2 focus-within:ring-danger/20"
+          : "border-contour-champ/60 bg-champ/50 focus-within:border-primaire focus-within:bg-surface focus-within:ring-2 focus-within:ring-primaire/15")
+      }
+    >
+      <span className={erreur ? "shrink-0 text-danger" : "shrink-0 text-encre-douce"}>{icone}</span>
+      <span className="flex min-w-0 flex-1 items-center">{children}</span>
+      {apres}
+    </div>
+  );
+}
 
 export function FormulaireDemande({
   logement,
@@ -275,86 +306,172 @@ export function FormulaireDemande({
             e.preventDefault();
             valider();
           }}
-          className="space-y-6"
+          className="space-y-5"
         >
-          <section className="space-y-4">
-            <h2 className="text-titre-2 text-encre">{t("demande.vosInformations")}</h2>
+          <div className="space-y-4">
+            <h2 className="text-[17px] sm:text-[18px] font-bold text-encre">
+              {t("demande.vosInformations")}
+            </h2>
 
-            <Champ
-              libelle={t("demande.nomComplet")}
-              name="nom"
-              autoComplete="name"
-              value={nom}
-              onChange={(e) => setNom(e.target.value)}
-              erreur={erreurs.nom ? t("demande.nomRequis") : undefined}
-            />
-            <Champ
-              libelle={t("demande.email")}
-              name="email"
-              type="email"
-              autoComplete="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              erreur={erreurs.email ? t("demande.emailRequis") : undefined}
-            />
-
-            <div className="flex gap-3">
-              <label className="flex shrink-0 flex-col gap-1">
-                <span className="text-petit text-encre">{t("demande.pays")}</span>
-                <select
-                  value={indicatif}
-                  onChange={(e) => setIndicatif(e.target.value)}
-                  className="min-h-[var(--size-control)] w-[112px] rounded-control border border-contour-champ bg-surface px-2 text-corps text-encre chiffres-tabulaires"
-                >
-                  {INDICATIFS.map((i) => (
-                    <option key={i.code} value={i.code} title={i.pays}>
-                      {i.drapeau} {i.code}
-                    </option>
-                  ))}
-                </select>
+            {/* Nom complet */}
+            <div className="space-y-1.5">
+              <label htmlFor="demande-nom" className="block text-[13.5px] font-semibold text-encre">
+                {t("demande.nomComplet")}
               </label>
-              <Champ
-                libelle={t("demande.telephone")}
-                name="telephone"
-                type="tel"
-                inputMode="tel"
-                autoComplete="tel"
-                tabulaire
-                className="min-w-0 flex-1"
-                value={telephone}
-                onChange={(e) => setTelephone(e.target.value)}
-                erreur={erreurs.telephone ? t("demande.telephoneRequis") : undefined}
-              />
+              <Cadre
+                icone={<User strokeWidth={1.8} className="h-5 w-5" />}
+                erreur={Boolean(erreurs.nom)}
+              >
+                <input
+                  id="demande-nom"
+                  name="nom"
+                  type="text"
+                  autoComplete="name"
+                  value={nom}
+                  onChange={(e) => {
+                    setNom(e.target.value);
+                    if (erreurs.nom) setErreurs((prev) => ({ ...prev, nom: false }));
+                  }}
+                  placeholder={t("demande.nomComplet")}
+                  className={CHAMP}
+                />
+              </Cadre>
+              {erreurs.nom && (
+                <p className="px-1 text-[13px] font-medium text-danger">{t("demande.nomRequis")}</p>
+              )}
             </div>
-          </section>
 
-          <section className="rounded-card border border-contour bg-surface p-4">
-            <Compteur
-              libelle={t("demande.nombreVoyageurs")}
-              valeur={voyageurs}
-              min={1}
-              max={logement.capacite}
-              onChange={setVoyageurs}
-            />
-          </section>
+            {/* E-mail */}
+            <div className="space-y-1.5">
+              <label htmlFor="demande-email" className="block text-[13.5px] font-semibold text-encre">
+                {t("demande.email")}
+              </label>
+              <Cadre
+                icone={<Mail strokeWidth={1.8} className="h-5 w-5" />}
+                erreur={Boolean(erreurs.email)}
+              >
+                <input
+                  id="demande-email"
+                  name="email"
+                  type="email"
+                  inputMode="email"
+                  autoComplete="email"
+                  value={email}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    if (erreurs.email) setErreurs((prev) => ({ ...prev, email: false }));
+                  }}
+                  placeholder="nom@exemple.com"
+                  className={CHAMP}
+                />
+              </Cadre>
+              {erreurs.email && (
+                <p className="px-1 text-[13px] font-medium text-danger">{t("demande.emailRequis")}</p>
+              )}
+            </div>
 
-          <div className="flex flex-col gap-1">
-            <label htmlFor="message" className="text-petit text-encre">
-              {t("demande.messageOptionnel")}
-            </label>
-            <textarea
-              id="message"
-              rows={4}
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              placeholder={t("demande.messagePlaceholder2")}
-              className="rounded-control border border-contour-champ bg-surface px-3 py-2 text-corps text-encre outline-none focus:outline-2 focus:outline-offset-2 focus:outline-primaire"
-            />
+            {/* Indicatif & Téléphone */}
+            <div className="space-y-1.5">
+              <label htmlFor="demande-telephone" className="block text-[13.5px] font-semibold text-encre">
+                {t("demande.telephone")}
+              </label>
+              <div className="flex gap-2.5 sm:gap-3">
+                <div className="relative shrink-0">
+                  <select
+                    value={indicatif}
+                    onChange={(e) => setIndicatif(e.target.value)}
+                    aria-label={t("demande.pays")}
+                    className="flex h-[50px] w-[110px] sm:w-[120px] cursor-pointer appearance-none items-center rounded-[14px] border border-contour-champ/60 bg-champ/50 pl-3 pr-8 text-[14px] font-medium text-encre outline-none transition-all focus:border-primaire focus:bg-surface focus:ring-2 focus:ring-primaire/15"
+                  >
+                    {INDICATIFS.map((i) => (
+                      <option key={i.code} value={i.code} title={i.pays}>
+                        {i.drapeau} {i.code}
+                      </option>
+                    ))}
+                  </select>
+                  <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-encre-douce">
+                    <ChevronDown className="h-4 w-4" />
+                  </span>
+                </div>
+                <div className="min-w-0 flex-1">
+                  <Cadre
+                    icone={<Phone strokeWidth={1.8} className="h-5 w-5" />}
+                    erreur={Boolean(erreurs.telephone)}
+                  >
+                    <input
+                      id="demande-telephone"
+                      name="telephone"
+                      type="tel"
+                      inputMode="tel"
+                      autoComplete="tel"
+                      value={telephone}
+                      onChange={(e) => {
+                        setTelephone(e.target.value);
+                        if (erreurs.telephone) setErreurs((prev) => ({ ...prev, telephone: false }));
+                      }}
+                      placeholder="77 000 00 00"
+                      className={CHAMP + " chiffres-tabulaires"}
+                    />
+                  </Cadre>
+                </div>
+              </div>
+              {erreurs.telephone && (
+                <p className="px-1 text-[13px] font-medium text-danger">{t("demande.telephoneRequis")}</p>
+              )}
+            </div>
           </div>
 
-          <Bouton type="submit" variante="principal" largeur="pleine">
-            {t("demande.continuer")}
-          </Bouton>
+          {/* Nombre de voyageurs */}
+          <div className="rounded-[16px] border border-contour-champ/40 bg-champ/30 p-4 transition-colors hover:bg-champ/45">
+            <div className="flex items-center gap-3">
+              <Users strokeWidth={1.8} className="h-5 w-5 shrink-0 text-primaire" />
+              <div className="flex-1">
+                <Compteur
+                  libelle={t("demande.nombreVoyageurs")}
+                  valeur={voyageurs}
+                  min={1}
+                  max={logement.capacite}
+                  onChange={setVoyageurs}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Message facultatif */}
+          <div className="space-y-1.5">
+            <label htmlFor="demande-message" className="block text-[13.5px] font-semibold text-encre">
+              {t("demande.messageOptionnel")}
+            </label>
+            <div className="rounded-[14px] border border-contour-champ/60 bg-champ/50 p-3 transition-all focus-within:border-primaire focus-within:bg-surface focus-within:ring-2 focus-within:ring-primaire/15">
+              <textarea
+                id="demande-message"
+                rows={3}
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                placeholder={t("demande.messagePlaceholder2")}
+                className="w-full resize-y bg-transparent text-[14.5px] text-encre outline-none placeholder:text-encre-douce"
+              />
+            </div>
+          </div>
+
+          {/* Bouton Continuer */}
+          <button
+            type="submit"
+            className={
+              "group relative flex h-[50px] w-full items-center justify-center gap-2.5 rounded-pill " +
+              "border border-transparent bg-primaire text-[16px] font-semibold text-white " +
+              "shadow-[0_4px_16px_-4px_rgb(0_29_53/0.4)] transition-all duration-200 " +
+              "hover:border-jaune-vif hover:bg-[#072c4e] hover:shadow-[0_6px_24px_-4px_rgba(244,185,66,0.35)] " +
+              "hover:ring-2 hover:ring-jaune-vif/50 focus-visible:outline-2 focus-visible:outline-offset-2 " +
+              "focus-visible:outline-primaire active:scale-[0.99]"
+            }
+          >
+            <span>{t("demande.continuer")}</span>
+            <ArrowRight
+              strokeWidth={2.2}
+              className="h-5 w-5 transition-transform duration-200 group-hover:translate-x-1"
+            />
+          </button>
         </form>
       ) : (
         <div className="space-y-6">
@@ -423,11 +540,9 @@ export function FormulaireDemande({
           {!enLigne && <Bandeau variante="hors-connexion">{t("horsLigne.envoiDesactive")}</Bandeau>}
 
           <div className="flex flex-col gap-3 sm:flex-row-reverse">
-            <Bouton
-              variante="principal"
-              largeur="pleine"
-              enCours={enCours}
-              disabled={!enLigne}
+            <button
+              type="button"
+              disabled={!enLigne || enCours}
               onClick={() => {
                 if (visiteur) {
                   // Session valide : aucun code à redemander (§B.1).
@@ -438,12 +553,28 @@ export function FormulaireDemande({
                   void demanderCode();
                 }
               }}
+              className={
+                "group relative flex h-[50px] flex-1 items-center justify-center gap-2.5 rounded-pill " +
+                "border border-transparent bg-primaire text-[16px] font-semibold text-white " +
+                "shadow-[0_4px_16px_-4px_rgb(0_29_53/0.4)] transition-all duration-200 " +
+                "hover:border-jaune-vif hover:bg-[#072c4e] hover:shadow-[0_6px_24px_-4px_rgba(244,185,66,0.35)] " +
+                "hover:ring-2 hover:ring-jaune-vif/50 focus-visible:outline-2 focus-visible:outline-offset-2 " +
+                "focus-visible:outline-primaire active:scale-[0.99] disabled:opacity-45"
+              }
             >
-              {t("demande.envoyerMaDemande")}
-            </Bouton>
-            <Bouton variante="secondaire" largeur="pleine" onClick={() => setEtape(1)}>
+              <span>{enCours ? t("demande.envoiEnCours") : t("demande.envoyerMaDemande")}</span>
+              <ArrowRight
+                strokeWidth={2.2}
+                className="h-5 w-5 transition-transform duration-200 group-hover:translate-x-1"
+              />
+            </button>
+            <button
+              type="button"
+              onClick={() => setEtape(1)}
+              className="flex h-[50px] items-center justify-center rounded-pill border border-contour bg-surface px-6 text-[15px] font-semibold text-encre transition-colors hover:bg-champ focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primaire"
+            >
               {t("demande.retour")}
-            </Bouton>
+            </button>
           </div>
 
           <p className="text-center text-petit text-encre-douce">{t("demande.delaiReponse")}</p>
@@ -490,29 +621,39 @@ export function FormulaireDemande({
             }
           />
 
-          <Bouton
-            variante="principal"
-            largeur="pleine"
-            enCours={enCours}
-            disabled={code.length < 6}
+          <button
+            type="button"
+            disabled={code.length < 6 || enCours}
             onClick={() => envoyer(code)}
+            className={
+              "group relative flex h-[50px] w-full items-center justify-center gap-2.5 rounded-pill " +
+              "border border-transparent bg-primaire text-[16px] font-semibold text-white " +
+              "shadow-[0_4px_16px_-4px_rgb(0_29_53/0.4)] transition-all duration-200 " +
+              "hover:border-jaune-vif hover:bg-[#072c4e] hover:shadow-[0_6px_24px_-4px_rgba(244,185,66,0.35)] " +
+              "hover:ring-2 hover:ring-jaune-vif/50 focus-visible:outline-2 focus-visible:outline-offset-2 " +
+              "focus-visible:outline-primaire active:scale-[0.99] disabled:opacity-45"
+            }
           >
-            {t("demande.envoyerMaDemande")}
-          </Bouton>
+            <span>{enCours ? t("demande.envoiEnCours") : t("demande.envoyerMaDemande")}</span>
+            <ArrowRight
+              strokeWidth={2.2}
+              className="h-5 w-5 transition-transform duration-200 group-hover:translate-x-1"
+            />
+          </button>
 
-          <Bouton
-            variante="secondaire"
-            largeur="pleine"
+          <button
+            type="button"
             disabled={compteARebours > 0}
             onClick={() => {
               setCompteARebours(SECONDES_AVANT_RENVOI);
               void demanderCode();
             }}
+            className="flex h-[46px] w-full items-center justify-center rounded-pill border border-contour bg-surface text-[14.5px] font-semibold text-encre transition-colors hover:bg-champ disabled:opacity-50"
           >
             {compteARebours > 0
               ? t("demande.codeRenvoyerDans", { secondes: compteARebours })
               : t("demande.codeRenvoyer")}
-          </Bouton>
+          </button>
 
           {/*
             La sortie vers un vrai compte. La saisie est mise de côté côté
