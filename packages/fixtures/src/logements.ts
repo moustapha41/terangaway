@@ -837,6 +837,33 @@ export const LOGEMENTS: Logement[] = [
   },
 ];
 
+/**
+ * Tailles de séjour proposées à la place du compteur de voyageurs.
+ *
+ * Un visiteur ne compte pas ses places, il sait s'il vient seul, à deux ou en
+ * famille. Chaque entrée porte donc un intitulé, le nombre de personnes qu'il
+ * représente, et **le nombre d'offres qui l'accueillent** : une taille qui ne
+ * mènerait à rien n'est pas proposée du tout.
+ *
+ * Le décompte porte sur le catalogue entier, pas sur la recherche en cours —
+ * même règle que les facettes de l'écran de résultats : c'est ce qui permet
+ * d'élargir sa recherche plutôt que de la voir se refermer.
+ */
+export const TAILLES_SEJOUR = (
+  [
+    { cle: "unePersonne", personnes: 1 },
+    { cle: "couple", personnes: 2 },
+    { cle: "famille", personnes: 4 },
+    { cle: "groupe", personnes: 6 },
+    { cle: "grandGroupe", personnes: 8 },
+  ] as const
+)
+  .map((taille) => ({
+    ...taille,
+    offres: LOGEMENTS.filter((logement) => logement.capacite >= taille.personnes).length,
+  }))
+  .filter((taille) => taille.offres > 0);
+
 /** Villes proposées dans le champ Destination de l'accueil, par nombre d'offres. */
 export const VILLES = [
   { valeur: "Saly", detail: "Mbour" },

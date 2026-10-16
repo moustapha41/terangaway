@@ -44,7 +44,20 @@
     "effacer": "Borrar",
     "choisirDates": "Elegir las fechas",
     "moisPrecedent": "Mes anterior",
-    "moisSuivant": "Mes siguiente"
+    "moisSuivant": "Mes siguiente",
+    "typeLogement": "Tipo de alojamiento",
+    "tousTypes": "Todos los tipos",
+    "taillesOffres": {
+      "one": "{nombre} alojamiento",
+      "other": "{nombre} alojamientos"
+    },
+    "tailles": {
+      "unePersonne": "Una persona",
+      "couple": "Una pareja",
+      "famille": "Una familia",
+      "groupe": "Un grupo",
+      "grandGroupe": "Un grupo grande"
+    }
   },
   "confiance": {
     "partenairesTitre": "Socios verificados",
@@ -562,6 +575,14 @@
       },
       "sousTitre": "Cada vehículo está revisado y lo conduce un chófer de la plataforma. Los precios mostrados son por trayecto; el alquiler por día se solicita en el paso siguiente.",
       "reserver": "Reservar un trayecto"
+    },
+    "passagersNombre": {
+      "one": "{nombre} pasajero",
+      "other": "{nombre} pasajeros"
+    },
+    "vehiculesCompte": {
+      "one": "{nombre} vehículo",
+      "other": "{nombre} vehículos"
     }
   },
   "categorieVehicule": {

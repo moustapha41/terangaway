@@ -44,7 +44,20 @@
     "effacer": "Effacer",
     "choisirDates": "Choisir les dates",
     "moisPrecedent": "Mois précédent",
-    "moisSuivant": "Mois suivant"
+    "moisSuivant": "Mois suivant",
+    "typeLogement": "Type de logement",
+    "tousTypes": "Tous les types",
+    "taillesOffres": {
+      "one": "{nombre} logement",
+      "other": "{nombre} logements"
+    },
+    "tailles": {
+      "unePersonne": "Une personne",
+      "couple": "Un couple",
+      "famille": "Une famille",
+      "groupe": "Un groupe",
+      "grandGroupe": "Un grand groupe"
+    }
   },
   "confiance": {
     "partenairesTitre": "Partenaires vérifiés",
@@ -562,6 +575,14 @@
       },
       "sousTitre": "Chaque véhicule est contrôlé et conduit par un chauffeur de la plateforme. Les prix affichés sont ceux d'un trajet ; la location à la journée se demande à l'étape suivante.",
       "reserver": "Réserver un trajet"
+    },
+    "passagersNombre": {
+      "one": "{nombre} passager",
+      "other": "{nombre} passagers"
+    },
+    "vehiculesCompte": {
+      "one": "{nombre} véhicule",
+      "other": "{nombre} véhicules"
     }
   },
   "categorieVehicule": {

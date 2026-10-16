@@ -282,6 +282,22 @@ export const VEHICULES: Vehicule[] = [
 ];
 
 /** Lieux connus proposés dans les champs de départ et d'arrivée. */
+/**
+ * Nombres de passagers proposés à l'accueil, onglet transport.
+ *
+ * Le pendant de `TAILLES_SEJOUR` côté logement, et pour la même raison : on ne
+ * propose que ce que le parc peut emmener. Le plus grand véhicule a six places,
+ * donc sept ne figure pas dans la liste — plutôt que de laisser le visiteur le
+ * choisir et tomber sur une page vide.
+ */
+export const TAILLES_PASSAGERS = Array.from(
+  { length: Math.max(...VEHICULES.map((vehicule) => vehicule.placesPassagers)) },
+  (_, rang) => rang + 1,
+).map((passagers) => ({
+  passagers,
+  vehicules: VEHICULES.filter((vehicule) => vehicule.placesPassagers >= passagers).length,
+}));
+
 export const LIEUX = [
   { valeur: "Aéroport AIBD", detail: "Aéroport international Blaise-Diagne" },
   { valeur: "Stade Abdoulaye-Wade", detail: "Diamniadio" },

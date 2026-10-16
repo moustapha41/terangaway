@@ -10,13 +10,14 @@ import {
   Search,
   User,
 } from "lucide-react";
-import { Bouton, Compteur, FeuilleBasse, SelecteurDates, type Plage } from "@teranga/ui";
+import { TYPES_LOGEMENT, type TypeLogement } from "@teranga/contracts";
+import { SelecteurDates, type Plage } from "@teranga/ui";
 import { useLangue, useT } from "@/lib/i18n/contexte";
 import { etiquettesDates } from "@/features/transport/etiquettes-dates";
 import { formaterDateComplete } from "@/lib/dates";
 import { FENETRE_JEUX, SEJOUR_DEFAUT } from "@/lib/dates/sejour";
-import { LIEUX } from "@/mocks/fixtures/vehicules";
-import { VILLES } from "@/mocks/fixtures/logements";
+import { LIEUX, TAILLES_PASSAGERS } from "@/mocks/fixtures/vehicules";
+import { TAILLES_SEJOUR, VILLES } from "@/mocks/fixtures/logements";
 import { useNaviguer } from "@/lib/i18n/naviguer";
 
 type Onglet = "logements" | "transports";
@@ -53,17 +54,87 @@ export function BarreDeRecherche({
   const idListe = useId();
 
   const [onglet, setOnglet] = useState<Onglet>("logements");
-  const [destination, setDestination] = useState("Dakar");
+  /**
+   * Sur l'accueil, l'onglet logement demande un **type**, pas une ville : un
+   * visiteur qui arrive aux Jeux connaît « villa » ou « studio », il ne connaît
+   * ni Ngaparou ni Guéréo. La ville se choisit ensuite, sur l'écran de
+   * résultats, où elle est accompagnée du nombre d'offres.
+   *
+   * L'onglet transport garde le champ de lieu : l'aéroport et les sites des
+   * Jeux, eux, sont les seuls noms qu'un visiteur connaisse d'avance.
+   */
+  const [type, setType] = useState<TypeLogement | "">("");
+  const [destination, setDestination] = useState("");
   const [plage, setPlage] = useState<Plage>({ ...SEJOUR_DEFAUT });
+  /**
+   * Une taille de séjour, pas un nombre.
+   *
+   * Le compteur demandait au visiteur de traduire son voyage en chiffre avant
+   * même d'avoir vu une offre. Il annonce maintenant ce qu'il est — seul, à
+   * deux, en famille — et chaque intitulé porte le nombre d'offres qui
+   * l'accueillent, pour qu'aucun choix ne mène à une page vide.
+   */
   const [voyageurs, setVoyageurs] = useState(2);
-  const [feuilleVoyageurs, setFeuilleVoyageurs] = useState(false);
 
   const etiquettes = etiquettesDates(t, langue);
   const lieux = onglet === "logements" ? VILLES : LIEUX;
+  /** Le premier cadre demande un lieu — sauf sur l'accueil, onglet logement. */
+  const champLieu = sansOnglets || onglet === "transports";
+  /**
+   * La destination du formulaire suit l'onglet.
+   *
+   * Elle ne le suivait pas : l'`action` pointait toujours sur les logements, et
+   * une recherche de transport lancée **avant l'hydratation** — un téléphone en
+   * 3G, le temps que le JavaScript arrive — atterrissait dans la liste des
+   * logements. Le `passagers` manquait pour la même raison.
+   */
+  const destinationFormulaire = champLieu && !sansOnglets ? "/transports/location" : "/logements";
+  /**
+   * Le champ « qui voyage » n'a pas la même unité des deux côtés.
+   *
+   * Un logement s'adresse à un séjour — seul, à deux, en famille. Un véhicule
+   * compte des passagers, parce que ce sont des places assises : « une famille »
+   * ne dit pas si l'on tient dans une berline. Les deux listes sortent du
+   * catalogue, et aucune des deux ne propose ce qui n'existe pas.
+   */
+  const chercheUnVehicule = destinationFormulaire !== "/logements";
+  const tailles = chercheUnVehicule
+    ? TAILLES_PASSAGERS.map((taille) => ({
+        valeur: taille.passagers,
+        intitule: t("transport.passagersNombre", { nombre: taille.passagers }),
+        offres: taille.vehicules,
+      }))
+    : TAILLES_SEJOUR.map((taille) => ({
+        valeur: taille.personnes,
+        intitule: t(`recherche.tailles.${taille.cle}`),
+        offres: taille.offres,
+      }));
+  /**
+   * La taille affichée, quand celle qu'on avait n'existe pas dans l'autre liste.
+   *
+   * On retombe sur la plus grande qui tienne, jamais sur la première : un
+   * groupe de huit qui passe à l'onglet transport devient six passagers — le
+   * plus grand véhicule du parc — et non un seul.
+   */
+  const choisie =
+    tailles.find((taille) => taille.valeur === voyageurs) ??
+    [...tailles].reverse().find((taille) => taille.valeur <= voyageurs) ??
+    tailles[0];
+  const decompte = chercheUnVehicule
+    ? t("transport.vehiculesCompte", { nombre: choisie.offres })
+    : t("recherche.taillesOffres", { nombre: choisie.offres });
 
   function rechercher() {
-    const params = new URLSearchParams({ personnes: String(voyageurs) });
-    if (destination.trim()) params.set("ville", destination.trim());
+    // `choisie` plutôt que `voyageurs` : en passant d'un onglet à l'autre, une
+    // taille peut ne plus exister — huit personnes, mais aucun véhicule de huit
+    // places. C'est la valeur réellement affichée qui part, jamais une autre.
+    const params = new URLSearchParams({ personnes: String(choisie.valeur) });
+    // Écran 01 et onglet transport cherchent un lieu ; l'accueil, un type.
+    if (champLieu) {
+      if (destination.trim()) params.set("ville", destination.trim());
+    } else if (type) {
+      params.set("types", type);
+    }
     if (plage.debut) params.set("debut", plage.debut);
     if (plage.fin) params.set("fin", plage.fin);
 
@@ -71,7 +142,7 @@ export function BarreDeRecherche({
     // la location avec chauffeur. Les deux autres demandent un trajet précis,
     // que cette barre ne saisit pas — le visiteur les choisit sur /transports.
     if (onglet === "transports") {
-      params.set("passagers", String(voyageurs));
+      params.set("passagers", String(choisie.valeur));
       naviguer(`/transports/location?${params.toString()}`);
       return;
     }
@@ -80,7 +151,7 @@ export function BarreDeRecherche({
 
   return (
     <form
-      action={`/${langue}/logements`}
+      action={`/${langue}${destinationFormulaire}`}
       method="get"
       onSubmit={(e) => {
         e.preventDefault();
@@ -91,7 +162,10 @@ export function BarreDeRecherche({
       {/* Portés par le formulaire lui-même, pour la soumission sans JavaScript. */}
       <input type="hidden" name="debut" value={plage.debut ?? ""} />
       <input type="hidden" name="fin" value={plage.fin ?? ""} />
-      <input type="hidden" name="personnes" value={voyageurs} />
+      {/* Le sélecteur plus bas porte `personnes` côté logement et `passagers`
+          côté transport ; l'autre nom suit en champ caché, pour que l'URL ait
+          la même forme avec ou sans JavaScript. */}
+      {chercheUnVehicule && <input type="hidden" name="personnes" value={choisie.valeur} />}
       {/* onglets */}
       <div
         hidden={sansOnglets}
@@ -117,6 +191,31 @@ export function BarreDeRecherche({
       <div className={(sansOnglets ? "" : "mt-5 ") + "grid gap-[17px] " + (sansOnglets ? "md:grid-cols-[1.2fr_1fr_1fr_1fr_auto]" : "md:grid-cols-[1fr_1fr_1fr_auto]")}>
         {/* Destination : un vrai champ, avec la liste des lieux connus puis
             saisie libre — le `<datalist>` du navigateur, comme SelecteurLieu. */}
+        {!champLieu && (
+          <Cadre icone={<House strokeWidth={1.6} className="h-[24px] w-[24px]" />}>
+            <label htmlFor={`${idListe}-type`} className="block text-[13px] text-gris">
+              {t("recherche.typeLogement")}
+            </label>
+            {/* Un `select` natif : il s'ouvre sans JavaScript, et sur téléphone
+                c'est la roue du système qui s'affiche plutôt qu'un menu refait. */}
+            <select
+              id={`${idListe}-type`}
+              name="types"
+              value={type}
+              onChange={(e) => setType(e.target.value as TypeLogement | "")}
+              className="block w-full truncate bg-transparent text-[17px] font-semibold text-nuit outline-none"
+            >
+              <option value="">{t("recherche.tousTypes")}</option>
+              {TYPES_LOGEMENT.map((valeur) => (
+                <option key={valeur} value={valeur}>
+                  {t(`typeLogement.${valeur}`)}
+                </option>
+              ))}
+            </select>
+          </Cadre>
+        )}
+
+        {champLieu && (
         <Cadre icone={<MapPin strokeWidth={1.6} className="h-[24px] w-[24px]" />}>
           <label htmlFor={`${idListe}-ville`} className="block text-[13px] text-gris">
             {t("recherche.destination")}
@@ -139,6 +238,7 @@ export function BarreDeRecherche({
             ))}
           </datalist>
         </Cadre>
+        )}
 
         {/* Dates : le calendrier du design system, déclenché par le champ de la maquette. */}
         <SelecteurDates
@@ -180,14 +280,30 @@ export function BarreDeRecherche({
           }
         />
 
-        {/* Voyageurs : compteur en feuille basse. */}
-        <CadreBouton
-          onClick={() => setFeuilleVoyageurs(true)}
-          icone={<User strokeWidth={1.6} className="h-[24px] w-[24px]" />}
-          label={t("recherche.voyageurs")}
-          valeur={t("recherche.nombreVoyageurs", { nombre: voyageurs })}
-          chevron
-        />
+        {/* Voyageurs : une taille de séjour, avec le nombre d'offres. */}
+        <Cadre icone={<User strokeWidth={1.6} className="h-[24px] w-[24px]" />}>
+          {/* Le décompte vit sur la ligne du libellé, pas dans l'option : collé
+              à l'intitulé il dépassait la largeur du champ et se faisait couper
+              (« Un couple (24 logeme… »). Il ne vaut que pour les logements —
+              un véhicule ne se compte pas en nuitées. */}
+          <label htmlFor={`${idListe}-voyageurs`} className="block truncate text-[13px] text-gris">
+            {chercheUnVehicule ? t("transport.passagers") : t("recherche.voyageurs")}
+            {` · ${decompte}`}
+          </label>
+          <select
+            id={`${idListe}-voyageurs`}
+            name={chercheUnVehicule ? "passagers" : "personnes"}
+            value={choisie.valeur}
+            onChange={(e) => setVoyageurs(Number(e.target.value))}
+            className="block w-full truncate bg-transparent text-[17px] font-semibold text-nuit outline-none"
+          >
+            {tailles.map((taille) => (
+              <option key={taille.valeur} value={taille.valeur}>
+                {taille.intitule}
+              </option>
+            ))}
+          </select>
+        </Cadre>
 
         <button
           type="submit"
@@ -198,25 +314,6 @@ export function BarreDeRecherche({
         </button>
       </div>
 
-      <FeuilleBasse
-        ouverte={feuilleVoyageurs}
-        onFermer={() => setFeuilleVoyageurs(false)}
-        titre={t("recherche.voyageurs")}
-        etiquetteFermer={t("demande.fermer")}
-      >
-        <div className="space-y-5">
-          <Compteur
-            libelle={t("recherche.voyageurs")}
-            valeur={voyageurs}
-            min={1}
-            max={16}
-            onChange={setVoyageurs}
-          />
-          <Bouton variante="principal" largeur="pleine" onClick={() => setFeuilleVoyageurs(false)}>
-            {t("recherche.rechercher")}
-          </Bouton>
-        </div>
-      </FeuilleBasse>
     </form>
   );
 }
