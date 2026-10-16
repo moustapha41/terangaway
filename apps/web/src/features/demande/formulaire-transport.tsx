@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ArrowRight } from "lucide-react";
 import type { Vehicule } from "@teranga/contracts";
-import { Bandeau, Bouton, Carte, Champ, ChampCode, Compteur, FeuilleBasse, Icone } from "@teranga/ui";
+import { Bandeau, Carte, Champ, ChampCode, Compteur, FeuilleBasse, Icone } from "@teranga/ui";
 import { IndicateurEtapes } from "./indicateur-etapes";
 import { formaterDateComplete, formaterHeure } from "@/lib/dates";
 import { useLangue, useT } from "@/lib/i18n/contexte";
@@ -213,7 +213,7 @@ export function FormulaireTransport({
   }
 
   return (
-    <div className="space-y-7">
+    <div className="space-y-4">
       <IndicateurEtapes
         etapes={etapes}
         courante={etape}
@@ -238,36 +238,13 @@ export function FormulaireTransport({
         </Bandeau>
       )}
 
-      {/* Le véhicule demandé, visible à chaque étape : on sait ce qu'on réserve. */}
-      {etape < 3 && (
-        <Carte className="flex items-center gap-4 p-4">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={vehicule.photos[0].url}
-            alt={vehicule.photos[0].alt}
-            className="h-16 w-24 shrink-0 rounded-control object-cover"
-          />
-          <div className="min-w-0 flex-1">
-            <p className="text-titre-3 text-encre">
-              {vehicule.marque} {vehicule.modele}
-            </p>
-            <p className="mt-0.5 text-petit text-encre-douce">
-              {t(`categorieVehicule.${vehicule.categorie}`)} · {vehicule.placesPassagers}
-            </p>
-          </div>
-          <p className="shrink-0 text-titre-3 text-encre chiffres-tabulaires">
-            {formaterPrix(prix, langue)}
-          </p>
-        </Carte>
-      )}
-
       {etape === 1 && (
         <form
           onSubmit={(e) => {
             e.preventDefault();
             valider1();
           }}
-          className="space-y-5"
+          className="space-y-3.5"
         >
           <Champ
             libelle={t("demandeTransport.priseEnCharge")}
@@ -342,7 +319,7 @@ export function FormulaireTransport({
             e.preventDefault();
             void envoyer();
           }}
-          className="space-y-5"
+          className="space-y-3.5"
         >
           <Champ
             libelle={t("demandeTransport.nomComplet")}
@@ -371,15 +348,15 @@ export function FormulaireTransport({
           />
 
           <label className="block">
-            <span className="mb-1.5 block text-petit text-encre">
+            <span className="mb-1 block text-petit text-encre">
               {t("demandeTransport.message")}
             </span>
             <textarea
-              rows={3}
+              rows={2}
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               placeholder={t("demandeTransport.messagePlaceholder")}
-              className="w-full rounded-control border border-contour-champ bg-surface px-4 py-3 text-petit text-encre outline-none placeholder:text-encre-douce focus-visible:border-primaire"
+              className="w-full rounded-control border border-contour-champ bg-surface px-4 py-2.5 text-petit text-encre outline-none placeholder:text-encre-douce focus-visible:border-primaire"
             />
           </label>
 
@@ -406,13 +383,13 @@ export function FormulaireTransport({
           <Bandeau variante="information">{t("demandeTransport.aucunPaiement")}</Bandeau>
           <Bandeau variante="information">{t("demandeTransport.coordonneesApres")}</Bandeau>
 
-          <div className="flex flex-col gap-3 sm:flex-row-reverse">
+          <div className="flex flex-col gap-2.5 sm:flex-row-reverse">
             <button
               type="submit"
               disabled={envoi === "encours"}
               className={
-                "group relative flex h-[50px] flex-1 items-center justify-center gap-2.5 rounded-pill " +
-                "border border-transparent bg-primaire text-[16px] font-semibold text-white " +
+                "group relative flex h-[48px] sm:h-[50px] flex-1 items-center justify-center gap-2.5 rounded-pill " +
+                "border border-transparent bg-primaire text-[15.5px] sm:text-[16px] font-semibold text-white " +
                 "shadow-[0_4px_16px_-4px_rgb(0_29_53/0.4)] transition-all duration-200 " +
                 "hover:border-jaune-vif hover:bg-[#072c4e] hover:shadow-[0_6px_24px_-4px_rgba(244,185,66,0.35)] " +
                 "hover:ring-2 hover:ring-jaune-vif/50 focus-visible:outline-2 focus-visible:outline-offset-2 " +
@@ -428,7 +405,7 @@ export function FormulaireTransport({
             <button
               type="button"
               onClick={() => setEtape(1)}
-              className="flex h-[50px] items-center justify-center rounded-pill border border-contour bg-surface px-6 text-[15px] font-semibold text-encre transition-colors hover:bg-champ focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primaire"
+              className="flex h-[48px] sm:h-[50px] items-center justify-center rounded-pill border border-contour bg-surface px-5 text-[14.5px] font-semibold text-encre transition-colors hover:bg-champ focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primaire"
             >
               {t("demandeTransport.precedent")}
             </button>
