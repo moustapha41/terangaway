@@ -544,7 +544,16 @@
     "carburantClient": "Fuel at your expense",
     "carburantPartenaire": "Fuel included",
     "lieuDeRemise": "Handover place",
-    "demanderVehicule": "Request this vehicle"
+    "demanderVehicule": "Request this vehicle",
+    "parc": {
+      "surtitre": "Our fleet",
+      "titre": {
+        "one": "{nombre} verified vehicle",
+        "other": "{nombre} verified vehicles"
+      },
+      "sousTitre": "Every vehicle is checked and driven by a platform driver. Prices shown are per trip; daily hire is requested at the next step.",
+      "reserver": "Book a trip"
+    }
   },
   "categorieVehicule": {
     "berline": "Saloon",

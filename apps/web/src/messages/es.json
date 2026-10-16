@@ -544,7 +544,16 @@
     "carburantClient": "Combustible a su cargo",
     "carburantPartenaire": "Combustible incluido",
     "lieuDeRemise": "Lugar de entrega",
-    "demanderVehicule": "Solicitar este vehículo"
+    "demanderVehicule": "Solicitar este vehículo",
+    "parc": {
+      "surtitre": "Nuestra flota",
+      "titre": {
+        "one": "{nombre} vehículo verificado",
+        "other": "{nombre} vehículos verificados"
+      },
+      "sousTitre": "Cada vehículo está revisado y lo conduce un chófer de la plataforma. Los precios mostrados son por trayecto; el alquiler por día se solicita en el paso siguiente.",
+      "reserver": "Reservar un trayecto"
+    }
   },
   "categorieVehicule": {
     "berline": "Berlina",

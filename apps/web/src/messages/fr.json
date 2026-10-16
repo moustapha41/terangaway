@@ -544,7 +544,16 @@
     "carburantClient": "Carburant à votre charge",
     "carburantPartenaire": "Carburant compris",
     "lieuDeRemise": "Lieu de remise",
-    "demanderVehicule": "Demander ce véhicule"
+    "demanderVehicule": "Demander ce véhicule",
+    "parc": {
+      "surtitre": "Notre parc",
+      "titre": {
+        "one": "{nombre} véhicule vérifié",
+        "other": "{nombre} véhicules vérifiés"
+      },
+      "sousTitre": "Chaque véhicule est contrôlé et conduit par un chauffeur de la plateforme. Les prix affichés sont ceux d'un trajet ; la location à la journée se demande à l'étape suivante.",
+      "reserver": "Réserver un trajet"
+    }
   },
   "categorieVehicule": {
     "berline": "Berline",
