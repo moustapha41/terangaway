@@ -2,7 +2,6 @@ import Image from "next/image";
 import { ArrowRight } from "lucide-react";
 import { RetourAccueil } from "@/components/layout/retour-accueil";
 import { SelecteurLangue } from "@/components/layout/selecteur-langue";
-import { Logo } from "@/components/layout/logo";
 import { IndicateurEtapes } from "@/features/demande/indicateur-etapes";
 import { Lien } from "@/lib/i18n/lien";
 import { estLangue, type Langue } from "@/lib/i18n/langues";
@@ -28,77 +27,83 @@ export default async function Confirmation({
 
   return (
     <main className="relative flex min-h-screen flex-col overflow-x-hidden bg-primaire">
-      {/* Arrière-plan illustré avec voile discret */}
-      <Image
-        src="/images/fond-connexion.jpg"
-        alt={t("connexion.illustrationAlt")}
-        fill
-        priority
-        sizes="100vw"
-        className="object-cover object-center"
-      />
-      <div
-        aria-hidden="true"
-        className="absolute inset-0 bg-gradient-to-b from-primaire/65 via-primaire/40 to-primaire/85 sm:from-primaire/45 sm:via-primaire/25 sm:to-primaire/80"
-      />
+      {/* Fond Dakar en plein écran, fixé pour un défilement naturel et fluide */}
+      <div className="fixed inset-0 pointer-events-none">
+        <Image
+          src="/images/fond-connexion.jpg"
+          alt={t("connexion.illustrationAlt")}
+          fill
+          priority
+          sizes="100vw"
+          className="object-cover object-center"
+        />
+        <div
+          aria-hidden="true"
+          className="absolute inset-0 bg-gradient-to-b from-primaire/35 via-primaire/15 to-primaire/75"
+        />
+      </div>
 
-      <div className="relative flex min-h-screen flex-col px-3.5 py-3 sm:px-8 sm:py-5">
-        {/* Barre supérieure */}
+      <div className="relative z-10 flex min-h-screen flex-col justify-between px-3.5 py-3.5 sm:px-8 sm:py-5">
+        {/* Boutons de navigation flottants en haut de page, identiques à la connexion */}
         <header className="flex items-center justify-between gap-3">
-          <Lien
-            href="/"
-            className="flex shrink-0 items-center transition-opacity hover:opacity-90"
-            aria-label={t("commun.nomApplication")}
-          >
-            <Logo hauteur={38} forme="complet" variante="clair" prioritaire className="hidden sm:block" />
-            <Logo hauteur={32} forme="verrou" variante="clair" prioritaire className="sm:hidden" />
-          </Lien>
-
-          <div className="flex items-center gap-2 sm:gap-3">
-            <RetourAccueil
-              langue={langue}
-              className="text-[12.5px] sm:text-[14px] px-3 sm:px-4 py-1.5"
-            />
-            <SelecteurLangue className="rounded-pill bg-surface/95 px-3 sm:px-4 py-1.5 shadow-[0_8px_24px_-12px_rgb(2_20_38/0.45)] backdrop-blur-sm" />
-          </div>
+          <RetourAccueil langue={langue} />
+          <SelecteurLangue className="rounded-pill bg-surface/95 px-4 py-1.5 shadow-[0_8px_24px_-12px_rgb(2_20_38/0.45)] backdrop-blur-sm" />
         </header>
 
-        {/* Carte centrale */}
-        <div className="flex flex-1 items-center justify-center py-5 sm:py-9">
-          <section className="w-full max-w-[620px] rounded-[22px] sm:rounded-[28px] bg-surface/96 p-5 sm:p-8 shadow-[0_28px_70px_-24px_rgb(2_20_38/0.55)] backdrop-blur-xl">
-            <IndicateurEtapes
-              etapes={[
-                t("demande.etapeInformations"),
-                t("demande.etapeDetails"),
-                t("demande.etapeConfirmation"),
-              ]}
-              courante={3}
-              resume={t("demande.etapeSur", { index: 3, total: 3 })}
-            />
+        {/* Carte centrale ivoire / blanc cassé translucide */}
+        <div className="flex flex-1 items-center justify-center py-4 sm:py-6">
+          <section className="w-full max-w-[490px] sm:max-w-[510px] rounded-[22px] sm:rounded-[26px] bg-surface/88 p-4 sm:p-6 shadow-[0_28px_70px_-24px_rgb(2_20_38/0.55)] backdrop-blur-xl">
+            {/* Logo Teranga Way centré en haut de la carte */}
+            <Lien
+              href="/"
+              className="mx-auto block w-[165px] sm:w-[185px] transition-opacity hover:opacity-90"
+              aria-label={t("commun.nomApplication")}
+            >
+              <Image
+                src="/images/logo-complet.png"
+                alt="Teranga Way"
+                width={775}
+                height={205}
+                priority
+                className="h-auto w-full"
+              />
+            </Lien>
 
-            <div className="mt-8 text-center sm:mt-10">
+            <div className="mt-4">
+              <IndicateurEtapes
+                etapes={[
+                  t("demande.etapeInformations"),
+                  t("demande.etapeDetails"),
+                  t("demande.etapeConfirmation"),
+                ]}
+                courante={3}
+                resume={t("demande.etapeSur", { index: 3, total: 3 })}
+              />
+            </div>
+
+            <div className="mt-6 text-center sm:mt-7">
               <Enveloppe />
 
-              <h1 className="mt-6 text-[23px] sm:text-[27px] font-bold tracking-[-0.02em] text-encre">
+              <h1 className="mt-5 text-[21px] sm:text-[25px] font-bold tracking-[-0.02em] text-encre">
                 {t("confirmation.titre")}
               </h1>
 
               {reference && (
-                <p className="mt-2 text-petit font-semibold text-primaire chiffres-tabulaires">
+                <p className="mt-1.5 text-[13.5px] font-semibold text-primaire chiffres-tabulaires">
                   {t("confirmation.reference", { reference })}
                 </p>
               )}
 
-              <p className="mx-auto mt-3 max-w-[44ch] text-[15px] leading-relaxed text-encre-douce">
+              <p className="mx-auto mt-2.5 max-w-[40ch] text-[14px] sm:text-[14.5px] leading-relaxed text-encre-douce">
                 {t("confirmation.prochaineEtape")}
               </p>
 
-              <div className="mt-8 space-y-3 sm:mx-auto sm:max-w-[340px]">
+              <div className="mt-6 space-y-2.5 sm:mx-auto sm:max-w-[320px]">
                 <Lien href="/mes-demandes" className="block">
                   <span
                     className={
-                      "group relative flex h-[50px] w-full items-center justify-center gap-2.5 rounded-pill " +
-                      "border border-transparent bg-primaire text-[16px] font-semibold text-white " +
+                      "group relative flex h-[48px] sm:h-[50px] w-full items-center justify-center gap-2.5 rounded-pill " +
+                      "border border-transparent bg-primaire text-[15.5px] sm:text-[16px] font-semibold text-white " +
                       "shadow-[0_4px_16px_-4px_rgb(0_29_53/0.4)] transition-all duration-200 " +
                       "hover:border-jaune-vif hover:bg-[#072c4e] hover:shadow-[0_6px_24px_-4px_rgba(244,185,66,0.35)] " +
                       "hover:ring-2 hover:ring-jaune-vif/50 focus-visible:outline-2 focus-visible:outline-offset-2 " +
@@ -115,7 +120,7 @@ export default async function Confirmation({
 
                 <Lien
                   href="/"
-                  className="flex h-[46px] w-full items-center justify-center rounded-pill border border-contour bg-surface text-[14.5px] font-semibold text-encre transition-colors hover:bg-champ"
+                  className="flex h-[44px] sm:h-[46px] w-full items-center justify-center rounded-pill border border-contour bg-surface text-[14px] font-semibold text-encre transition-colors hover:bg-champ"
                 >
                   {t("confirmation.retourAccueil")}
                 </Lien>
@@ -125,7 +130,7 @@ export default async function Confirmation({
         </div>
 
         {/* Signature Dakar */}
-        <div className="flex items-center justify-end pb-3 pt-2 text-white/80">
+        <div className="flex items-center justify-end pb-2 pt-2 text-white/80">
           <div className="flex flex-col items-center">
             <Image
               src="/images/signature-dakar.png"

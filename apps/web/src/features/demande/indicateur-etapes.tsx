@@ -37,7 +37,7 @@ export function IndicateurEtapes({
                 <span
                   aria-hidden="true"
                   className={
-                    "absolute -left-1/2 top-4 h-[2px] w-full " +
+                    "absolute -left-1/2 top-3.5 sm:top-4 h-[2px] w-full " +
                     (faite
                       ? "bg-primaire"
                       : active
@@ -49,7 +49,7 @@ export function IndicateurEtapes({
 
               <span
                 className={
-                  "relative z-10 flex h-8 w-8 items-center justify-center rounded-pill text-[13.5px] font-semibold transition-all " +
+                  "relative z-10 flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-pill text-[12px] sm:text-[13px] font-semibold transition-all " +
                   (faite
                     ? "bg-primaire text-white shadow-sm"
                     : active
@@ -62,12 +62,12 @@ export function IndicateurEtapes({
 
               <span
                 className={
-                  "mt-2 text-center text-legende transition-colors " +
+                  "mt-1.5 text-center transition-colors " +
                   (active
-                    ? "font-bold text-primaire text-[13px]"
+                    ? "font-bold text-primaire text-[12px] sm:text-[12.5px]"
                     : faite
-                      ? "font-semibold text-encre text-[13px]"
-                      : "text-encre-douce text-[12.5px]")
+                      ? "font-semibold text-encre text-[12px] sm:text-[12.5px]"
+                      : "text-encre-douce text-[11px] sm:text-[11.5px]")
                 }
               >
                 {etape}
