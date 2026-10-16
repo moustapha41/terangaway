@@ -185,13 +185,16 @@ export async function apiObtenirSession(token?: string) {
     headers["Authorization"] = `Bearer ${token}`;
     headers["x-visiteur-id"] = token;
   }
+  // Forme à plat, celle que `GET /comptes/session` renvoie réellement :
+  // `{ donnees: { compteId, email, telephone, token } }`, et `appelerApi`
+  // déballe déjà `donnees`. Le type annonçait une clé `visiteur` qui n'existe
+  // dans aucune route de l'API — `res.visiteur` valait donc toujours
+  // `undefined`, et toute page protégée renvoyait à la connexion.
   return appelerApi<{
-    visiteur: {
-      compteId: string;
-      email: string;
-      telephone?: string | null;
-      token: string;
-    };
+    compteId: string;
+    email: string;
+    telephone?: string | null;
+    token?: string;
   }>("/comptes/session", { headers });
 }
 

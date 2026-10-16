@@ -46,16 +46,17 @@ export const visiteurConnecte = cache(async (): Promise<Visiteur | null> => {
   }
 
   try {
-    const res = await apiObtenirSession(jeton);
-    if (!res?.visiteur) {
+    const profil = await apiObtenirSession(jeton);
+    // `compteId` est la preuve que la session existe : l'API lève 401 sinon.
+    if (!profil?.compteId) {
       return null;
     }
     return {
-      identifiant: res.visiteur.email,
-      compteId: res.visiteur.compteId,
-      email: res.visiteur.email,
-      telephone: res.visiteur.telephone,
-      token: res.visiteur.token ?? jeton!,
+      identifiant: profil.email,
+      compteId: profil.compteId,
+      email: profil.email,
+      telephone: profil.telephone,
+      token: profil.token ?? jeton!,
     };
   } catch {
     return null;
