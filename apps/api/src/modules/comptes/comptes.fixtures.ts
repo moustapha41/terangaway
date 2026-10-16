@@ -185,6 +185,17 @@ export class DepotComptesFixtures implements DepotComptes {
     return resumerCompte(compte);
   }
 
+  async renseignerNomSiVide(compteId: string, nom: string): Promise<void> {
+    const propre = nom.trim().slice(0, 120);
+    if (!propre) return;
+    for (const [cle, compte] of this.comptes) {
+      if (compte.id === compteId && !compte.nom) {
+        this.comptes.set(cle, { ...compte, nom: propre });
+        return;
+      }
+    }
+  }
+
   async activerCompte(compteId: string): Promise<CompteResume> {
     for (const [cle, compte] of this.comptes) {
       if (compte.id === compteId) {

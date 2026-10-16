@@ -73,11 +73,16 @@ export async function GET(requete: Request) {
 
   let jeton: string;
   try {
+    // Le secret partagé, quand il est posé des deux côtés. Cette route de l'API
+    // croit l'adresse qu'on lui donne : le réseau interne de la pile est sa
+    // première barrière, cet en-tête la seconde.
+    const secret = process.env.SECRET_OAUTH_INTERNE?.trim();
     const session = await appelerApi<{ token?: string; visiteurId?: string }>(
       "/comptes/oauth/google",
       {
         method: "POST",
         corps: { email: identite.email, nom: identite.nom, sub: identite.sub },
+        headers: secret ? { "x-oauth-interne": secret } : undefined,
       },
     );
     jeton = session.token ?? session.visiteurId ?? "";

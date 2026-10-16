@@ -97,4 +97,19 @@ export interface DepotComptes {
 
   /** Compare un mot de passe à l'empreinte du compte, sans la faire sortir du dépôt. */
   verifierMotDePasseCompte(compteId: string, motDePasse: string): Promise<boolean>;
+
+  /* ──────────────────────── Connexion par Google ──────────────────────── */
+
+  /**
+   * Pose le nom si le compte n'en a pas encore.
+   *
+   * Un compte né d'un simple code n'a pas de nom : Google en fournit un, autant
+   * le garder. « Si vide » et non « toujours » : le nom saisi à l'inscription
+   * est celui que la personne a choisi, et il ne doit pas être écrasé par
+   * l'intitulé de son compte Google.
+   *
+   * Facultative, comme les autres méthodes de confort du dépôt : un dépôt qui
+   * ne l'implémente pas laisse simplement le nom vide.
+   */
+  renseignerNomSiVide?(compteId: string, nom: string): Promise<void>;
 }

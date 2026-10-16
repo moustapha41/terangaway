@@ -1,16 +1,17 @@
 import { Body, Controller, Get, Headers, HttpStatus, Post, Req, Res } from "@nestjs/common";
-import { ApiHeader, ApiOperation, ApiTags } from "@nestjs/swagger";
+import { ApiHeader, ApiOperation, ApiResponse, ApiTags } from "@nestjs/swagger";
 import type { Request, Response } from "express";
 
 import { ErreurMetier } from "../../commun/erreurs";
 import { extraireIpClientSecurisee } from "../../commun/securite/adresse-ip";
-import { extraireJetonRequete } from "../../commun/securite/hachage";
+import { extraireJetonRequete, hacherSha256, verifierSha256 } from "../../commun/securite/hachage";
 import {
   ConnexionMotDePasseDto,
   InscriptionDto,
   RenvoyerCodeInscriptionDto,
   VerifierInscriptionDto,
 } from "./dto/inscription.dto";
+import { OAuthGoogleDto } from "./dto/oauth.dto";
 import { ConnexionPrestataireDto, EnvoyerOtpDto, VerifierOtpDto } from "./dto/otp.dto";
 import { ServiceComptes } from "./comptes.service";
 
@@ -127,6 +128,43 @@ export class ControleurComptes {
   ) {
     const ip = extraireIpClientSecurisee(req);
     const resultat = await this.comptes.connexionMotDePasse(corps.email, corps.motDePasse, ip);
+    this.poserCookieSession(resultat.token, res);
+    return { donnees: resultat };
+  }
+
+  @Post("oauth/google")
+  @ApiOperation({
+    summary: "Ouvre une session pour une adresse vérifiée par Google",
+    description:
+      "Appelée par le site, jamais par un navigateur. Le site a déjà échangé " +
+      "le code d'autorisation, vérifié l'`id_token` (destinataire, émetteur, " +
+      "échéance, `nonce`) et constaté que Google confirme l'adresse ; l'API " +
+      "reçoit le résultat de cette vérification.\n\n" +
+      "**Cette route croit l'adresse qu'on lui donne.** Elle n'est donc pas " +
+      "publiée : le service `api` n'expose son port que sur le réseau interne " +
+      "de la pile. Renseignez `SECRET_OAUTH_INTERNE` des deux côtés pour y " +
+      "ajouter une seconde barrière — l'en-tête `x-oauth-interne` est alors " +
+      "exigé, et une requête sans lui reçoit 401.",
+  })
+  @ApiResponse({ status: 401, description: "`IDENTIFIANTS_INVALIDES` — adresse mal formée ou secret absent" })
+  async oauthGoogle(
+    @Body() corps: OAuthGoogleDto,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res?: Response,
+  ) {
+    const attendu = process.env.SECRET_OAUTH_INTERNE?.trim();
+    if (attendu) {
+      const fourni = req.headers["x-oauth-interne"];
+      if (typeof fourni !== "string" || !verifierSha256(fourni, hacherSha256(attendu))) {
+        throw new ErreurMetier(
+          "IDENTIFIANTS_INVALIDES",
+          "Appel refusé.",
+          HttpStatus.UNAUTHORIZED,
+        );
+      }
+    }
+
+    const resultat = await this.comptes.connexionFederee(corps.email, corps.nom);
     this.poserCookieSession(resultat.token, res);
     return { donnees: resultat };
   }

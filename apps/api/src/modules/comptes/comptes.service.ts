@@ -480,6 +480,50 @@ export class ServiceComptes {
    * Cette méthode refuse simplement de les authentifier, avec le même message
    * que pour un mot de passe faux.
    */
+  /**
+   * Ouvre une session pour une adresse **déjà vérifiée par un fournisseur**.
+   *
+   * Il n'y a ni mot de passe à comparer ni code à consommer : la preuve a été
+   * faite ailleurs, et le site l'a contrôlée avant d'appeler. Cette route ne
+   * décide donc de rien — elle range.
+   *
+   * `creerSessionVisiteur` fait déjà le reste : elle crée le compte s'il
+   * n'existe pas, vérifié et **sans mot de passe**, exactement comme un compte
+   * né d'un code. C'est pour cela que `motDePasseHash` est nullable : ces
+   * comptes-là continueront de se connecter par Google ou par code, jamais par
+   * mot de passe, et la route `connexionMotDePasse` les refuse déjà.
+   *
+   * Aucune limitation de débit ici : l'appelant est notre propre serveur, et le
+   * frein se pose chez Google, qui impose son écran de consentement avant de
+   * délivrer quoi que ce soit.
+   */
+  async connexionFederee(
+    email: string,
+    nom?: string,
+  ): Promise<{ visiteurId: string; token?: string; compte: CompteResume | null }> {
+    const destination = normaliserDestination(email ?? "");
+    if (!EMAIL_VALIDE.test(destination)) {
+      throw new ErreurMetier(
+        "IDENTIFIANTS_INVALIDES",
+        IDENTIFIANTS_REFUSES,
+        HttpStatus.UNAUTHORIZED,
+      );
+    }
+
+    const session = await this.depot.creerSessionVisiteur(destination);
+    const compteId = session.compteId ?? session.id;
+
+    if (nom?.trim() && this.depot.renseignerNomSiVide) {
+      await this.depot.renseignerNomSiVide(compteId, nom);
+    }
+
+    return {
+      visiteurId: compteId,
+      token: session.token ?? session.id,
+      compte: await this.depot.compteParEmail(destination),
+    };
+  }
+
   async connexionMotDePasse(
     email: string,
     motDePasse: string,

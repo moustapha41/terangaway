@@ -530,6 +530,20 @@ export class DepotComptesPrisma implements DepotComptes {
     return this.resumer(compte);
   }
 
+  /**
+   * `updateMany` plutôt que `update` : la condition `nom: null` fait partie de
+   * la requête, donc aucune lecture préalable, donc aucune fenêtre entre le
+   * moment où l'on constate que le nom est vide et celui où on l'écrit.
+   */
+  async renseignerNomSiVide(compteId: string, nom: string): Promise<void> {
+    const propre = nom.trim().slice(0, 120);
+    if (!propre) return;
+    await this.prisma.account.updateMany({
+      where: { id: compteId, nom: null },
+      data: { nom: propre },
+    });
+  }
+
   async activerCompte(compteId: string): Promise<CompteResume> {
     const compte = await this.prisma.account.update({
       where: { id: compteId },
