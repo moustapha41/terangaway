@@ -9,7 +9,6 @@ import { SEJOUR_DEFAUT } from "@/lib/dates/sejour";
 import { FormulaireTransport } from "@/features/demande/formulaire-transport";
 import { logementParId, vehiculeParId, type EtatEnvoi } from "@/mocks/api";
 import { visiteurConnecte, nomLisible } from "@/features/compte/session";
-import { BandeauCatalogueDemo } from "@/components/visiteur/bandeau-catalogue-demo";
 import { lireBrouillonLogement, lireBrouillonTransport } from "@/features/demande/brouillon";
 
 /**
@@ -69,8 +68,6 @@ export default async function Demande({
             {t("demandeTransport.titre")}
           </h1>
 
-          <BandeauCatalogueDemo t={t} className="mb-6" />
-
           <FormulaireTransport
             vehicule={vehicule}
             prestation={prestation}
@@ -103,8 +100,6 @@ export default async function Demande({
         </Lien>
 
         <h1 className="mb-6 mt-4 text-titre-1 text-encre">{t("demande.titreEtape1")}</h1>
-
-        <BandeauCatalogueDemo t={t} className="mb-6" />
 
         <FormulaireDemande
           logement={logement}

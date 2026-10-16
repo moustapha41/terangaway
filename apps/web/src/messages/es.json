@@ -1356,10 +1356,6 @@
     "echecTitre": "Su solicitud no se ha enviado",
     "echecTexte": "Inténtelo de nuevo en un momento. Si vuelve a ocurrir, llame al equipo."
   },
-  "catalogue": {
-    "demoTitre": "Catálogo de demostración",
-    "demoTexte": "Los alojamientos y vehículos mostrados son ejemplos para pruebas. No son ofertas reservables."
-  },
   "inscription": {
     "titre": "Cree su cuenta",
     "texte": "Una cuenta le permite seguir sus solicitudes y reservar sin volver a escribir sus datos.",

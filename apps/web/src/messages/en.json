@@ -1356,10 +1356,6 @@
     "echecTitre": "Your request was not sent",
     "echecTexte": "Try again in a moment. If it happens again, call the team."
   },
-  "catalogue": {
-    "demoTitre": "Demonstration catalogue",
-    "demoTexte": "The accommodation and vehicles shown are sample data for testing. They are not bookable offers."
-  },
   "inscription": {
     "titre": "Create your account",
     "texte": "An account lets you track your requests and book without re-entering your details.",

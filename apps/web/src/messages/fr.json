@@ -1356,10 +1356,6 @@
     "echecTitre": "Votre demande n'est pas partie",
     "echecTexte": "Réessayez dans un instant. Si cela se reproduit, appelez l'équipe."
   },
-  "catalogue": {
-    "demoTitre": "Catalogue de démonstration",
-    "demoTexte": "Les logements et véhicules présentés sont des exemples destinés aux essais. Ce ne sont pas des offres réservables."
-  },
   "inscription": {
     "titre": "Créer votre compte",
     "texte": "Un compte vous permet de suivre vos demandes et de réserver sans ressaisir vos informations.",
