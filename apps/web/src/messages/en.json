@@ -865,7 +865,8 @@
       "one": "{nombre} request is waiting for your answer",
       "other": "{nombre} requests are waiting for your answer"
     },
-    "langueActuelle": "Language: {langue}"
+    "langueActuelle": "Language: {langue}",
+    "retourAccueil": "Back to home"
   },
   "aide": {
     "titre": "Help",
@@ -979,7 +980,24 @@
     "parCodeTexte": "Accounts created before passwords were introduced sign in with a six-digit code.",
     "connexionEchec": "Sign-in failed",
     "compteNonVerifie": "Your address is not confirmed yet. Verify your account to continue.",
-    "allerVerifier": "Verify my account"
+    "allerVerifier": "Verify my account",
+    "bienvenue": "Welcome",
+    "bienvenueTexte": "Sign in to reach your Teranga Way space",
+    "adresseEmail": "Email address",
+    "seSouvenir": "Remember me",
+    "motDePasseOublie": "Forgot your password?",
+    "ou": "or",
+    "continuerAvec": "Continue with {fournisseur}",
+    "fournisseurIndisponible": "Signing in with {fournisseur} is not available yet. Please use your email address.",
+    "afficherMotDePasse": "Show password",
+    "masquerMotDePasse": "Hide password",
+    "seSouvenirSansEffet": "Your session lasts 30 days, ticked or not.",
+    "erreurGoogle": {
+      "google": "Signing in with Google did not complete. Try again, or use your email address.",
+      "googleAnnule": "Google sign-in cancelled.",
+      "googleNonVerifie": "Your Google address is not confirmed. Confirm it with Google, or use your email address.",
+      "googleIndisponible": "Google sign-in is not active on this server yet."
+    }
   },
   "public": {
     "aProposTitre": "About Teranga Way",
@@ -1411,6 +1429,25 @@
     "reprendre": "Start registration again",
     "echecTitre": "Registration did not complete",
     "confirmationErreur": "The two passwords do not match.",
-    "motDePasseCourtErreur": "Too short: at least {longueur} characters are required."
+    "motDePasseCourtErreur": "Too short: at least {longueur} characters are required.",
+    "aventure": "Your adventure",
+    "aventureSuite": "starts here",
+    "sousTitre": "Create your account and get your stay ready.",
+    "titreCarte": "Create an account",
+    "nomPlaceholder": "Enter your full name",
+    "emailPlaceholder": "Enter your email address",
+    "motDePassePlaceholder": "Create a password",
+    "confirmationPlaceholder": "Confirm your password",
+    "illustrationAlt": "Athletes cross the finish line with the Senegalese flag, in front of the African Renaissance Monument"
+  },
+  "connexion": {
+    "decouvrir": "Discover",
+    "decouvrirTexte": "Senegal",
+    "planifier": "Plan",
+    "planifierTexte": "your stay",
+    "explorer": "Explore",
+    "explorerTexte": "unique experiences",
+    "vousAttend": "awaits you",
+    "illustrationAlt": "The African Renaissance Monument above the Dakar corniche at sunset"
   }
 }

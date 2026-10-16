@@ -79,6 +79,10 @@ services:
       api:
         condition: service_healthy
     environment:
+      # Connexion Google. Vides tant que le client OAuth n'est pas renseigné
+      # dans Dokploy : le bouton n'est alors simplement pas proposé.
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
       NODE_ENV: production
       PORT: "3100"
       HOSTNAME: "0.0.0.0"

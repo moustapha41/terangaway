@@ -865,7 +865,8 @@
       "one": "{nombre} solicitud espera su respuesta",
       "other": "{nombre} solicitudes esperan su respuesta"
     },
-    "langueActuelle": "Idioma: {langue}"
+    "langueActuelle": "Idioma: {langue}",
+    "retourAccueil": "Volver al inicio"
   },
   "aide": {
     "titre": "Ayuda",
@@ -979,7 +980,24 @@
     "parCodeTexte": "Las cuentas creadas antes de la contraseña se conectan con un código de seis cifras.",
     "connexionEchec": "Error al iniciar sesión",
     "compteNonVerifie": "Su dirección aún no está confirmada. Verifique su cuenta para continuar.",
-    "allerVerifier": "Verificar mi cuenta"
+    "allerVerifier": "Verificar mi cuenta",
+    "bienvenue": "Bienvenido",
+    "bienvenueTexte": "Inicie sesión para acceder a su espacio Teranga Way",
+    "adresseEmail": "Correo electrónico",
+    "seSouvenir": "Recordarme",
+    "motDePasseOublie": "¿Olvidó su contraseña?",
+    "ou": "o",
+    "continuerAvec": "Continuar con {fournisseur}",
+    "fournisseurIndisponible": "Iniciar sesión con {fournisseur} aún no está disponible. Utilice su correo electrónico.",
+    "afficherMotDePasse": "Mostrar la contraseña",
+    "masquerMotDePasse": "Ocultar la contraseña",
+    "seSouvenirSansEffet": "Su sesión dura 30 días, marcada o no.",
+    "erreurGoogle": {
+      "google": "El inicio de sesión con Google no se completó. Inténtelo de nuevo o use su correo electrónico.",
+      "googleAnnule": "Inicio de sesión con Google cancelado.",
+      "googleNonVerifie": "Su dirección de Google no está confirmada. Confírmela en Google o use su correo electrónico.",
+      "googleIndisponible": "El inicio de sesión con Google aún no está activo en este servidor."
+    }
   },
   "public": {
     "aProposTitre": "Acerca de Teranga Way",
@@ -1411,6 +1429,25 @@
     "reprendre": "Reiniciar el registro",
     "echecTitre": "El registro no se completó",
     "confirmationErreur": "Las dos contraseñas no coinciden.",
-    "motDePasseCourtErreur": "Demasiado corta: se necesitan al menos {longueur} caracteres."
+    "motDePasseCourtErreur": "Demasiado corta: se necesitan al menos {longueur} caracteres.",
+    "aventure": "Su aventura",
+    "aventureSuite": "empieza aquí",
+    "sousTitre": "Cree su cuenta y prepare su estancia.",
+    "titreCarte": "Crear una cuenta",
+    "nomPlaceholder": "Escriba su nombre completo",
+    "emailPlaceholder": "Escriba su correo electrónico",
+    "motDePassePlaceholder": "Cree una contraseña",
+    "confirmationPlaceholder": "Confirme su contraseña",
+    "illustrationAlt": "Atletas cruzan la meta con la bandera de Senegal ante el Monumento al Renacimiento Africano"
+  },
+  "connexion": {
+    "decouvrir": "Descubrir",
+    "decouvrirTexte": "Senegal",
+    "planifier": "Planificar",
+    "planifierTexte": "su estancia",
+    "explorer": "Explorar",
+    "explorerTexte": "experiencias únicas",
+    "vousAttend": "le espera",
+    "illustrationAlt": "El Monumento al Renacimiento Africano sobre la corniche de Dakar al atardecer"
   }
 }

@@ -865,7 +865,8 @@
       "one": "{nombre} demande attend votre réponse",
       "other": "{nombre} demandes attendent votre réponse"
     },
-    "langueActuelle": "Langue : {langue}"
+    "langueActuelle": "Langue : {langue}",
+    "retourAccueil": "Retour à l'accueil"
   },
   "aide": {
     "titre": "Aide",
@@ -979,7 +980,24 @@
     "parCodeTexte": "Les comptes créés avant l'arrivée du mot de passe se connectent avec un code à six chiffres.",
     "connexionEchec": "La connexion a échoué",
     "compteNonVerifie": "Votre adresse n'est pas encore confirmée. Vérifiez votre compte pour continuer.",
-    "allerVerifier": "Vérifier mon compte"
+    "allerVerifier": "Vérifier mon compte",
+    "bienvenue": "Bienvenue",
+    "bienvenueTexte": "Connectez-vous pour accéder à votre espace Teranga Way",
+    "adresseEmail": "Adresse e-mail",
+    "seSouvenir": "Se souvenir de moi",
+    "motDePasseOublie": "Mot de passe oublié ?",
+    "ou": "ou",
+    "continuerAvec": "Continuer avec {fournisseur}",
+    "fournisseurIndisponible": "La connexion avec {fournisseur} n'est pas encore disponible. Utilisez votre adresse e-mail.",
+    "afficherMotDePasse": "Afficher le mot de passe",
+    "masquerMotDePasse": "Masquer le mot de passe",
+    "seSouvenirSansEffet": "Votre session dure 30 jours, cochée ou non.",
+    "erreurGoogle": {
+      "google": "La connexion avec Google n'a pas abouti. Réessayez, ou utilisez votre adresse e-mail.",
+      "googleAnnule": "Connexion Google annulée.",
+      "googleNonVerifie": "Votre adresse Google n'est pas confirmée. Confirmez-la chez Google, ou utilisez votre adresse e-mail.",
+      "googleIndisponible": "La connexion Google n'est pas encore active sur ce serveur."
+    }
   },
   "public": {
     "aProposTitre": "À propos de Teranga Way",
@@ -1393,7 +1411,7 @@
     "email": "Adresse e-mail",
     "motDePasse": "Mot de passe",
     "motDePasseAide": "Au moins {longueur} caractères. Une phrase est plus sûre et plus facile à retenir qu'un mot compliqué.",
-    "confirmation": "Confirmation du mot de passe",
+    "confirmation": "Confirmer le mot de passe",
     "creerMonCompte": "Créer mon compte",
     "dejaUnCompte": "Vous avez déjà un compte ?",
     "seConnecter": "Se connecter",
@@ -1411,6 +1429,25 @@
     "reprendre": "Reprendre l'inscription",
     "echecTitre": "L'inscription n'a pas abouti",
     "confirmationErreur": "Les deux mots de passe ne correspondent pas.",
-    "motDePasseCourtErreur": "Trop court : il faut au moins {longueur} caractères."
+    "motDePasseCourtErreur": "Trop court : il faut au moins {longueur} caractères.",
+    "aventure": "Votre aventure",
+    "aventureSuite": "commence ici",
+    "sousTitre": "Créez votre compte et préparez votre séjour.",
+    "titreCarte": "Créer un compte",
+    "nomPlaceholder": "Entrez votre nom complet",
+    "emailPlaceholder": "Entrez votre adresse e-mail",
+    "motDePassePlaceholder": "Créez un mot de passe",
+    "confirmationPlaceholder": "Confirmez votre mot de passe",
+    "illustrationAlt": "Des athlètes franchissent la ligne d'arrivée, drapeau du Sénégal déployé, devant le Monument de la Renaissance africaine"
+  },
+  "connexion": {
+    "decouvrir": "Découvrir",
+    "decouvrirTexte": "le Sénégal",
+    "planifier": "Planifier",
+    "planifierTexte": "votre séjour",
+    "explorer": "Explorer",
+    "explorerTexte": "des expériences uniques",
+    "vousAttend": "vous attend",
+    "illustrationAlt": "Le Monument de la Renaissance africaine au-dessus de la corniche de Dakar, au coucher du soleil"
   }
 }
