@@ -1,3 +1,4 @@
+import { ASSISTANCE, emailUrl, telUrl } from "@/lib/assistance";
 import { Lien } from "@/lib/i18n/lien";
 import { traducteurPour } from "@/lib/i18n/messages";
 import type { Langue } from "@/lib/i18n/langues";
@@ -180,26 +181,26 @@ export function PiedDePage({ langue }: { langue: Langue }) {
               </li>
               <li>
                 <a
-                  href="tel:+221338000000"
+                  href={telUrl}
                   className="flex items-center gap-3 transition-colors hover:text-white"
                 >
                   <Phone
                     strokeWidth={1.7}
                     className="h-[18px] w-[18px] shrink-0 text-jaune-vif"
                   />
-                  +221 33 800 00 00
+                  {ASSISTANCE.telephone}
                 </a>
               </li>
               <li>
                 <a
-                  href="mailto:bonjour@terangaway.sn"
+                  href={emailUrl}
                   className="flex items-center gap-3 transition-colors hover:text-white"
                 >
                   <Mail
                     strokeWidth={1.7}
                     className="h-[18px] w-[18px] shrink-0 text-jaune-vif"
                   />
-                  bonjour@terangaway.sn
+                  {ASSISTANCE.email}
                 </a>
               </li>
             </ul>

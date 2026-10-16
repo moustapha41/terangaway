@@ -1,4 +1,5 @@
 import { Icone } from "@teranga/ui";
+import { ASSISTANCE, emailUrl, telUrl } from "@/lib/assistance";
 import { estLangue, type Langue } from "@/lib/i18n/langues";
 import { traducteurPour } from "@/lib/i18n/messages";
 
@@ -43,14 +44,14 @@ export default async function Legal({ params }: { params: Promise<{ locale: stri
             <h2 className="mb-2 text-titre-2 text-encre">{t("public.legalContact")}</h2>
             <p className="flex items-center gap-2 text-corps text-encre">
               <Icone nom="telephone" taille={20} className="text-encre-douce" />
-              <a href="tel:+221338000000" className="underline underline-offset-2 chiffres-tabulaires">
-                +221 33 800 00 00
+              <a href={telUrl} className="underline underline-offset-2 chiffres-tabulaires">
+                {ASSISTANCE.telephone}
               </a>
             </p>
             <p className="mt-2 flex items-center gap-2 text-corps text-encre">
               <Icone nom="information" taille={20} className="text-encre-douce" />
-              <a href="mailto:bonjour@terangaway.sn" className="underline underline-offset-2">
-                bonjour@terangaway.sn
+              <a href={emailUrl} className="underline underline-offset-2">
+                {ASSISTANCE.email}
               </a>
             </p>
           </section>

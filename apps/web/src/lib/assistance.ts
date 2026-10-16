@@ -11,9 +11,9 @@
  * besoin d'appeler. La maquette est l'exception, pas la règle.
  */
 export const ASSISTANCE = {
-  telephone: "+221 33 800 00 00",
-  whatsapp: "221338000000",
-  email: "assistance@terangaway.sn",
+  telephone: "+221 76 522 29 29",
+  whatsapp: "221765222929",
+  email: "contact@teranga-way.com",
 } as const;
 
 /** Numéro de téléphone prêt pour un lien `tel:`. */
