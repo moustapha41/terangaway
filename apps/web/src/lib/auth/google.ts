@@ -47,23 +47,38 @@ export function googleConfigure(): boolean {
 }
 
 /**
+ * L'origine telle que le visiteur la voit.
+ *
+ * Derrière le Traefik de Dokploy, le conteneur reçoit la requête sur
+ * `0.0.0.0:3100` : c'est cette adresse-là que porte `requete.url`, et elle ne
+ * mène nulle part depuis un navigateur. L'adresse publique vit dans
+ * `x-forwarded-proto` et `x-forwarded-host`, que le mandataire ajoute.
+ *
+ * **Toute** redirection de ce parcours doit passer par ici — pas seulement
+ * celle que Google vérifie. Un visiteur s'est retrouvé sur
+ * `https://0.0.0.0:3100/fr/connexion?erreur=…` parce que les redirections de
+ * retour, elles, se contentaient de l'origine brute.
+ */
+export function originePublique(requete: Request): string {
+  const entetes = requete.headers;
+  const url = new URL(requete.url);
+  const protocole =
+    entetes.get("x-forwarded-proto")?.split(",")[0]?.trim() || url.protocol.replace(":", "");
+  const hote =
+    entetes.get("x-forwarded-host")?.split(",")[0]?.trim() || entetes.get("host") || url.host;
+  return `${protocole}://${hote}`;
+}
+
+/**
  * L'adresse de retour, telle que Google la vérifiera.
  *
  * Elle doit correspondre **au caractère près** à l'une des URI déclarées dans
- * la console. On la construit depuis l'origine de la requête reçue, pour que le
- * même code serve en local (`http://localhost:3000`) et en ligne
- * (`https://teranga-way.com`) sans variable de plus.
- *
- * Derrière le Traefik de Dokploy, la requête arrive en clair sur le port 3100 :
- * c'est `x-forwarded-proto` et `x-forwarded-host` qui portent l'adresse vue par
- * le visiteur. Les lire évite de renvoyer Google vers `http://web:3100`.
+ * la console. Construite depuis l'origine publique, le même code sert en local
+ * (`http://localhost:3000`) et en ligne (`https://teranga-way.com`) sans
+ * variable de plus.
  */
 export function adresseDeRetour(requete: Request): string {
-  const entetes = requete.headers;
-  const url = new URL(requete.url);
-  const protocole = entetes.get("x-forwarded-proto")?.split(",")[0]?.trim() || url.protocol.replace(":", "");
-  const hote = entetes.get("x-forwarded-host")?.split(",")[0]?.trim() || entetes.get("host") || url.host;
-  return `${protocole}://${hote}/api/auth/google/callback`;
+  return `${originePublique(requete)}/api/auth/google/callback`;
 }
 
 export function urlAutorisation(options: {

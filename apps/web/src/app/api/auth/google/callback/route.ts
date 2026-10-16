@@ -8,6 +8,7 @@ import {
   adresseDeRetour,
   configurationGoogle,
   echangerCode,
+  originePublique,
 } from "@/lib/auth/google";
 
 export const dynamic = "force-dynamic";
@@ -34,11 +35,13 @@ interface Aller {
  */
 export async function GET(requete: Request) {
   const url = new URL(requete.url);
+  // L'origine publique, jamais `url.origin` : voir `originePublique`.
+  const origine = originePublique(requete);
   const aller = lireAller(requete);
   const langue = aller?.langue ?? "fr";
   const versConnexion = (motif: string) =>
     oublierAller(
-      NextResponse.redirect(new URL(`/${langue}/connexion?erreur=${motif}`, url.origin)),
+      NextResponse.redirect(new URL(`/${langue}/connexion?erreur=${motif}`, origine)),
     );
 
   const configuration = configurationGoogle();
@@ -92,7 +95,7 @@ export async function GET(requete: Request) {
   }
 
   const reponse = oublierAller(
-    NextResponse.redirect(new URL(resoudreDestination(aller.suite, langue), url.origin)),
+    NextResponse.redirect(new URL(resoudreDestination(aller.suite, langue), origine)),
   );
   reponse.cookies.set(COOKIE_VISITEUR, jeton, {
     httpOnly: true,

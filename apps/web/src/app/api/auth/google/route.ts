@@ -6,6 +6,7 @@ import {
   DUREE_OAUTH_SECONDES,
   adresseDeRetour,
   configurationGoogle,
+  originePublique,
   urlAutorisation,
 } from "@/lib/auth/google";
 
@@ -36,7 +37,7 @@ export async function GET(requete: Request) {
   // Non configuré : on renvoie à la connexion ordinaire plutôt que d'afficher
   // une erreur Google que le visiteur ne peut pas résoudre.
   if (!configuration) {
-    return NextResponse.redirect(new URL(`/${langue}/connexion?erreur=google`, url.origin));
+    return NextResponse.redirect(new URL(`/${langue}/connexion?erreur=google`, originePublique(requete)));
   }
 
   const state = randomBytes(24).toString("base64url");
