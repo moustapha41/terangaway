@@ -35,6 +35,10 @@ RUN pnpm -F @teranga/tokens generer
 # 2. Variables de build Next.js (inlinées dans le bundle JavaScript client)
 ARG NEXT_PUBLIC_API_MOCK=false
 ENV NEXT_PUBLIC_API_MOCK=$NEXT_PUBLIC_API_MOCK
+# Domaines autorisés à émettre une Server Action. Figé ici, car
+# next.config.mjs est évalué à la construction.
+ARG ORIGINES_ACTIONS
+ENV ORIGINES_ACTIONS=$ORIGINES_ACTIONS
 ENV NEXT_TELEMETRY_DISABLED=1
 
 # 3. Compilation Next.js (génère .next/standalone grâce à output: "standalone")

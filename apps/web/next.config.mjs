@@ -16,6 +16,30 @@ const nextConfig = {
   // Le traçage doit partir de la racine du dépôt, sinon les paquets de
   // l'atelier — liés par pnpm hors de apps/web — sont oubliés.
   outputFileTracingRoot: join(ici, "../.."),
+  experimental: {
+    serverActions: {
+      /**
+       * Les domaines d'où une Server Action est acceptée.
+       *
+       * Next compare l'en-tête `Origin` de la requête à l'hôte qu'il croit
+       * servir, et **refuse silencieusement** l'action quand les deux diffèrent
+       * — c'est une protection contre les requêtes forgées depuis un autre
+       * site. Derrière un mandataire, l'hôte vu par le conteneur n'est pas
+       * celui vu par le visiteur : si le mandataire ne transmet pas
+       * `x-forwarded-host`, toute connexion échoue sans un mot à l'écran.
+       *
+       * La liste est figée à la construction, comme tout ce que lit ce
+       * fichier. Un domaine de plus demande une reconstruction de l'image.
+       */
+      allowedOrigins: (
+        process.env.ORIGINES_ACTIONS ??
+        "teranga-way.com,www.teranga-way.com,localhost:3000,localhost:3100"
+      )
+        .split(",")
+        .map((origine) => origine.trim())
+        .filter(Boolean),
+    },
+  },
 };
 
 export default nextConfig;
