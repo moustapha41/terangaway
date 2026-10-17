@@ -5,22 +5,12 @@ import { administrateurConnecte } from "@/features/admin/session";
 import { apiMockActive } from "@/lib/api/http";
 import { estLangue } from "@/lib/i18n/langues";
 import { traducteurPour } from "@/lib/i18n/messages";
+import { Logo } from "@/components/layout/logo";
 
-/**
- * Rendu à la demande, toujours.
- *
- * Sans cette ligne, Next prérend la page au build : le cookie d'équipe est
- * alors absent, la redirection vers la connexion part dans le HTML statique,
- * et le backoffice reste fermé même pour qui a une session valide.
- */
 export const dynamic = "force-dynamic";
 
 /**
- * Connexion de l'équipe.
- *
- * Déjà connecté, on entre. Sinon, on explique clairement quand le site tourne
- * encore sur le mock : le backoffice parle à l'API réelle, et un code OTP
- * simulé n'y mène pas.
+ * Connexion équipe — Interface d'authentification repensée
  */
 export default async function ConnexionAdmin({
   params,
@@ -33,6 +23,7 @@ export default async function ConnexionAdmin({
   const requete = await searchParams;
   const langue = estLangue(locale) ? locale : "fr";
   const t = traducteurPour(langue);
+
   if (await administrateurConnecte()) redirect(`/${langue}/admin`);
 
   const motifBrut = Array.isArray(requete.motif) ? requete.motif[0] : requete.motif;
@@ -44,13 +35,33 @@ export default async function ConnexionAdmin({
       : null;
 
   return (
-    <div className="py-8">
+    <div className="flex min-h-screen flex-col items-center justify-center p-4 sm:p-6 lg:p-8">
+      {/* En-tête de marque */}
+      <div className="mb-8 flex flex-col items-center text-center">
+        <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-white/10 ring-1 ring-white/20 backdrop-blur-md shadow-2xl">
+          <Logo forme="marque" variante="clair" hauteur={36} />
+        </div>
+        <h2 className="text-xl font-bold tracking-tight text-white">
+          Teranga Way
+        </h2>
+        <p className="mt-1 text-xs font-medium text-amber-300 uppercase tracking-widest">
+          Console d&apos;Administration
+        </p>
+      </div>
+
       {avertissement && (
-        <div className="mx-auto mb-4 max-w-[460px]">
+        <div className="mb-6 w-full max-w-md">
           <Bandeau variante={mock ? "avertissement" : "information"}>{avertissement}</Bandeau>
         </div>
       )}
-      <FormulaireConnexionAdmin desactive={mock} />
+
+      <div className="w-full max-w-md">
+        <FormulaireConnexionAdmin desactive={mock} />
+      </div>
+
+      <p className="mt-8 text-center text-xs text-slate-400">
+        Accès strictement réservé aux gestionnaires et administrateurs autorisés.
+      </p>
     </div>
   );
 }

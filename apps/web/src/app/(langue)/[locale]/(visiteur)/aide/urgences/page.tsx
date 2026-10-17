@@ -1,5 +1,5 @@
 import { Bandeau, Carte, Icone } from "@teranga/ui";
-import { EnTete } from "@/components/layout/en-tete";
+import { EnTeteSession } from "@/components/layout/en-tete-session";
 import { Lien } from "@/lib/i18n/lien";
 import { estLangue, type Langue } from "@/lib/i18n/langues";
 import { traducteurPour } from "@/lib/i18n/messages";
@@ -26,7 +26,7 @@ export default async function Urgences({ params }: { params: Promise<{ locale: s
 
   return (
     <main className="bg-page pb-16">
-      <EnTete />
+      <EnTeteSession />
 
       <div className="mx-auto w-[87.5%] max-w-[640px] pt-6">
         <Lien href="/aide" className="inline-flex items-center gap-2 text-petit font-semibold text-primaire">

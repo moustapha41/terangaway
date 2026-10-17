@@ -1502,7 +1502,7 @@
     "erreurAdresse": "That email address is not valid.",
     "erreurEnvoi": "The code could not be sent: the API has no email service configured. Locally, set AUTORISER_COMPTES_DEMO=true and the code will be shown here.",
     "erreurTropDeCodes": "Too many codes requested. Wait a minute before trying again.",
-    "erreurRole": "This account has no access to the back office.",
+    "erreurRole": "The account {email} has no access to the back office. Check the address, or have it added to the team.",
     "erreurServeur": "The server did not answer. Try again in a moment.",
     "serveurTitre": "The server is not answering",
     "serveurTexte": "The back office reads requests straight from the API. Check that it is running and that the site points to it, then try again.",

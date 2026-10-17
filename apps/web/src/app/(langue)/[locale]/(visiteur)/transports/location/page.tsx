@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import { Icone } from "@teranga/ui";
-import { EnTete } from "@/components/layout/en-tete";
+import { EnTeteSession } from "@/components/layout/en-tete-session";
 import { CarteVehicule } from "@/components/visiteur/carte-vehicule";
 import { FormulaireLocation } from "@/features/transport/formulaire-location";
 import { Lien } from "@/lib/i18n/lien";
@@ -43,7 +43,7 @@ export default async function Location({
 
   return (
     <main className="bg-page pb-16">
-      <EnTete />
+      <EnTeteSession />
       <div className="mx-auto w-[87.5%] max-w-[900px] pt-6">
         <Lien href="/transports" className="inline-flex items-center gap-2 text-petit font-semibold text-primaire">
           <Icone nom="retour" taille={16} />

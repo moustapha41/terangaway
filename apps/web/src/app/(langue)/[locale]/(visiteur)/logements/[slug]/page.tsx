@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import type { Logement } from "@teranga/contracts";
 import { Bandeau, Icone, type NomIcone } from "@teranga/ui";
-import { EnTete } from "@/components/layout/en-tete";
+import { EnTeteSession } from "@/components/layout/en-tete-session";
 import { CarteHote } from "@/components/visiteur/carte-hote";
 import { GalerieMosaique } from "@/components/visiteur/galerie-mosaique";
 import { EncadreReservation } from "@/features/logement/encadre-reservation";
@@ -44,7 +44,7 @@ export default async function FicheLogement({
 
   return (
     <main className="bg-page pb-[calc(200px+env(safe-area-inset-bottom))] lg:pb-16">
-      <EnTete />
+      <EnTeteSession />
 
       <div className="mx-auto w-[92%] max-w-[1260px] pt-5">
         <nav aria-label={t("resultats.filAriane")} className="mb-4 text-petit text-encre-douce">

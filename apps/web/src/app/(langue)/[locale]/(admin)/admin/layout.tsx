@@ -1,9 +1,7 @@
-import { Logo } from "@/components/layout/logo";
-import { BarreAdmin } from "@/features/admin/barre-admin";
 import { administrateurConnecte } from "@/features/admin/session";
-import { Lien } from "@/lib/i18n/lien";
+import { SidebarAdmin } from "@/features/admin/sidebar";
+import { TopbarAdmin } from "@/features/admin/topbar";
 import { estLangue } from "@/lib/i18n/langues";
-import { traducteurPour } from "@/lib/i18n/messages";
 
 /**
  * Rendu à la demande, toujours.
@@ -15,12 +13,12 @@ import { traducteurPour } from "@/lib/i18n/messages";
 export const dynamic = "force-dynamic";
 
 /**
- * Enveloppe du backoffice.
+ * Enveloppe du backoffice réinventée pour une ergonomie et un design de pointe.
  *
- * Deux états : connecté — barre, navigation, contenu — ou non, et alors la
- * page de connexion s'affiche seule. Le layout ne décide de rien d'autre :
- * c'est chaque page qui exige la session, pour qu'une page ajoutée plus tard
- * ne se croie pas protégée par ce fichier.
+ * Deux états :
+ * - Connecté : Layout avec Sidebar latérale permanente, Topbar avec fil d'Ariane,
+ *   statut API temps-réel et zone de travail aérée et réactive.
+ * - Non connecté (Connexion) : Vue centrée et épurée sans barre latérale pour la sécurité.
  */
 export default async function LayoutAdmin({
   children,
@@ -31,33 +29,30 @@ export default async function LayoutAdmin({
 }) {
   const { locale } = await params;
   const langue = estLangue(locale) ? locale : "fr";
-  const t = traducteurPour(langue);
   const compte = await administrateurConnecte();
 
+  // Si l'utilisateur n'est pas connecté (page de connexion)
+  if (!compte) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-[#001427] via-[#001D35] to-[#0A2540] text-slate-800 antialiased flex flex-col justify-center">
+        {children}
+      </div>
+    );
+  }
+
+  // Shell d'administration connecté
   return (
-    <div className="min-h-screen bg-page">
-      <header className="border-b border-contour bg-surface">
-        <div className="mx-auto flex w-[92%] max-w-[1260px] items-center gap-4 py-4">
-          <Lien href={compte ? "/admin" : "/"} className="flex shrink-0 items-center gap-2.5">
-            <Logo forme="marque" hauteur={34} />
-            <span className="leading-tight">
-              <span className="block text-titre-3 text-encre">{t("commun.nomApplication")}</span>
-              <span className="block text-legende text-encre-douce">{t("admin.espace")}</span>
-            </span>
-          </Lien>
+    <div className="min-h-screen bg-slate-50/70 text-slate-900 antialiased">
+      <SidebarAdmin compte={compte} />
 
-          {compte && (
-            <div className="ml-auto flex items-center gap-4">
-              <span className="hidden text-petit text-encre-douce sm:block">
-                {compte.nom ?? compte.email}
-              </span>
-              <BarreAdmin />
-            </div>
-          )}
-        </div>
-      </header>
-
-      <main className="mx-auto w-[92%] max-w-[1260px] pb-16 pt-6">{children}</main>
+      <div className="lg:pl-72 flex flex-col min-h-screen">
+        <TopbarAdmin />
+        <main className="flex-1 p-4 sm:p-6 lg:p-8">
+          <div className="mx-auto max-w-7xl w-full">
+            {children}
+          </div>
+        </main>
+      </div>
     </div>
   );
 }

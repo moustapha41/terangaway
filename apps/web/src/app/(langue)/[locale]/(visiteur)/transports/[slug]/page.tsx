@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import type { Vehicule } from "@teranga/contracts";
 import { BadgeVerifie, Bandeau, Bouton, Carte, Icone } from "@teranga/ui";
 import { formaterDateComplete, formaterHeure } from "@/lib/dates";
-import { EnTete } from "@/components/layout/en-tete";
+import { EnTeteSession } from "@/components/layout/en-tete-session";
 import { OngletsVehicule } from "@/features/transport/onglets-vehicule";
 import { GalerieLogement } from "@/components/visiteur/galerie-logement";
 import { Lien } from "@/lib/i18n/lien";
@@ -52,7 +52,7 @@ export default async function FicheVehicule({
 
   return (
     <main className="bg-page pb-16">
-      <EnTete />
+      <EnTeteSession />
 
       <div className="mx-auto w-[92%] max-w-[1000px] pt-6 sm:w-[87.5%]">
         <nav className="flex flex-wrap items-center gap-2 text-petit text-encre-douce">

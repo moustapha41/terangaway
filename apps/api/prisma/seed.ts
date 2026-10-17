@@ -68,6 +68,18 @@ async function main() {
     .map((a) => a.trim().toLowerCase())
     .filter(Boolean);
 
+  // Retirer les droits de quiconque n'est plus dans la liste. Sans cela,
+  // enlever une adresse de `ADMIN_EMAILS` ne fermait aucune porte : le compte
+  // restait administrateur en base, et personne ne s'en apercevait. La liste
+  // décide des deux sens, sinon elle ne décide de rien.
+  const retires = await prisma.account.updateMany({
+    where: { role: "ADMINISTRATEUR", email: { notIn: adresses } },
+    data: { role: "VISITEUR" },
+  });
+  if (retires.count > 0) {
+    console.log(`✓ ${retires.count} compte(s) ne figurant plus dans ADMIN_EMAILS repassé(s) visiteur`);
+  }
+
   for (const email of adresses) {
     await prisma.account.upsert({
       where: { email },

@@ -1,4 +1,4 @@
-import { EnTete } from "@/components/layout/en-tete";
+import { EnTeteSession } from "@/components/layout/en-tete-session";
 import { BandeauConfianceTransport } from "@/components/visiteur/bandeau-confiance-transport";
 import { HeroTransport } from "@/components/visiteur/hero-transport";
 import { NosServicesTransport } from "@/components/visiteur/nos-services-transport";
@@ -22,7 +22,7 @@ export default async function Transports({
 
   return (
     <main>
-      <EnTete />
+      <EnTeteSession />
       <HeroTransport langue={langue} />
       <BandeauConfianceTransport langue={langue} />
       <ParcVehicules langue={langue} />

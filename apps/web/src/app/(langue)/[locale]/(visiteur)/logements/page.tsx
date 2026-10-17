@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import type { Equipement, TypeLogement } from "@teranga/contracts";
 import { Bandeau, Bouton, Carte, Icone, Squelette } from "@teranga/ui";
-import { EnTete } from "@/components/layout/en-tete";
+import { EnTeteSession } from "@/components/layout/en-tete-session";
 import { AccueilLogement } from "@/components/visiteur/accueil-logement";
 import { CarteLogementListe } from "@/components/visiteur/carte-logement-liste";
 import { BarreOutils } from "@/features/recherche/barre-outils";
@@ -68,7 +68,7 @@ export default async function Resultats({
 
     return (
       <main className="bg-surface">
-        <EnTete />
+        <EnTeteSession />
         <AccueilLogement langue={langue} populaires={populaires} ville={recherche.ville} />
       </main>
     );
@@ -76,7 +76,7 @@ export default async function Resultats({
 
   return (
     <main className="bg-page pb-16">
-      <EnTete />
+      <EnTeteSession />
 
       <div className="mx-auto w-[92%] max-w-[1260px] pt-6">
         <nav aria-label={t("resultats.filAriane")} className="text-petit text-encre-douce">

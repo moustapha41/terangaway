@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import Image from "next/image";
 import type { Vehicule } from "@teranga/contracts";
 import { Bouton, Carte, Icone } from "@teranga/ui";
-import { EnTete } from "@/components/layout/en-tete";
+import { EnTeteSession } from "@/components/layout/en-tete-session";
 import { PanneauFiltresTransport } from "@/features/transport/panneau-filtres-transport";
 import { VueCarteTransport } from "@/features/transport/vue-carte-transport";
 import { BarreOutils } from "@/features/recherche/barre-outils";
@@ -92,7 +92,7 @@ export default async function Resultats({
 
   return (
     <main className="bg-page pb-16">
-      <EnTete />
+      <EnTeteSession />
 
       <div className="mx-auto w-[92%] max-w-[1260px] pt-6">
         <nav className="flex items-center gap-2 text-petit text-encre-douce">

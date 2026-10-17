@@ -1,7 +1,20 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Bandeau, Bouton, Carte, Champ } from "@teranga/ui";
+import { Bandeau } from "@teranga/ui";
+import {
+  CheckCircle2,
+  AlertTriangle,
+  Send,
+  UserCheck,
+  Coins,
+  FileText,
+  Lock,
+  ChevronDown,
+  XCircle,
+  HelpCircle,
+  Clock,
+} from "lucide-react";
 import type {
   ContactAdmin,
   DemandeAdmin,
@@ -12,24 +25,11 @@ import { MOTIFS_REFUS, STATUTS_DEMANDE } from "@teranga/contracts";
 import { traiterDemandeAction } from "./actions";
 import { useT } from "@/lib/i18n/contexte";
 
-/**
- * Ce que l'équipe fait d'une demande.
- *
- * Un seul envoi pour tout : statut, motif, prestataire, devis, note. Les
- * gestes vont ensemble — on refuse *et* on écrit pourquoi — et deux boutons
- * auraient laissé la moitié du travail enregistrée.
- *
- * Les champs partent **seulement s'ils ont changé** : réenvoyer une note
- * identique la réécrirait à chaque passage, et réenvoyer le statut courant
- * ferait refuser l'enregistrement par la table des transitions, qui n'autorise
- * pas un statut vers lui-même.
- */
 export function TraitementDemande({
   demande,
   prestataires,
 }: {
   demande: DemandeAdmin;
-  /** Les partenaires connus, pour choisir sans retaper un identifiant. */
   prestataires: ContactAdmin[];
 }) {
   const t = useT();
@@ -46,9 +46,6 @@ export function TraitementDemande({
   const prixInitial = demande.prixPropose !== undefined ? String(demande.prixPropose) : "";
   const prestataireInitial = demande.prestataire?.id ?? "";
 
-  // Si le partenaire actuel n'est plus dans la liste (compte retiré), on le
-  // garde visible le temps d'un détachement — sinon l'équipe croirait qu'il
-  // n'y en a jamais eu.
   const options = [...prestataires];
   if (
     demande.prestataire &&
@@ -84,104 +81,161 @@ export function TraitementDemande({
     });
 
   return (
-    <Carte className="p-5">
-      <h2 className="text-titre-3 text-encre">{t("admin.traitement")}</h2>
+    <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+        <div className="flex items-center gap-2">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#001D35] text-amber-300">
+            <Send className="h-4 w-4" />
+          </div>
+          <div>
+            <h2 className="text-sm font-bold text-slate-900">
+              {t("admin.traitement")}
+            </h2>
+            <p className="text-[11px] text-slate-500">
+              Mise à jour du statut, assignation et chiffrage
+            </p>
+          </div>
+        </div>
+      </div>
 
       {message && (
-        <div className="mt-3">
-          <Bandeau variante={message.ton === "succes" ? "succes" : "erreur"}>
+        <div className="mt-4">
+          <Bandeau variante={message.ton === "succes" ? "information" : "erreur"}>
             {message.texte}
           </Bandeau>
         </div>
       )}
 
-      <div className="mt-4 space-y-4">
-        <label className="flex flex-col gap-1">
-          <span className="text-petit text-encre">{t("admin.statut")}</span>
-          <select
-            value={statut}
-            onChange={(e) => setStatut(e.target.value as StatutDemande | "")}
-            className="min-h-[var(--size-control)] rounded-control border border-contour bg-surface px-3 text-petit text-encre outline-none focus:border-primaire"
-          >
-            <option value="">{t("admin.statutInchange")}</option>
-            {STATUTS_DEMANDE.filter((s) => s !== demande.statut).map((s) => (
-              <option key={s} value={s}>
-                {t(`statut.${s}`)}
-              </option>
-            ))}
-          </select>
-        </label>
+      <div className="mt-5 space-y-4">
+        {/* Nouveau statut */}
+        <div>
+          <label className="mb-1 block text-xs font-semibold text-slate-700">
+            {t("admin.statut")}
+          </label>
+          <div className="relative">
+            <select
+              value={statut}
+              onChange={(e) => setStatut(e.target.value as StatutDemande | "")}
+              className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-xs text-slate-900 focus:border-[#001D35] focus:outline-none focus:ring-2 focus:ring-[#001D35]/10"
+            >
+              <option value="">{t("admin.statutInchange")}</option>
+              {STATUTS_DEMANDE.map((s) => (
+                <option key={s} value={s}>
+                  {t(`statut.${s}`)}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
 
+        {/* Motif du refus si statut = refusee */}
         {statut === "refusee" && (
-          <label className="flex flex-col gap-1">
-            <span className="text-petit text-encre">{t("admin.motifRefus")}</span>
+          <div className="rounded-xl border border-rose-200 bg-rose-50/50 p-3.5 space-y-1.5">
+            <div className="flex items-center gap-1.5 text-xs font-semibold text-rose-800">
+              <AlertTriangle className="h-4 w-4 text-rose-600" />
+              <span>{t("admin.motifRefus")}</span>
+            </div>
             <select
               value={motif}
               onChange={(e) => setMotif(e.target.value)}
-              className="min-h-[var(--size-control)] rounded-control border border-contour bg-surface px-3 text-petit text-encre outline-none focus:border-primaire"
+              className="w-full rounded-xl border border-rose-200 bg-white px-3 py-2 text-xs text-slate-900 focus:border-rose-400 focus:outline-none"
             >
-              <option value="">—</option>
+              <option value="">Sélectionnez un motif de refus</option>
               {MOTIFS_REFUS.map((m) => (
                 <option key={m} value={m}>
                   {t(`admin.motif.${m}`)}
                 </option>
               ))}
             </select>
-          </label>
+          </div>
         )}
 
-        <label className="flex flex-col gap-1">
-          <span className="text-petit text-encre">{t("admin.prestataireId")}</span>
+        {/* Prestataire assigné */}
+        <div>
+          <div className="mb-1 flex items-center justify-between">
+            <label className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+              <UserCheck className="h-3.5 w-3.5 text-slate-400" />
+              <span>{t("admin.prestataireId")}</span>
+            </label>
+          </div>
           <select
             value={prestataire}
             onChange={(e) => setPrestataire(e.target.value)}
-            className="min-h-[var(--size-control)] rounded-control border border-contour bg-surface px-3 text-petit text-encre outline-none focus:border-primaire"
+            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-xs text-slate-900 focus:border-[#001D35] focus:outline-none focus:ring-2 focus:ring-[#001D35]/10"
           >
             <option value="">{t("admin.prestataireAucun")}</option>
             {options.map((p) => (
               <option key={p.id} value={p.id}>
-                {libellePrestataire(p)}
+                {[p.nom, p.email, p.telephone].filter(Boolean).join(" · ") || p.id}
               </option>
             ))}
           </select>
-          <span className="text-legende text-encre-douce">{t("admin.prestataireIdAide")}</span>
-        </label>
+          <p className="mt-1 text-[11px] text-slate-400">{t("admin.prestataireIdAide")}</p>
+        </div>
 
-        {/* Le devis ne concerne que les services : ailleurs, le prix est figé
-            à l'envoi et l'équipe n'a pas à le rouvrir (§B.2). */}
-        {demande.service && (
-          <Champ
-            libelle={t("admin.prixPropose")}
-            aide={t("admin.prixProposeAide")}
-            inputMode="numeric"
-            tabulaire
-            value={prix}
-            onChange={(e) => setPrix(e.target.value.replace(/\D/g, ""))}
-          />
-        )}
+        {/* Proposition chiffrée (devis) */}
+        <div>
+          <div className="mb-1 flex items-center justify-between">
+            <label className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+              <Coins className="h-3.5 w-3.5 text-slate-400" />
+              <span>{t("admin.prixPropose")}</span>
+            </label>
+          </div>
+          <div className="relative">
+            <input
+              type="number"
+              min="0"
+              step="1000"
+              placeholder="Ex: 50000"
+              value={prix}
+              onChange={(e) => setPrix(e.target.value)}
+              className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-3 pr-16 font-mono text-xs text-slate-900 focus:border-[#001D35] focus:outline-none focus:ring-2 focus:ring-[#001D35]/10"
+            />
+            <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">
+              FCFA
+            </span>
+          </div>
+          <p className="mt-1 text-[11px] text-slate-400">{t("admin.prixProposeAide")}</p>
+        </div>
 
-        <label className="flex flex-col gap-1">
-          <span className="text-petit text-encre">{t("admin.noteInterne")}</span>
+        {/* Note interne sécurisée */}
+        <div>
+          <div className="mb-1 flex items-center justify-between">
+            <label className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+              <Lock className="h-3 w-3 text-amber-500" />
+              <span>{t("admin.noteInterne")}</span>
+            </label>
+            <span className="rounded bg-amber-50 px-1.5 py-0.5 text-[10px] font-medium text-amber-800 border border-amber-200">
+              Interne équipe
+            </span>
+          </div>
           <textarea
+            rows={3}
+            placeholder="Instructions de suivi, consignes d'appel ou retours partenaires..."
             value={note}
             onChange={(e) => setNote(e.target.value)}
-            rows={4}
-            className="rounded-control border border-contour bg-surface px-3 py-2 text-petit text-encre outline-none focus:border-primaire"
+            className="w-full rounded-xl border border-slate-200 bg-white p-3 text-xs text-slate-900 placeholder:text-slate-400 focus:border-[#001D35] focus:outline-none focus:ring-2 focus:ring-[#001D35]/10"
           />
-          <span className="text-legende text-encre-douce">{t("admin.noteInterneAide")}</span>
-        </label>
+          <p className="mt-0.5 text-[11px] text-slate-400">{t("admin.noteInterneAide")}</p>
+        </div>
 
-        <Bouton variante="principal" largeur="pleine" enCours={enCours} onClick={enregistrer}>
-          {t("admin.enregistrer")}
-        </Bouton>
+        {/* Bouton d'action */}
+        <button
+          type="button"
+          disabled={enCours || (statut === "refusee" && !motif)}
+          onClick={enregistrer}
+          className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl bg-[#001D35] py-3 text-xs font-semibold text-white shadow-sm transition hover:bg-[#002B4F] active:scale-[0.99] disabled:opacity-50 cursor-pointer"
+        >
+          {enCours ? (
+            <span>Sauvegarde en cours...</span>
+          ) : (
+            <>
+              <CheckCircle2 className="h-4 w-4 text-amber-400" />
+              <span>{t("admin.enregistrer")}</span>
+            </>
+          )}
+        </button>
       </div>
-    </Carte>
+    </div>
   );
-}
-
-function libellePrestataire(p: ContactAdmin): string {
-  const nom = p.nom?.trim();
-  const email = p.email?.trim();
-  if (nom && email) return `${nom} · ${email}`;
-  return nom || email || p.id;
 }

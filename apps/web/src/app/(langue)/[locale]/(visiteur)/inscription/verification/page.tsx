@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { Carte } from "@teranga/ui";
-import { EnTete } from "@/components/layout/en-tete";
+import { EnTeteSession } from "@/components/layout/en-tete-session";
 import { FormulaireVerificationInscription } from "@/features/compte/formulaire-verification-inscription";
 import {
   lireInscriptionEnAttente,
@@ -43,7 +43,7 @@ export default async function VerificationInscription({
 
   return (
     <main className="bg-page pb-16">
-      <EnTete />
+      <EnTeteSession />
 
       <div className="mx-auto w-[87.5%] max-w-[480px] pt-10">
         <h1 className="text-titre-1 text-encre">{t("inscription.verificationTitre")}</h1>

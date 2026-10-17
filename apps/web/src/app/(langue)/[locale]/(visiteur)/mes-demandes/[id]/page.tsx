@@ -2,7 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import type { CoordonneesLogement, Demande, StatutDemande } from "@teranga/contracts";
 import { STATUTS_TERMINAUX } from "@teranga/contracts";
 import { BadgeStatut, Bandeau, Bouton, Carte, FriseStatut, Icone, type EtapeFrise } from "@teranga/ui";
-import { EnTete } from "@/components/layout/en-tete";
+import { EnTeteSession } from "@/components/layout/en-tete-session";
 import { annuler, confirmer } from "@/features/demande/actions";
 import { Lien } from "@/lib/i18n/lien";
 import { estLangue, type Langue } from "@/lib/i18n/langues";
@@ -51,7 +51,7 @@ export default async function DetailDemande({
 
   return (
     <main className="bg-page pb-16">
-      <EnTete />
+      <EnTeteSession />
 
       <div className="mx-auto w-[87.5%] max-w-[760px] pt-6">
         <Lien href="/mes-demandes" className="inline-flex items-center gap-2 text-petit font-semibold text-primaire">

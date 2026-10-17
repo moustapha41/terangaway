@@ -1502,7 +1502,7 @@
     "erreurAdresse": "Esta dirección de correo no es válida.",
     "erreurEnvoi": "El código no pudo enviarse: la API no tiene servicio de correo configurado. En local, ponga AUTORISER_COMPTES_DEMO=true y el código aparecerá aquí.",
     "erreurTropDeCodes": "Demasiados códigos solicitados. Espere un minuto antes de reintentar.",
-    "erreurRole": "Esta cuenta no tiene acceso al backoffice.",
+    "erreurRole": "La cuenta {email} no tiene acceso al backoffice. Compruebe la dirección o pida que se añada al equipo.",
     "erreurServeur": "El servidor no respondió. Inténtelo de nuevo en un momento.",
     "serveurTitre": "El servidor no responde",
     "serveurTexte": "El backoffice lee las solicitudes directamente de la API. Compruebe que está en marcha y que el sitio apunta a ella, y vuelva a intentarlo.",

@@ -1,7 +1,7 @@
 import Image from "next/image";
 import { Suspense } from "react";
 import { Bouton, Carte, Icone, type NomIcone } from "@teranga/ui";
-import { EnTete } from "@/components/layout/en-tete";
+import { EnTeteSession } from "@/components/layout/en-tete-session";
 import { ListeQuestions } from "@/features/aide/liste-questions";
 import { ASSISTANCE, emailUrl, telUrl, whatsappUrl } from "@/lib/assistance";
 import { Lien } from "@/lib/i18n/lien";
@@ -73,7 +73,7 @@ export default async function Aide({
 
   return (
     <main className="bg-page pb-16">
-      <EnTete />
+      <EnTeteSession />
 
       {/* hero avec la recherche */}
       <section className="relative">

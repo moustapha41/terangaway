@@ -1,4 +1,4 @@
-import { EnTete } from "@/components/layout/en-tete";
+import { EnTeteSession } from "@/components/layout/en-tete-session";
 import { BandeauConfiance } from "@/components/visiteur/bandeau-confiance";
 import { BandeauDakar } from "@/components/visiteur/bandeau-dakar";
 import { EpopeeDakar } from "@/components/visiteur/epopee-dakar";
@@ -24,7 +24,7 @@ export default async function Accueil({
 
   return (
     <main>
-      <EnTete />
+      <EnTeteSession />
       <Hero langue={langue} />
       <BandeauConfiance langue={langue} />
       <NosServices langue={langue} />

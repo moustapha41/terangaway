@@ -1502,7 +1502,7 @@
     "erreurAdresse": "Cette adresse e-mail n'est pas valable.",
     "erreurEnvoi": "Le code n'a pas pu partir : l'API n'a pas de service d'e-mail configuré. En local, mettez AUTORISER_COMPTES_DEMO=true et le code s'affichera ici.",
     "erreurTropDeCodes": "Trop de codes demandés. Patientez une minute avant de réessayer.",
-    "erreurRole": "Ce compte n'a pas accès au backoffice.",
+    "erreurRole": "Le compte {email} n'a pas accès au backoffice. Vérifiez l'adresse, ou faites-la ajouter à l'équipe.",
     "erreurServeur": "Le serveur n'a pas répondu. Réessayez dans un instant.",
     "serveurTitre": "Le serveur ne répond pas",
     "serveurTexte": "Le backoffice lit les demandes directement dans l'API. Vérifiez qu'elle tourne et que le site pointe bien vers elle, puis réessayez.",

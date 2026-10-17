@@ -1,4 +1,4 @@
-import { EnTete } from "@/components/layout/en-tete";
+import { EnTeteSession } from "@/components/layout/en-tete-session";
 import { PiedDePage } from "@/components/layout/pied-de-page";
 import { estLangue } from "@/lib/i18n/langues";
 
@@ -15,7 +15,7 @@ export default async function LayoutPublic({
 
   return (
     <>
-      <EnTete />
+      <EnTeteSession />
       {children}
       <PiedDePage langue={langue} />
     </>
