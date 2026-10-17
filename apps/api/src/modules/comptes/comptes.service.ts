@@ -347,7 +347,23 @@ export class ServiceComptes {
 
     const compte = await this.depot.compteDeSession(jeton);
     if (!compte) throw refus();
-    if (compte.role !== "ADMINISTRATEUR") {
+
+    // Deux façons d'être de l'équipe : le rôle en base, ou l'adresse listée
+    // dans `ADMIN_EMAILS`.
+    //
+    // La seconde est l'amorce, et elle n'est pas un contournement : sur un
+    // déploiement neuf, personne n'a de rôle, et il faut bien que quelqu'un
+    // entre une première fois. Exiger d'exécuter un script dans le conteneur
+    // pour cela, c'est fermer le backoffice à qui n'a pas de shell sur le
+    // serveur. Qui pose cette variable tient déjà le déploiement entier : elle
+    // n'accorde rien que cette personne ne puisse déjà prendre.
+    //
+    // La base reste la source première : promouvoir un compte avec `db:seed`
+    // ou en SQL suffit, sans toucher à l'environnement.
+    const dansLaListe =
+      !!compte.email && config.adminEmails.includes(compte.email.trim().toLowerCase());
+
+    if (compte.role !== "ADMINISTRATEUR" && !dansLaListe) {
       throw new ErreurMetier(
         "ACCES_INTERDIT",
         "Ce compte n'a pas accès au backoffice.",
