@@ -284,7 +284,7 @@ function Champ({
           onBlur={onBlur}
           aria-invalid={erreur ? true : undefined}
           aria-describedby={[idErreur, idAide].filter(Boolean).join(" ") || undefined}
-          className="min-w-0 flex-1 bg-transparent text-[15px] text-encre outline-none placeholder:text-encre-douce"
+          className="min-w-0 flex-1 bg-transparent text-[16px] text-encre outline-none placeholder:text-encre-douce"
           {...reste}
         />
         {oeil && (
@@ -292,7 +292,7 @@ function Champ({
             type="button"
             onClick={oeil.basculer}
             aria-label={oeil.visible ? oeil.masquer : oeil.afficher}
-            className="shrink-0 rounded-pill p-1 text-encre-douce transition-colors hover:text-encre"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-pill text-encre-douce transition-colors hover:text-encre"
           >
             {oeil.visible ? (
               <EyeOff strokeWidth={1.8} className="h-[19px] w-[19px]" />

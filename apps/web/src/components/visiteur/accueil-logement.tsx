@@ -64,7 +64,7 @@ export function AccueilLogement({
           </div>
         </div>
 
-        <div className="relative z-10 mx-auto -mt-[78px] w-[92%] max-w-[1260px]">
+        <div className="relative z-10 mx-auto -mt-[44px] sm:-mt-[78px] w-[92%] max-w-[1260px]">
           <BarreDeRecherche variante="logement" />
         </div>
       </section>

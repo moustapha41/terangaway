@@ -50,7 +50,7 @@ export function BarreOutils({
         <select
           value={params.get("tri") ?? "pertinence"}
           onChange={(e) => poser("tri", e.target.value === "pertinence" ? null : e.target.value)}
-          className="min-h-[var(--size-control)] rounded-control border border-contour-champ bg-surface px-3 text-petit text-encre"
+          className="min-h-[var(--size-touch)] rounded-control border border-contour-champ bg-surface px-3 text-[16px] text-encre"
         >
           {tris.map((tri) => (
             <option key={tri} value={tri}>

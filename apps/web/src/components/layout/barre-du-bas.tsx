@@ -36,7 +36,7 @@ export function BarreDuBas({ enAttente = 0 }: { enAttente?: number }) {
   return (
     <nav
       aria-label={t("navigation.principale")}
-      className="fixed inset-x-0 bottom-0 z-40 border-t border-contour bg-surface lg:hidden"
+      className="fixed inset-x-0 bottom-0 z-40 border-t border-contour bg-surface pb-[env(safe-area-inset-bottom)] lg:hidden"
     >
       <ul className="mx-auto flex max-w-[560px]">
         {ENTREES.map((entree) => {

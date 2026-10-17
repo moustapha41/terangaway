@@ -73,7 +73,7 @@ export function Hero({ langue }: { langue: Langue }) {
       </div>
 
       {/* carte qui chevauche le bas de la photo, comme sur resuktat.png */}
-      <div className="relative z-10 mx-auto -mt-[96px] w-[87.5%] max-w-[1260px]">
+      <div className="relative z-10 mx-auto -mt-[48px] sm:-mt-[96px] w-[92%] sm:w-[87.5%] max-w-[1260px]">
         <BarreDeRecherche />
       </div>
     </section>

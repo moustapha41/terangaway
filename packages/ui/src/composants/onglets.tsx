@@ -42,7 +42,10 @@ export function Onglets<T extends string>({
         if (e.key === "ArrowRight") deplacer(1);
         if (e.key === "ArrowLeft") deplacer(-1);
       }}
-      className={cn("flex w-fit overflow-hidden rounded-control", className)}
+      className={cn(
+        "flex max-w-full overflow-x-auto rounded-control [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
+        className,
+      )}
     >
       {onglets.map((onglet) => {
         const selectionne = onglet.cle === actif;
@@ -55,7 +58,7 @@ export function Onglets<T extends string>({
             tabIndex={selectionne ? 0 : -1}
             onClick={() => onChange(onglet.cle)}
             className={cn(
-              "flex min-h-[var(--size-control)] items-center justify-center gap-2 px-5",
+              "flex min-h-[var(--size-control)] shrink-0 items-center justify-center gap-2 px-4 sm:px-5",
               "text-bouton transition-colors duration-[var(--duree-fast)]",
               "focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primaire",
               selectionne ? "bg-primaire text-white" : "bg-champ text-encre hover:bg-contour/60",

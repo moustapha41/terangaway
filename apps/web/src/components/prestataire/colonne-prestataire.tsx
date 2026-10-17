@@ -45,7 +45,7 @@ export function ColonnePrestataire({ nom }: { nom: string }) {
                 href={entree.href}
                 aria-current={actif ? "page" : undefined}
                 className={
-                  "flex min-h-[var(--size-control)] items-center gap-3 rounded-control px-4 text-petit transition-colors " +
+                  "flex min-h-[var(--size-touch)] items-center gap-3 rounded-control px-4 text-petit transition-colors " +
                   (actif
                     ? "bg-primaire font-semibold text-white"
                     : "text-encre-douce hover:bg-champ hover:text-encre")
@@ -57,6 +57,17 @@ export function ColonnePrestataire({ nom }: { nom: string }) {
             </li>
           );
         })}
+        <li className="shrink-0 lg:hidden">
+          <form action={seDeconnecter}>
+            <button
+              type="submit"
+              aria-label={t("prestataire.seDeconnecter")}
+              className="flex min-h-[var(--size-touch)] items-center gap-3 rounded-control px-4 text-petit font-semibold text-danger transition-colors hover:bg-teinte-rouge"
+            >
+              <Icone nom="retour" taille={20} />
+            </button>
+          </form>
+        </li>
       </ul>
 
       <form action={seDeconnecter} className="mt-5 hidden lg:block">

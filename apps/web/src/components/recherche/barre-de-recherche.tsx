@@ -157,7 +157,7 @@ export function BarreDeRecherche({
         e.preventDefault();
         rechercher();
       }}
-      className="rounded-[20px] bg-white p-[18px] shadow-carte"
+      className="rounded-[20px] bg-white p-3.5 sm:p-[18px] shadow-carte"
     >
       {/* Portés par le formulaire lui-même, pour la soumission sans JavaScript. */}
       <input type="hidden" name="debut" value={plage.debut ?? ""} />
@@ -188,7 +188,15 @@ export function BarreDeRecherche({
       </div>
 
       {/* champs */}
-      <div className={(sansOnglets ? "" : "mt-5 ") + "grid gap-[17px] " + (sansOnglets ? "md:grid-cols-[1.2fr_1fr_1fr_1fr_auto]" : "md:grid-cols-[1fr_1fr_1fr_auto]")}>
+      <div
+        className={
+          (sansOnglets ? "" : "mt-4 sm:mt-5 ") +
+          "grid gap-3 sm:gap-[17px] " +
+          (sansOnglets
+            ? "grid-cols-1 md:grid-cols-2 xl:grid-cols-[1.2fr_1fr_1fr_1fr_auto]"
+            : "grid-cols-1 md:grid-cols-2 lg:grid-cols-[1fr_1fr_1fr_auto]")
+        }
+      >
         {/* Destination : un vrai champ, avec la liste des lieux connus puis
             saisie libre — le `<datalist>` du navigateur, comme SelecteurLieu. */}
         {!champLieu && (
@@ -203,7 +211,7 @@ export function BarreDeRecherche({
               name="types"
               value={type}
               onChange={(e) => setType(e.target.value as TypeLogement | "")}
-              className="block w-full truncate bg-transparent text-[17px] font-semibold text-nuit outline-none"
+              className="block w-full truncate bg-transparent text-[16px] sm:text-[17px] font-semibold text-nuit outline-none"
             >
               <option value="">{t("recherche.tousTypes")}</option>
               {TYPES_LOGEMENT.map((valeur) => (
@@ -216,28 +224,30 @@ export function BarreDeRecherche({
         )}
 
         {champLieu && (
-        <Cadre icone={<MapPin strokeWidth={1.6} className="h-[24px] w-[24px]" />}>
-          <label htmlFor={`${idListe}-ville`} className="block text-[13px] text-gris">
-            {t("recherche.destination")}
-          </label>
-          <input
-            id={`${idListe}-ville`}
-            name="ville"
-            list={idListe}
-            value={destination}
-            onChange={(e) => setDestination(e.target.value)}
-            placeholder={t("transport.lieuPlaceholder")}
-            autoComplete="off"
-            className="block w-full truncate bg-transparent text-[17px] font-semibold text-nuit outline-none placeholder:font-normal placeholder:text-gris"
-          />
-          <datalist id={idListe}>
-            {lieux.map((lieu) => (
-              <option key={lieu.valeur} value={lieu.valeur}>
-                {lieu.detail}
-              </option>
-            ))}
-          </datalist>
-        </Cadre>
+        <div className={sansOnglets ? "md:col-span-2 xl:col-span-1" : ""}>
+          <Cadre icone={<MapPin strokeWidth={1.6} className="h-[24px] w-[24px]" />}>
+            <label htmlFor={`${idListe}-ville`} className="block text-[13px] text-gris">
+              {t("recherche.destination")}
+            </label>
+            <input
+              id={`${idListe}-ville`}
+              name="ville"
+              list={idListe}
+              value={destination}
+              onChange={(e) => setDestination(e.target.value)}
+              placeholder={t("transport.lieuPlaceholder")}
+              autoComplete="off"
+              className="block w-full truncate bg-transparent text-[16px] sm:text-[17px] font-semibold text-nuit outline-none placeholder:font-normal placeholder:text-gris"
+            />
+            <datalist id={idListe}>
+              {lieux.map((lieu) => (
+                <option key={lieu.valeur} value={lieu.valeur}>
+                  {lieu.detail}
+                </option>
+              ))}
+            </datalist>
+          </Cadre>
+        </div>
         )}
 
         {/* Dates : le calendrier du design system, déclenché par le champ de la maquette. */}
@@ -307,7 +317,12 @@ export function BarreDeRecherche({
 
         <button
           type="submit"
-          className="flex h-[70px] items-center justify-center gap-3 rounded-xl bg-jaune px-10 text-[17px] font-semibold text-nuit transition-colors hover:bg-jaune-vif focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-nuit md:min-w-[260px]"
+          className={
+            "flex h-[58px] sm:h-[70px] w-full items-center justify-center gap-3 rounded-xl bg-jaune " +
+            "px-6 sm:px-10 text-[16px] sm:text-[17px] font-semibold text-nuit transition-colors hover:bg-jaune-vif " +
+            "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-nuit min-w-0 " +
+            (sansOnglets ? "xl:w-auto xl:min-w-[200px]" : "lg:w-auto lg:min-w-[200px]")
+          }
         >
           <Search strokeWidth={2.2} className="h-[21px] w-[21px]" />
           {t("recherche.rechercher")}
@@ -351,9 +366,9 @@ function Onglet({
   );
 }
 
-/** Le cadre de la maquette : 70 px, bordure, icône à gauche, libellé au-dessus. */
+/** Le cadre de la maquette : 58 px sur mobile, 70 px sur écran plus large, bordure, icône à gauche, libellé au-dessus. */
 const CADRE =
-  "flex h-[70px] items-center gap-4 rounded-xl border border-bordure px-5 text-left " +
+  "flex h-[58px] sm:h-[70px] items-center gap-3 sm:gap-4 rounded-xl border border-bordure px-3.5 sm:px-5 text-left " +
   "transition-colors hover:border-nuit/25 focus-within:border-nuit/40";
 
 function Cadre({ icone, children }: { icone: React.ReactNode; children: React.ReactNode }) {

@@ -19,7 +19,7 @@ export default async function LayoutPublic({
       <EnTete />
       {children}
       <PiedDePage langue={langue} />
-      <div aria-hidden="true" className="h-[72px] lg:hidden" />
+      <div aria-hidden="true" className="h-[calc(72px+env(safe-area-inset-bottom))] lg:hidden" />
       <BarreDuBas />
     </>
   );

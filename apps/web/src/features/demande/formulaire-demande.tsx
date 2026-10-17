@@ -53,7 +53,7 @@ const INDICATIFS = [
 const SECONDES_AVANT_RENVOI = 30;
 
 const CHAMP =
-  "min-w-0 flex-1 bg-transparent text-[15px] sm:text-[15.5px] text-encre outline-none placeholder:text-encre-douce";
+  "min-w-0 flex-1 bg-transparent text-[16px] text-encre outline-none placeholder:text-encre-douce";
 
 function Cadre({
   icone,
@@ -377,7 +377,7 @@ export function FormulaireDemande({
                   value={indicatif}
                   onChange={(e) => setIndicatif(e.target.value)}
                   aria-label={t("demande.pays")}
-                  className="flex h-[48px] w-[100px] sm:w-[110px] cursor-pointer appearance-none items-center rounded-[14px] border border-contour-champ bg-champ/60 pl-3 pr-7 text-[13.5px] font-medium text-encre outline-none transition-colors focus:border-primaire/40 focus:bg-surface"
+                  className="flex h-[48px] w-[100px] sm:w-[110px] cursor-pointer appearance-none items-center rounded-[14px] border border-contour-champ bg-champ/60 pl-3 pr-7 text-[16px] font-medium text-encre outline-none transition-colors focus:border-primaire/40 focus:bg-surface"
                 >
                   {INDICATIFS.map((i) => (
                     <option key={i.code} value={i.code} title={i.pays}>
@@ -445,7 +445,7 @@ export function FormulaireDemande({
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 placeholder={t("demande.messagePlaceholder2")}
-                className="w-full resize-none bg-transparent text-[14px] text-encre outline-none placeholder:text-encre-douce"
+                className="w-full resize-none bg-transparent text-[16px] text-encre outline-none placeholder:text-encre-douce"
               />
             </div>
           </div>

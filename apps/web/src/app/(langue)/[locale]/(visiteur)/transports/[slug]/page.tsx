@@ -54,7 +54,7 @@ export default async function FicheVehicule({
     <main className="bg-page pb-16">
       <EnTete />
 
-      <div className="mx-auto w-[87.5%] max-w-[1000px] pt-6">
+      <div className="mx-auto w-[92%] max-w-[1000px] pt-6 sm:w-[87.5%]">
         <nav className="flex flex-wrap items-center gap-2 text-petit text-encre-douce">
           <Lien href="/" className="hover:text-primaire">
             {t("navigation.accueil")}
@@ -70,7 +70,7 @@ export default async function FicheVehicule({
         </nav>
 
         <div className="mt-5 grid gap-8 lg:grid-cols-[1.5fr_1fr] lg:items-start">
-          <div className="space-y-8">
+          <div className="min-w-0 space-y-8">
             <GalerieLogement photos={vehicule.photos} />
 
             <header>
@@ -131,7 +131,7 @@ function BarreAction({
   const saisi = new URLSearchParams(contexte);
 
   return (
-    <Carte className="p-6 lg:sticky lg:top-6">
+    <Carte className="min-w-0 p-4 sm:p-6 lg:sticky lg:top-6">
       {prix !== undefined && (
         <p className="text-prix text-encre chiffres-tabulaires">
           {formaterPrix(prix, langue)}
@@ -220,9 +220,9 @@ function LigneTrajet({
   t: Traducteur;
 }) {
   return (
-    <div className="flex items-center justify-between gap-3 py-2.5">
-      <dt className="text-legende text-encre-douce">{terme}</dt>
-      <dd className={valeur ? "text-petit text-encre" : "text-petit text-encre-douce"}>
+    <div className="flex flex-wrap items-center justify-between gap-1.5 py-2.5 sm:gap-3">
+      <dt className="shrink-0 text-legende text-encre-douce">{terme}</dt>
+      <dd className={"break-words text-right text-petit " + (valeur ? "text-encre" : "text-encre-douce")}>
         {valeur || t("ficheVehicule.aRenseigner")}
       </dd>
     </div>

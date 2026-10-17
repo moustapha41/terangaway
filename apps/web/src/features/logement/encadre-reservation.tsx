@@ -59,8 +59,9 @@ export function EncadreReservation({
     <aside
       className={
         "fixed inset-x-0 bottom-0 z-30 border-t border-contour bg-surface p-4 " +
+        "pb-[max(1rem,env(safe-area-inset-bottom))] " +
         "shadow-[0_-8px_24px_-16px_rgb(2_20_38/0.4)] " +
-        "lg:static lg:rounded-card lg:border lg:p-6 lg:shadow-none"
+        "lg:static lg:rounded-card lg:border lg:p-6 lg:pb-6 lg:shadow-none"
       }
     >
       <div className="mx-auto w-[92%] max-w-[1260px] lg:w-full">

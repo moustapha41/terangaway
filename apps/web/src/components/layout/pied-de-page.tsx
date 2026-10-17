@@ -95,7 +95,7 @@ export function PiedDePage({ langue }: { langue: Langue }) {
               name="email"
               required
               placeholder={t("pied.votreAdresseEmail")}
-              className="h-12 flex-1 rounded-xl border border-white/15 bg-white/5 px-4 text-[15px] text-white outline-none placeholder:text-white/40 focus:border-jaune-vif"
+              className="h-12 flex-1 rounded-xl border border-white/15 bg-white/5 px-4 text-[16px] text-white outline-none placeholder:text-white/40 focus:border-jaune-vif"
             />
             <button
               type="submit"
@@ -133,7 +133,7 @@ export function PiedDePage({ langue }: { langue: Langue }) {
                     key={reseau.libelle}
                     href={reseau.href}
                     aria-label={reseau.libelle}
-                    className="flex h-10 w-10 items-center justify-center rounded-full border border-white/15 text-white/80 transition-colors hover:border-jaune-vif hover:text-jaune-vif"
+                    className="flex h-11 w-11 items-center justify-center rounded-full border border-white/15 text-white/80 transition-colors hover:border-jaune-vif hover:text-jaune-vif"
                   >
                     <Icone strokeWidth={1.7} className="h-[18px] w-[18px]" />
                   </Lien>
@@ -219,12 +219,12 @@ export function PiedDePage({ langue }: { langue: Langue }) {
             {t("pied.copyright", { annee: new Date().getFullYear() })}
           </p>
 
-          <nav className="flex flex-wrap items-center gap-x-5 gap-y-2">
+          <nav className="flex flex-wrap items-center gap-x-5 gap-y-1">
             {LEGALES.map((lien) => (
               <Lien
                 key={lien.cle}
                 href={lien.href}
-                className="text-[13px] text-white/45 transition-colors hover:text-white"
+                className="inline-block py-1.5 text-[13px] text-white/45 transition-colors hover:text-white"
               >
                 {t(`pied.${lien.cle}`)}
               </Lien>

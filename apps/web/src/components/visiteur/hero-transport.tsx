@@ -66,7 +66,7 @@ export function HeroTransport({ langue }: { langue: Langue }) {
         </div>
       </div>
 
-      <div className="relative z-10 mx-auto -mt-[140px] w-[87.5%] max-w-[900px]">
+      <div className="relative z-10 mx-auto -mt-[70px] sm:-mt-[140px] w-[92%] sm:w-[87.5%] max-w-[900px]">
         <BarreRechercheTransport />
       </div>
     </section>

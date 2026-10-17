@@ -121,7 +121,7 @@ export function BarreRechercheTransport() {
         }}
       >
         {estLocation ? (
-          <div className="grid gap-3 md:grid-cols-[1.1fr_1.2fr_auto]">
+          <div className="grid gap-3 grid-cols-1 md:grid-cols-2 lg:grid-cols-[1.1fr_1.2fr_auto]">
             <Champ
               icone={<MapPin strokeWidth={1.6} className="h-5 w-5" />}
               label={t("transport.ville")}
@@ -158,7 +158,7 @@ export function BarreRechercheTransport() {
             <button
               type="button"
               onClick={() => setFeuilleVoyageurs(true)}
-              className="flex h-[70px] items-center gap-4 rounded-xl border border-bordure px-5 text-left transition-colors hover:border-nuit/25"
+              className="flex h-[70px] md:col-span-2 lg:col-span-1 items-center gap-4 rounded-xl border border-bordure px-5 text-left transition-colors hover:border-nuit/25"
             >
               <User strokeWidth={1.6} className="h-6 w-6 shrink-0 text-nuit" />
               <span className="min-w-0 flex-1">

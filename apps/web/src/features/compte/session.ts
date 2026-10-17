@@ -46,7 +46,8 @@ export const visiteurConnecte = cache(async (): Promise<Visiteur | null> => {
   }
 
   try {
-    const profil = await apiObtenirSession(jeton);
+    const brut = await apiObtenirSession(jeton);
+    const profil = (brut as { visiteur?: typeof brut })?.visiteur ?? brut;
     // `compteId` est la preuve que la session existe : l'API lève 401 sinon.
     if (!profil?.compteId) {
       return null;
