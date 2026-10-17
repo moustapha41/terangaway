@@ -1,24 +1,14 @@
 import { administrateurConnecte } from "@/features/admin/session";
-import { SidebarAdmin } from "@/features/admin/sidebar";
-import { TopbarAdmin } from "@/features/admin/topbar";
+import { NavbarAdmin } from "@/features/admin/navbar";
 import { estLangue } from "@/lib/i18n/langues";
 
-/**
- * Rendu à la demande, toujours.
- *
- * Sans cette ligne, Next prérend la page au build : le cookie d'équipe est
- * alors absent, la redirection vers la connexion part dans le HTML statique,
- * et le backoffice reste fermé même pour qui a une session valide.
- */
 export const dynamic = "force-dynamic";
 
 /**
- * Enveloppe du backoffice réinventée pour une ergonomie et un design de pointe.
+ * Enveloppe du backoffice avec Navbar supérieure moderne.
  *
- * Deux états :
- * - Connecté : Layout avec Sidebar latérale permanente, Topbar avec fil d'Ariane,
- *   statut API temps-réel et zone de travail aérée et réactive.
- * - Non connecté (Connexion) : Vue centrée et épurée sans barre latérale pour la sécurité.
+ * Élimination de la barre latérale au profit d'une barre de navigation horizontale (Navbar)
+ * aérée avec menu Settings dédié (paramètres du système & utilisateurs).
  */
 export default async function LayoutAdmin({
   children,
@@ -40,19 +30,16 @@ export default async function LayoutAdmin({
     );
   }
 
-  // Shell d'administration connecté
+  // Shell d'administration avec Navbar supérieure
   return (
-    <div className="min-h-screen bg-slate-50/70 text-slate-900 antialiased">
-      <SidebarAdmin compte={compte} />
+    <div className="min-h-screen bg-slate-50/70 text-slate-900 antialiased flex flex-col">
+      <NavbarAdmin compte={compte} />
 
-      <div className="lg:pl-72 flex flex-col min-h-screen">
-        <TopbarAdmin />
-        <main className="flex-1 p-4 sm:p-6 lg:p-8">
-          <div className="mx-auto max-w-7xl w-full">
-            {children}
-          </div>
-        </main>
-      </div>
+      <main className="flex-1">
+        <div className="mx-auto max-w-7xl w-full p-4 sm:p-6 lg:p-8">
+          {children}
+        </div>
+      </main>
     </div>
   );
 }
