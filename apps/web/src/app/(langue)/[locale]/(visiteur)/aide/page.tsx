@@ -120,7 +120,7 @@ export default async function Aide({
                   name="q"
                   defaultValue={requete}
                   placeholder={t("aide.rechercherPlaceholder")}
-                  className="min-h-[var(--size-control)] w-full min-w-0 bg-transparent text-petit text-encre outline-none placeholder:text-encre-douce"
+                  className="min-h-[var(--size-control)] w-full min-w-0 bg-transparent text-[16px] text-encre outline-none placeholder:text-encre-douce"
                 />
               </label>
               <Bouton type="submit" variante="principal" largeur="contenu">

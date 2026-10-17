@@ -43,7 +43,7 @@ export default async function FicheLogement({
   const avis = await avisLogement(slug, logement.nombreAvis ?? 0);
 
   return (
-    <main className="bg-page pb-[200px] lg:pb-16">
+    <main className="bg-page pb-[calc(200px+env(safe-area-inset-bottom))] lg:pb-16">
       <EnTete />
 
       <div className="mx-auto w-[92%] max-w-[1260px] pt-5">
@@ -62,7 +62,7 @@ export default async function FicheLogement({
         <GalerieMosaique photos={logement.photos} logementId={logement.id} verifie={logement.verifie} />
 
         <div className="mt-8 grid gap-8 lg:grid-cols-[1.6fr_1fr] lg:items-start">
-          <div className="space-y-8">
+          <div className="min-w-0 space-y-8">
             <header>
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <h1 className="text-titre-1 text-encre">{logement.titre}</h1>
@@ -117,7 +117,7 @@ export default async function FicheLogement({
             <Bandeau variante="information">{t("fiche.adresseMasquee")}</Bandeau>
           </div>
 
-          <div className="space-y-5 lg:sticky lg:top-6">
+          <div className="min-w-0 space-y-5 lg:sticky lg:top-6">
             <EncadreReservation
               logement={logement}
               debut={debut}

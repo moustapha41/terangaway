@@ -71,7 +71,7 @@ export function ChampCode({
         {libelle}
       </span>
 
-      <div role="group" aria-labelledby={id} aria-describedby={message ? `${id}-aide` : undefined} className="flex gap-2">
+      <div role="group" aria-labelledby={id} aria-describedby={message ? `${id}-aide` : undefined} className="flex gap-1.5 sm:gap-2 max-w-[340px]">
         {chiffres.map((chiffre, i) => (
           <input
             key={i}
@@ -91,7 +91,7 @@ export function ChampCode({
             onPaste={coller}
             onFocus={() => setFocus(i)}
             className={cn(
-              "h-[56px] w-[44px] rounded-control border bg-surface text-center text-titre-2 text-encre",
+              "h-[50px] w-[38px] min-w-0 flex-1 sm:flex-initial sm:h-[56px] sm:w-[44px] rounded-control border bg-surface text-center text-titre-3 sm:text-titre-2 text-encre",
               "chiffres-tabulaires outline-none transition-colors duration-[var(--duree-fast)]",
               "disabled:bg-champ disabled:text-encre-douce",
               // Pas de bordure de focus pendant la vérification : les cases sont

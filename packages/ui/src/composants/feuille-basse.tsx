@@ -41,7 +41,7 @@ export function FeuilleBasse({
       onClose={onFermer}
       onClick={(e) => e.currentTarget === e.target && onFermer()}
       className={cn(
-        "m-0 mt-auto w-full max-w-none rounded-t-card bg-surface p-0",
+        "m-0 mt-auto max-h-[85dvh] w-full max-w-none rounded-t-card bg-surface p-0",
         "backdrop:bg-primaire/50 sm:mx-auto sm:mb-auto sm:mt-auto sm:max-w-[560px] sm:rounded-card",
         className,
       )}
@@ -59,7 +59,7 @@ export function FeuilleBasse({
           <Icone nom="fermeture" taille={24} />
         </button>
       </div>
-      <div className="px-5 py-5">{children}</div>
+      <div className="max-h-[calc(85dvh-70px)] overflow-y-auto px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-5">{children}</div>
     </dialog>
   );
 }

@@ -35,7 +35,7 @@ export function Reglages() {
           <select
             value={preferences.devise}
             onChange={(e) => modifier({ devise: e.target.value as Devise })}
-            className="min-h-[var(--size-control)] rounded-control border border-contour-champ bg-surface px-3 text-petit text-encre"
+            className="min-h-[var(--size-touch)] rounded-control border border-contour-champ bg-surface px-3 text-[16px] text-encre"
           >
             {DEVISES.map((devise) => (
               <option key={devise} value={devise}>

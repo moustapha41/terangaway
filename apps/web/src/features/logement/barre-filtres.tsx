@@ -78,7 +78,7 @@ export function BarreFiltres() {
                 e.target.value === "pertinence" ? p.delete("tri") : p.set("tri", e.target.value),
               )
             }
-            className="min-h-[var(--size-touch)] rounded-control border border-contour-champ bg-surface px-3 text-petit text-encre"
+            className="min-h-[var(--size-touch)] rounded-control border border-contour-champ bg-surface px-3 text-[16px] text-encre"
           >
             {TRIS.map((tri) => (
               <option key={tri} value={tri}>

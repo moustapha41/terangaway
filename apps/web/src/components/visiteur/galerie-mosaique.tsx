@@ -188,7 +188,7 @@ function Rond({
       onClick={onClick}
       aria-label={etiquette}
       aria-pressed={presse}
-      className="relative z-10 flex h-10 w-10 items-center justify-center rounded-control bg-surface text-encre shadow-sm transition-colors hover:bg-champ"
+      className="relative z-10 flex h-11 w-11 items-center justify-center rounded-control bg-surface text-encre shadow-sm transition-colors hover:bg-champ"
     >
       {children}
     </button>
@@ -210,7 +210,7 @@ function Fleche({
       onClick={onClick}
       aria-label={etiquette}
       className={
-        "absolute top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center " +
+        "absolute top-1/2 z-10 flex h-11 w-11 -translate-y-1/2 items-center justify-center " +
         "rounded-pill bg-surface/90 text-encre shadow-sm hover:bg-surface " +
         (cote === "gauche" ? "left-4" : "right-4")
       }

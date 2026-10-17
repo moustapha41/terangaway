@@ -170,7 +170,7 @@ export function FormulaireConnexionVisiteur({
               aria-label={
                 motDePasseVisible ? t("compte.masquerMotDePasse") : t("compte.afficherMotDePasse")
               }
-              className="shrink-0 rounded-pill p-1 text-encre-douce transition-colors hover:text-encre"
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-pill text-encre-douce transition-colors hover:text-encre"
             >
               {motDePasseVisible ? (
                 <EyeOff strokeWidth={1.8} className="h-[20px] w-[20px]" />
@@ -341,7 +341,7 @@ export function FormulaireConnexionVisiteur({
 }
 
 const CHAMP =
-  "min-w-0 flex-1 bg-transparent text-[15.5px] text-encre outline-none placeholder:text-encre-douce";
+  "min-w-0 flex-1 bg-transparent text-[16px] text-encre outline-none placeholder:text-encre-douce";
 
 /** Le cadre des champs de la maquette : 56 px, fond gris très clair, icône à gauche. */
 function Cadre({

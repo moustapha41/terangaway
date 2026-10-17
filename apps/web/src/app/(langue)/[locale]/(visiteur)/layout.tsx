@@ -55,7 +55,7 @@ export default async function LayoutVisiteur({
       {children}
       <PiedDePage langue={langue} />
       {/* Dégagement sous le pied de page : la barre du bas est fixe. */}
-      <div aria-hidden="true" className="h-[72px] lg:hidden" />
+      <div aria-hidden="true" className="h-[calc(72px+env(safe-area-inset-bottom))] lg:hidden" />
       <BarreDuBas enAttente={enAttente} />
     </>
   );

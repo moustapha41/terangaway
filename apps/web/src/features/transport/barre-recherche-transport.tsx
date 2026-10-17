@@ -157,7 +157,13 @@ export function BarreRechercheTransport({
         }}
       >
         {estLocation ? (
-          <div className={nu ? "grid gap-3" : "grid gap-3 md:grid-cols-[1.1fr_1fr_1fr_auto]"}>
+          <div
+            className={
+              nu
+                ? "grid gap-3"
+                : "grid gap-3 grid-cols-1 md:grid-cols-2 lg:grid-cols-[1.1fr_1fr_1fr_auto]"
+            }
+          >
             <Champ
               icone={<MapPin strokeWidth={1.6} className="h-5 w-5" />}
               label={t("transport.ville")}

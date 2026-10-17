@@ -46,6 +46,9 @@ export async function generateMetadata({
 
 export const viewport: Viewport = {
   themeColor: "#001d35",
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
   // Le §C.6 demande que le texte reste lisible à 200 % : on n'empêche pas le zoom.
   maximumScale: 5,
 };

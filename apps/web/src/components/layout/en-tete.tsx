@@ -25,10 +25,15 @@ export function EnTete({ visiteur }: { visiteur?: string } = {}) {
 
   return (
     <header className="relative z-20 bg-white">
-      <div className="mx-auto flex h-16 w-[87.5%] max-w-[1260px] items-center gap-8">
-        {/* logo */}
+      <div className="mx-auto flex h-16 w-[92%] sm:w-[87.5%] max-w-[1260px] items-center justify-between gap-3 sm:gap-4 lg:gap-8">
+        {/* logo : monogramme marque sous 640px, verrou complet à partir de sm */}
         <Lien href="/" className="flex shrink-0 items-center" aria-label={t("commun.nomApplication")}>
-          <Logo hauteur={38} prioritaire />
+          <span className="sm:hidden">
+            <Logo forme="marque" hauteur={32} prioritaire />
+          </span>
+          <span className="hidden sm:inline-flex">
+            <Logo forme="verrou" hauteur={38} prioritaire />
+          </span>
         </Lien>
 
         {/* navigation */}
@@ -56,7 +61,7 @@ export function EnTete({ visiteur }: { visiteur?: string } = {}) {
         </nav>
 
         {/* langue + connexion */}
-        <div className="ml-auto flex shrink-0 items-center gap-7 lg:ml-0">
+        <div className="ml-auto flex shrink-0 items-center gap-2.5 sm:gap-5 lg:ml-0 lg:gap-7">
           {/* `useSearchParams` oblige à une frontière Suspense : sans elle, toute
               page pré-rendue qui porte l'en-tête fait échouer la compilation. */}
           <Suspense fallback={<span className="text-[14px] font-medium uppercase text-nuit">{langue}</span>}>
@@ -66,8 +71,8 @@ export function EnTete({ visiteur }: { visiteur?: string } = {}) {
           {/* Connecté, l'en-tête montre qui on est plutôt que d'inviter à se
               connecter — maquette de l'espace client. */}
           {visiteur ? (
-            <Lien href="/compte" className="flex items-center gap-2.5">
-              <Avatar nom={visiteur} taille={36} />
+            <Lien href="/compte" className="flex items-center gap-2 sm:gap-2.5">
+              <Avatar nom={visiteur} taille={34} />
               <span className="hidden leading-tight sm:block">
                 <span className="block text-[13.5px] font-semibold text-nuit">{visiteur}</span>
                 <span className="block text-[11px] text-ardoise">{t("client.espace")}</span>
@@ -76,7 +81,7 @@ export function EnTete({ visiteur }: { visiteur?: string } = {}) {
           ) : (
             <Lien
               href="/connexion"
-              className="rounded-[10px] bg-nuit px-5 py-2.5 text-[13.5px] font-semibold text-white transition-colors hover:bg-nuit-clair"
+              className="rounded-[10px] bg-nuit px-3 py-2 text-[13px] font-semibold text-white transition-colors hover:bg-nuit-clair sm:px-5 sm:py-2.5 sm:text-[13.5px]"
             >
               {t("entete.seConnecter")}
             </Lien>
