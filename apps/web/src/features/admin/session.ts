@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import type { CompteAdministrateur } from "@teranga/contracts";
 import { apiAdminMoi } from "@/lib/api/administration";
+import { apiMockActive } from "@/lib/api/http";
 import { COOKIE_ADMIN } from "./cookie";
 
 /**
@@ -26,6 +27,18 @@ export async function administrateurConnecte(): Promise<CompteAdministrateur | n
 /** Le jeton brut, pour les appels qui suivent dans la même page. */
 export async function jetonAdmin(): Promise<string | null> {
   return (await cookies()).get(COOKIE_ADMIN)?.value ?? null;
+}
+
+/**
+ * L'URL de connexion, avec le motif qui explique pourquoi on y est.
+ *
+ * Le mock site ne porte pas le backoffice : sans message, l'équipe croit à
+ * une session expirée et retente un code qui n'arrivera jamais. Quand le mock
+ * est actif, on le dit tout de suite ; sinon, c'est bien une session manquante.
+ */
+export function urlConnexionAdmin(langue: string): string {
+  const motif = apiMockActive() ? "mock" : "session";
+  return `/${langue}/admin/connexion?motif=${motif}`;
 }
 
 export { COOKIE_ADMIN };

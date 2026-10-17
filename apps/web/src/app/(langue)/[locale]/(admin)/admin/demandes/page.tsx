@@ -2,8 +2,10 @@ import { redirect } from "next/navigation";
 import { BadgeStatut, Carte, Icone } from "@teranga/ui";
 import type { FiltresDemandesAdmin } from "@teranga/contracts";
 import { FiltresDemandes } from "@/features/admin/filtres-demandes";
-import { jetonAdmin } from "@/features/admin/session";
+import { ServeurInjoignable } from "@/features/admin/serveur-injoignable";
+import { jetonAdmin, urlConnexionAdmin } from "@/features/admin/session";
 import { apiAdminDemandes, parametresFiltres } from "@/lib/api/administration";
+import { ErreurApi } from "@/lib/api/http";
 import { Lien } from "@/lib/i18n/lien";
 import { estLangue, type Langue } from "@/lib/i18n/langues";
 import { traducteurPour } from "@/lib/i18n/messages";
@@ -39,15 +41,18 @@ export default async function DemandesAdmin({
   const t = traducteurPour(langue);
 
   const jeton = await jetonAdmin();
-  if (!jeton) redirect(`/${langue}/admin/connexion`);
+  if (!jeton) redirect(urlConnexionAdmin(langue));
 
   const filtres = lireFiltres(requete);
 
   let page;
   try {
     page = await apiAdminDemandes(jeton, filtres);
-  } catch {
-    redirect(`/${langue}/admin/connexion`);
+  } catch (erreur) {
+    if (erreur instanceof ErreurApi && (erreur.statut === 401 || erreur.statut === 403)) {
+      redirect(urlConnexionAdmin(langue));
+    }
+    return <ServeurInjoignable langue={langue} />;
   }
 
   const pages = Math.max(1, Math.ceil(page.total / page.parPage));

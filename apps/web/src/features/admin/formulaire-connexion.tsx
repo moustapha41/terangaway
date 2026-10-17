@@ -14,7 +14,12 @@ import { useNaviguer } from "@/lib/i18n/naviguer";
  * n'arrive qu'après un code correct, c'est-à-dire à quelqu'un qui possède
  * déjà la boîte aux lettres.
  */
-export function FormulaireConnexionAdmin() {
+export function FormulaireConnexionAdmin({
+  desactive = false,
+}: {
+  /** Quand le site est encore en mock : le formulaire ne sert à rien. */
+  desactive?: boolean;
+}) {
   const t = useT();
   const naviguer = useNaviguer();
   const [etape, setEtape] = useState<"adresse" | "code">("adresse");
@@ -78,7 +83,7 @@ export function FormulaireConnexionAdmin() {
           inputMode="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          disabled={etape === "code"}
+          disabled={desactive || etape === "code"}
         />
 
         {etape === "code" && (
@@ -90,6 +95,7 @@ export function FormulaireConnexionAdmin() {
             maxLength={6}
             value={code}
             onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
+            disabled={desactive}
           />
         )}
 
@@ -97,6 +103,7 @@ export function FormulaireConnexionAdmin() {
           variante="principal"
           largeur="pleine"
           enCours={enCours}
+          disabled={desactive}
           onClick={etape === "adresse" ? demanderCode : entrer}
         >
           {etape === "adresse" ? t("admin.envoyerCode") : t("admin.entrer")}

@@ -1,5 +1,6 @@
 import { Inject, Injectable } from "@nestjs/common";
 import type {
+  ContactAdmin,
   DemandeAdmin,
   FiltresDemandesAdmin,
   MiseAJourDemandeAdmin,
@@ -33,6 +34,10 @@ export class ServiceAdministration {
 
   tableauDeBord(): Promise<TableauDeBordAdmin> {
     return this.depot.tableauDeBord();
+  }
+
+  listerPrestataires(): Promise<ContactAdmin[]> {
+    return this.depot.listerPrestataires();
   }
 
   /**

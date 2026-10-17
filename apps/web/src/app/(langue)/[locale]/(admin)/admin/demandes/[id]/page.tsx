@@ -3,9 +3,10 @@ import { BadgeStatut, Carte, Icone } from "@teranga/ui";
 import type { DemandeAdmin } from "@teranga/contracts";
 import { ErreurApi } from "@/lib/api/http";
 import { formaterDateHeure, formaterJour } from "@/features/admin/format";
-import { jetonAdmin } from "@/features/admin/session";
+import { ServeurInjoignable } from "@/features/admin/serveur-injoignable";
+import { jetonAdmin, urlConnexionAdmin } from "@/features/admin/session";
 import { TraitementDemande } from "@/features/admin/traitement-demande";
-import { apiAdminDemande } from "@/lib/api/administration";
+import { apiAdminDemande, apiAdminPrestataires } from "@/lib/api/administration";
 import { Lien } from "@/lib/i18n/lien";
 import { estLangue, type Langue } from "@/lib/i18n/langues";
 import { traducteurPour } from "@/lib/i18n/messages";
@@ -39,17 +40,23 @@ export default async function FicheDemandeAdmin({
   const t = traducteurPour(langue);
 
   const jeton = await jetonAdmin();
-  if (!jeton) redirect(`/${langue}/admin/connexion`);
+  if (!jeton) redirect(urlConnexionAdmin(langue));
 
   let demande: DemandeAdmin;
+  let prestataires: Awaited<ReturnType<typeof apiAdminPrestataires>> = [];
   try {
-    demande = await apiAdminDemande(jeton, id);
+    [demande, prestataires] = await Promise.all([
+      apiAdminDemande(jeton, id),
+      apiAdminPrestataires(jeton),
+    ]);
   } catch (erreur) {
     if (erreur instanceof ErreurApi && erreur.statut === 404) notFound();
     if (erreur instanceof ErreurApi && (erreur.statut === 401 || erreur.statut === 403)) {
-      redirect(`/${langue}/admin/connexion`);
+      redirect(urlConnexionAdmin(langue));
     }
-    throw erreur;
+    // Tout le reste — API éteinte, 500, réseau coupé — se dit à l'écran :
+    // une trace de pile ne répare rien et affole.
+    return <ServeurInjoignable langue={langue} />;
   }
 
   return (
@@ -178,7 +185,7 @@ export default async function FicheDemandeAdmin({
             )}
           </Bloc>
 
-          <TraitementDemande demande={demande} />
+          <TraitementDemande demande={demande} prestataires={prestataires} />
         </div>
       </div>
     </>

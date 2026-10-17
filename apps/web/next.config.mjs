@@ -6,6 +6,17 @@ const ici = dirname(fileURLToPath(import.meta.url));
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  /**
+   * Où Next écrit sa sortie. `.next` par défaut, comme toujours.
+   *
+   * La variable existe pour une raison précise : `next build` et `next dev`
+   * écrivent au même endroit, et une construction lancée pendant qu'un serveur
+   * de développement tourne remplace ses chunks sous ses pieds. L'écran
+   * affiche alors « __webpack_modules__[moduleId] is not a function », qui ne
+   * dit rien de la cause. `NEXT_DIST_DIR=.next-build pnpm build` laisse le
+   * serveur tranquille.
+   */
+  distDir: process.env.NEXT_DIST_DIR ?? ".next",
   // Paquets de l'atelier publiés en TypeScript brut : Next les compile lui-même.
   transpilePackages: ["@teranga/ui", "@teranga/tokens", "@teranga/contracts", "@teranga/fixtures"],
   devIndicators: false,

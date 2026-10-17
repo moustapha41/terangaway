@@ -8,6 +8,7 @@
  */
 import type {
   CompteAdministrateur,
+  ContactAdmin,
   DemandeAdmin,
   FiltresDemandesAdmin,
   MiseAJourDemandeAdmin,
@@ -54,6 +55,13 @@ export function apiAdminDemandes(
 
 export function apiAdminDemande(jeton: string, id: string): Promise<DemandeAdmin> {
   return appelerApi<DemandeAdmin>(`/administration/demandes/${encodeURIComponent(id)}`, {
+    headers: entetes(jeton),
+  });
+}
+
+/** Les comptes partenaires, pour le sélecteur d'assignation. */
+export function apiAdminPrestataires(jeton: string): Promise<ContactAdmin[]> {
+  return appelerApi<ContactAdmin[]>("/administration/prestataires", {
     headers: entetes(jeton),
   });
 }

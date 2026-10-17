@@ -2,7 +2,12 @@
 
 import { useState, useTransition } from "react";
 import { Bandeau, Bouton, Carte, Champ } from "@teranga/ui";
-import type { DemandeAdmin, MiseAJourDemandeAdmin, StatutDemande } from "@teranga/contracts";
+import type {
+  ContactAdmin,
+  DemandeAdmin,
+  MiseAJourDemandeAdmin,
+  StatutDemande,
+} from "@teranga/contracts";
 import { MOTIFS_REFUS, STATUTS_DEMANDE } from "@teranga/contracts";
 import { traiterDemandeAction } from "./actions";
 import { useT } from "@/lib/i18n/contexte";
@@ -19,7 +24,14 @@ import { useT } from "@/lib/i18n/contexte";
  * ferait refuser l'enregistrement par la table des transitions, qui n'autorise
  * pas un statut vers lui-même.
  */
-export function TraitementDemande({ demande }: { demande: DemandeAdmin }) {
+export function TraitementDemande({
+  demande,
+  prestataires,
+}: {
+  demande: DemandeAdmin;
+  /** Les partenaires connus, pour choisir sans retaper un identifiant. */
+  prestataires: ContactAdmin[];
+}) {
   const t = useT();
   const [statut, setStatut] = useState<StatutDemande | "">("");
   const [motif, setMotif] = useState<string>("");
@@ -33,6 +45,17 @@ export function TraitementDemande({ demande }: { demande: DemandeAdmin }) {
 
   const prixInitial = demande.prixPropose !== undefined ? String(demande.prixPropose) : "";
   const prestataireInitial = demande.prestataire?.id ?? "";
+
+  // Si le partenaire actuel n'est plus dans la liste (compte retiré), on le
+  // garde visible le temps d'un détachement — sinon l'équipe croirait qu'il
+  // n'y en a jamais eu.
+  const options = [...prestataires];
+  if (
+    demande.prestataire &&
+    !options.some((p) => p.id === demande.prestataire!.id)
+  ) {
+    options.unshift(demande.prestataire);
+  }
 
   const enregistrer = () =>
     demarrer(async () => {
@@ -107,12 +130,22 @@ export function TraitementDemande({ demande }: { demande: DemandeAdmin }) {
           </label>
         )}
 
-        <Champ
-          libelle={t("admin.prestataireId")}
-          aide={t("admin.prestataireIdAide")}
-          value={prestataire}
-          onChange={(e) => setPrestataire(e.target.value)}
-        />
+        <label className="flex flex-col gap-1">
+          <span className="text-petit text-encre">{t("admin.prestataireId")}</span>
+          <select
+            value={prestataire}
+            onChange={(e) => setPrestataire(e.target.value)}
+            className="min-h-[var(--size-control)] rounded-control border border-contour bg-surface px-3 text-petit text-encre outline-none focus:border-primaire"
+          >
+            <option value="">{t("admin.prestataireAucun")}</option>
+            {options.map((p) => (
+              <option key={p.id} value={p.id}>
+                {libellePrestataire(p)}
+              </option>
+            ))}
+          </select>
+          <span className="text-legende text-encre-douce">{t("admin.prestataireIdAide")}</span>
+        </label>
 
         {/* Le devis ne concerne que les services : ailleurs, le prix est figé
             à l'envoi et l'équipe n'a pas à le rouvrir (§B.2). */}
@@ -144,4 +177,11 @@ export function TraitementDemande({ demande }: { demande: DemandeAdmin }) {
       </div>
     </Carte>
   );
+}
+
+function libellePrestataire(p: ContactAdmin): string {
+  const nom = p.nom?.trim();
+  const email = p.email?.trim();
+  if (nom && email) return `${nom} · ${email}`;
+  return nom || email || p.id;
 }

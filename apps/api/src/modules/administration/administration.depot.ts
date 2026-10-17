@@ -1,4 +1,5 @@
 import type {
+  ContactAdmin,
   DemandeAdmin,
   FiltresDemandesAdmin,
   PageDemandesAdmin,
@@ -27,6 +28,8 @@ export interface DepotAdministration {
   tableauDeBord(): Promise<TableauDeBordAdmin>;
   /** Toutes les demandes correspondant aux filtres, sans pagination : l'export. */
   exporter(filtres: FiltresDemandesAdmin): Promise<DemandeAdmin[]>;
+  /** Les comptes partenaires, pour le sélecteur d'assignation. */
+  listerPrestataires(): Promise<ContactAdmin[]>;
 }
 
 export const DEPOT_ADMINISTRATION = Symbol("DepotAdministration");

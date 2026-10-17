@@ -1,8 +1,10 @@
 import { redirect } from "next/navigation";
 import { Carte, Icone } from "@teranga/ui";
 import { STATUTS_DEMANDE, GENRES_DEMANDE } from "@teranga/contracts";
-import { jetonAdmin } from "@/features/admin/session";
+import { ServeurInjoignable } from "@/features/admin/serveur-injoignable";
+import { jetonAdmin, urlConnexionAdmin } from "@/features/admin/session";
 import { apiAdminTableauDeBord } from "@/lib/api/administration";
+import { ErreurApi } from "@/lib/api/http";
 import { Lien } from "@/lib/i18n/lien";
 import { estLangue, type Langue } from "@/lib/i18n/langues";
 import { traducteurPour } from "@/lib/i18n/messages";
@@ -33,13 +35,18 @@ export default async function TableauDeBord({
   const t = traducteurPour(langue);
 
   const jeton = await jetonAdmin();
-  if (!jeton) redirect(`/${langue}/admin/connexion`);
+  if (!jeton) redirect(urlConnexionAdmin(langue));
 
   let bord;
   try {
     bord = await apiAdminTableauDeBord(jeton);
-  } catch {
-    redirect(`/${langue}/admin/connexion`);
+  } catch (erreur) {
+    // Session refusée : on repart par la connexion. Serveur muet : on le dit,
+    // plutôt que d'envoyer l'équipe saisir un code qui n'arrivera pas.
+    if (erreur instanceof ErreurApi && (erreur.statut === 401 || erreur.statut === 403)) {
+      redirect(urlConnexionAdmin(langue));
+    }
+    return <ServeurInjoignable langue={langue} />;
   }
 
   const vedettes = [

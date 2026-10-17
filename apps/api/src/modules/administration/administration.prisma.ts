@@ -94,6 +94,14 @@ export class DepotAdministrationPrisma implements DepotAdministration {
     return rows.map(rangerDemandeAdmin);
   }
 
+  async listerPrestataires(): Promise<ContactAdmin[]> {
+    const rows = await this.prisma.account.findMany({
+      where: { role: "PRESTATAIRE" },
+      orderBy: [{ nom: "asc" }, { email: "asc" }],
+    });
+    return rows.map(contact);
+  }
+
   async tableauDeBord(): Promise<TableauDeBordAdmin> {
     const maintenant = new Date();
     const minuit = debutDeJournee(maintenant);

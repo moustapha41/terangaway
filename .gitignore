@@ -2,6 +2,8 @@ node_modules/
 .pnpm-store/
 .turbo/
 .next/
+# Construction lancée à côté d'un serveur de développement (NEXT_DIST_DIR).
+.next-build/
 dist/
 build/
 out/
