@@ -188,7 +188,7 @@ export function BarreDeRecherche({
       </div>
 
       {/* champs */}
-      <div className={(sansOnglets ? "" : "mt-5 ") + "grid gap-[17px] " + (sansOnglets ? "md:grid-cols-[1.2fr_1fr_1fr_1fr_auto]" : "md:grid-cols-[1fr_1fr_1fr_auto]")}>
+      <div className={(sansOnglets ? "" : "mt-5 ") + "grid gap-[17px] " + (sansOnglets ? "md:grid-cols-[1.2fr_1fr_1fr_1fr_auto]" : "md:grid-cols-[1fr_1fr_1fr_1fr_auto]")}>
         {/* Destination : un vrai champ, avec la liste des lieux connus puis
             saisie libre — le `<datalist>` du navigateur, comme SelecteurLieu. */}
         {!champLieu && (
@@ -247,37 +247,33 @@ export function BarreDeRecherche({
           onChange={setPlage}
           etiquettes={etiquettes}
           minimum={FENETRE_JEUX.debut}
-          rendreChamp={({ ouvrir, resume }) =>
-            sansOnglets ? (
-              <>
-                <CadreBouton
-                  onClick={ouvrir}
-                  icone={<CalendarDays strokeWidth={1.6} className="h-[24px] w-[24px]" />}
-                  label={t("fiche.arrivee")}
-                  valeur={plage.debut ? formaterDateComplete(new Date(`${plage.debut}T00:00:00`), langue) : "—"}
-                  vide={!plage.debut}
-                  tabulaire
-                />
-                <CadreBouton
-                  onClick={ouvrir}
-                  icone={<CalendarDays strokeWidth={1.6} className="h-[24px] w-[24px]" />}
-                  label={t("fiche.depart")}
-                  valeur={plage.fin ? formaterDateComplete(new Date(`${plage.fin}T00:00:00`), langue) : "—"}
-                  vide={!plage.fin}
-                  tabulaire
-                />
-              </>
-            ) : (
+          // Deux bornes partout, accueil comprise : un champ « Dates » unique
+          // cachait qu'il en faut deux, et le résumé « 17 – 24 oct. » demandait
+          // d'ouvrir le calendrier pour savoir laquelle manquait. Les deux
+          // boîtes ouvrent le même calendrier, mais chacune **sur sa borne** :
+          // on clique « Arrivée », on choisit un jour, on valide. Demander deux
+          // clics d'affilée dans la même feuille obligeait à deviner que le
+          // second servait au départ.
+          rendreChamp={({ ouvrir }) => (
+            <>
               <CadreBouton
-                onClick={ouvrir}
+                onClick={() => ouvrir("debut")}
                 icone={<CalendarDays strokeWidth={1.6} className="h-[24px] w-[24px]" />}
-                label={t("recherche.dates")}
-                valeur={resume ?? etiquettes.vide}
-                vide={!resume}
+                label={t("fiche.debut")}
+                valeur={plage.debut ? formaterDateComplete(new Date(`${plage.debut}T00:00:00`), langue) : "—"}
+                vide={!plage.debut}
                 tabulaire
               />
-            )
-          }
+              <CadreBouton
+                onClick={() => ouvrir("fin")}
+                icone={<CalendarDays strokeWidth={1.6} className="h-[24px] w-[24px]" />}
+                label={t("fiche.fin")}
+                valeur={plage.fin ? formaterDateComplete(new Date(`${plage.fin}T00:00:00`), langue) : "—"}
+                vide={!plage.fin}
+                tabulaire
+              />
+            </>
+          )}
         />
 
         {/* Voyageurs : une taille de séjour, avec le nombre d'offres. */}

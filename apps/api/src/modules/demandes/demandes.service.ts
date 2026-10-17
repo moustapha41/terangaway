@@ -8,6 +8,7 @@ import { config } from "../../config/configuration";
 import type {
   DepotDemandes,
   EntreeCreationLogement,
+  EntreeCreationService,
   EntreeCreationVehicule,
 } from "./demandes.depot";
 import { expireConfirmationPour } from "./machine-a-etats/delais";
@@ -73,6 +74,10 @@ export class ServiceDemandes {
 
   creerVehicule(entree: EntreeCreationVehicule): Promise<Demande> {
     return this.depot.creerVehicule(entree);
+  }
+
+  creerService(entree: EntreeCreationService): Promise<Demande> {
+    return this.depot.creerService(entree);
   }
 
   /**

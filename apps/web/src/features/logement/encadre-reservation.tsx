@@ -83,19 +83,19 @@ export function EncadreReservation({
         {/* Dates et voyageurs : masqués sous lg, où la barre reste une barre d'action. */}
         <div className="mt-4 hidden gap-3 lg:grid lg:grid-cols-2">
           <SelecteurDates
-            libelle={t("fiche.arrivee")}
+            libelle={t("fiche.debut")}
             plage={plage}
             onChange={setPlage}
             minimum={FENETRE_JEUX.debut}
             etiquettes={etiquettesDates(t, langue)}
-            // Les deux boîtes ouvrent le même calendrier : arrivée et départ sont
+            // Les deux boîtes ouvrent le même calendrier : début et fin sont
             // une seule plage, pas deux champs indépendants.
             rendreChamp={({ ouvrir }) => (
               <>
-                <Boite onClick={ouvrir} icone="calendrier" label={t("fiche.arrivee")}>
+                <Boite onClick={() => ouvrir("debut")} icone="calendrier" label={t("fiche.debut")}>
                   {plage.debut ? formaterDateComplete(new Date(`${plage.debut}T00:00:00`), langue) : "—"}
                 </Boite>
-                <Boite onClick={ouvrir} icone="calendrier" label={t("fiche.depart")}>
+                <Boite onClick={() => ouvrir("fin")} icone="calendrier" label={t("fiche.fin")}>
                   {plage.fin ? formaterDateComplete(new Date(`${plage.fin}T00:00:00`), langue) : "—"}
                 </Boite>
               </>

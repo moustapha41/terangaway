@@ -170,6 +170,12 @@ export default function Atelier() {
                 new Intl.DateTimeFormat("fr", { dateStyle: "full" }).format(new Date(`${iso}T00:00:00`)),
               vide: "Choisir les dates",
               resume: (p) => [p.debut, p.fin].filter(Boolean).join(" – "),
+              etapeDebut: "Choisissez d'abord la date de début",
+              etapeFin: "Maintenant la date de fin",
+              etapeComplete: "Votre période est choisie. Un nouveau clic la recommence.",
+              debut: "Début",
+              fin: "Fin",
+              nuits: (nombre) => `${nombre} ${nombre > 1 ? "nuits" : "nuit"}`,
             }}
           />
         </div>

@@ -9,6 +9,7 @@ import {
 import { config } from "../../config/configuration";
 import type {
   CodeOtp,
+  CompteDeSession,
   CompteResume,
   DepotComptes,
   FinaliteOtp,
@@ -120,6 +121,25 @@ export class DepotComptesFixtures implements DepotComptes {
       };
     }
     return this.sessionsVisiteur.get(id) ?? null;
+  }
+
+  /**
+   * Le compte derrière un jeton, rôle compris.
+   *
+   * En mémoire, le rôle ne vient pas d'une table mais de la configuration :
+   * les adresses de `ADMIN_EMAILS` sont administratrices, les autres non.
+   * C'est le seul moyen d'exercer le backoffice sans Postgres, et cela reste
+   * fermé par défaut — sans variable, aucune adresse n'est admise.
+   */
+  async compteDeSession(jeton: string): Promise<CompteDeSession | null> {
+    const session = this.sessionsVisiteur.get(jeton);
+    if (!session) return null;
+    const email = session.email ?? session.destination;
+    return {
+      id: session.compteId ?? session.id,
+      role: email && config.adminEmails.includes(email) ? "ADMINISTRATEUR" : "VISITEUR",
+      email: session.email,
+    };
   }
 
   async revoquerSession(idOuToken: string): Promise<void> {

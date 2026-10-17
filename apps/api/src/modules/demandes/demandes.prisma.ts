@@ -21,6 +21,7 @@ import type { DepotVehicules } from "../offres/vehicules/vehicules.depot";
 import type {
   DepotDemandes,
   EntreeCreationLogement,
+  EntreeCreationService,
   EntreeCreationVehicule,
 } from "./demandes.depot";
 import { expireLePour } from "./machine-a-etats/delais";
@@ -190,6 +191,45 @@ export class DepotDemandesPrisma implements DepotDemandes {
     return demandToDemande(created);
   }
 
+  /**
+   * Une demande de service : aucune offre derrière, donc aucun prix.
+   *
+   * `details` est écrit tel quel dans la colonne JSON : c'est la seule chose
+   * que l'équipe aura pour chercher un prestataire, et la réécrire ici lui
+   * ferait perdre ce que le visiteur a précisé.
+   */
+  async creerService(entree: EntreeCreationService): Promise<Demande> {
+    const maintenant = new Date().toISOString();
+    const compteVisiteur = await this.assurerCompteVisiteur(entree.visiteurId);
+    const reference = await this.genererReferenceUnique();
+
+    const created = await this.prisma.demand.create({
+      data: {
+        id: `d-${Date.now()}-${randomBytes(4).toString("hex")}`,
+        reference,
+        visiteurId: compteVisiteur.id,
+        genre: "service",
+        statut: "envoyee",
+        offreTitre: entree.service,
+        service: entree.service,
+        details: entree.details as any,
+        // Une date utile au tri : celle que le visiteur a demandée s'il en a
+        // donné une, sinon rien. Les services n'ont pas tous une date.
+        dateDebut: entree.details.date ?? null,
+        dateFin: entree.details.date ?? null,
+        personnes: Number(entree.details.personnes ?? entree.details.lignes ?? 1) || 1,
+        message: entree.message,
+        prixUnitaire: 0,
+        nuits: null,
+        fraisFixes: [],
+        prixTotal: 0,
+        frise: [{ statut: "envoyee", horodatage: maintenant, origine: "visiteur" }],
+      },
+    });
+
+    return demandToDemande(created);
+  }
+
   async enregistrer(demande: Demande): Promise<Demande> {
     const updated = await this.prisma.demand.update({
       where: { id: demande.id },
@@ -274,7 +314,14 @@ export class DepotDemandesPrisma implements DepotDemandes {
   }
 }
 
-function demandToDemande(row: Demand): Demande {
+/**
+ * Une ligne de la table vers le contrat visiteur.
+ *
+ * Exportée pour le backoffice, qui en enrichit le résultat plutôt que d'écrire
+ * une seconde traduction : deux conversions divergent toujours, et c'est
+ * l'équipe qui verrait la différence sans comprendre pourquoi.
+ */
+export function demandToDemande(row: Demand): Demande {
   const genre =
     row.genre === "logement"
       ? "logement"
@@ -293,10 +340,13 @@ function demandToDemande(row: Demand): Demande {
   } else if (genre === "service") {
     offre = {
       genre: "service",
-      service: (row.offreId as any) ?? "guide",
+      service: (row.service as any) ?? (row.offreId as any) ?? "assistance",
       titre: row.offreTitre,
       vignette: row.offreVignette ?? undefined,
-      details: {},
+      details:
+        row.details && typeof row.details === "object" && !Array.isArray(row.details)
+          ? (row.details as Record<string, string>)
+          : {},
     };
   } else {
     offre = {

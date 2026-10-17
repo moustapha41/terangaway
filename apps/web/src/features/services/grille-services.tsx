@@ -7,11 +7,12 @@ import { Lien } from "@/lib/i18n/lien";
 import { useT } from "@/lib/i18n/contexte";
 
 /**
- * Grille des six services.
+ * Grille des services.
  *
- * Les six mènent quelque part : deux vers un catalogue à parcourir, quatre
- * vers un formulaire de demande. C'est la V2 — avant, les quatre derniers
- * ouvraient une feuille « bientôt disponible », qui disait non poliment.
+ * Tous mènent quelque part : trois vers un espace à parcourir — les deux
+ * catalogues et la carte —, les autres vers un formulaire de demande. C'est
+ * la V2 — avant, les derniers ouvraient une feuille « bientôt disponible »,
+ * qui disait non poliment.
  *
  * Les services sans catalogue portent une mention « sur demande » : le
  * visiteur doit savoir qu'il décrira son besoin au lieu de choisir une offre.
@@ -51,7 +52,7 @@ function CarteService({ service }: { service: Service }) {
           </div>
         )}
 
-        {!service.catalogue && (
+        {!service.parcourir && (
           <span className="absolute right-3 top-3 inline-flex items-center gap-1.5 rounded-pill bg-surface/95 px-2.5 py-1 text-legende font-semibold text-primaire">
             <Icone nom="information" taille={16} />
             {t("services.surDemande")}
@@ -69,9 +70,9 @@ function CarteService({ service }: { service: Service }) {
 
         <div className="mt-4">
           <Lien href={service.href}>
-            <Bouton variante={service.catalogue ? "principal" : "secondaire"} largeur="contenu">
+            <Bouton variante={service.parcourir ? "principal" : "secondaire"} largeur="contenu">
               <span className="inline-flex items-center gap-2">
-                {t(service.catalogue ? `services.${service.cle}Action` : "services.faireUneDemande")}
+                {t(service.parcourir ? `services.${service.cle}Action` : "services.faireUneDemande")}
                 <Icone nom="chevron-droite" taille={16} />
               </span>
             </Bouton>

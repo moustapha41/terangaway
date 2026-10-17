@@ -129,6 +129,16 @@ model Demand {
   vol                 String?
   message             String?
 
+  /// Service à la demande : la clé du service, et la saisie du visiteur telle
+  /// quelle. Sans cette colonne, un formulaire de service arrivait à l'équipe
+  /// vidé de tout ce qui permettait de chercher.
+  service             String?
+  details             Json?
+
+  /// Traitement interne, jamais montré au visiteur ni au partenaire.
+  noteInterne         String?
+  prixPropose         Int?
+
   prixUnitaire        Int             @default(0)
   nuits               Int?
   fraisFixes          Json?
@@ -148,6 +158,10 @@ model Demand {
   @@index([visiteurId, statut])
   @@index([prestataireId, statut])
   @@index([reference])
+  // Le backoffice liste par date d'envoi décroissante, filtrée par statut et
+  // par genre : c'est la requête la plus fréquente de l'API d'administration.
+  @@index([statut, creeLe])
+  @@index([genre, creeLe])
   @@map("demands")
 }
 

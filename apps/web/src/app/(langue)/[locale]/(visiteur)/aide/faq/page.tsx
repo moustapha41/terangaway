@@ -15,7 +15,7 @@ const THEMES = [
   { cle: "reservation", questions: ["compte", "delai", "adresse"] },
   { cle: "paiement", questions: ["paiement", "prix"] },
   { cle: "annulation", questions: ["annuler", "refus"] },
-  { cle: "transport", questions: ["taxi", "deuxHeures"] },
+  { cle: "transport", questions: ["deuxHeures"] },
 ] as const;
 
 export default async function Faq({ params }: { params: Promise<{ locale: string }> }) {

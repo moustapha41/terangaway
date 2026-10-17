@@ -1,11 +1,26 @@
 import { Module } from "@nestjs/common";
 
+import { ModuleComptes } from "../comptes/comptes.module";
+import { ModuleDemandes } from "../demandes/demandes.module";
+import { ControleurAdministration } from "./administration.controller";
+import { DEPOT_ADMINISTRATION } from "./administration.depot";
+import { DepotAdministrationPrisma } from "./administration.prisma";
+import { ServiceAdministration } from "./administration.service";
+
 /**
- * Module « administration ».
+ * Module « administration » — le backoffice de l'équipe.
  *
- * Coquille posée par le socle pour que `app.module.ts` n'ait plus jamais à
- * être rouvert : chaque personne remplit son module sans toucher au fichier
- * que l'autre modifie aussi.
+ * Il réutilise `ModuleDemandes` plutôt que d'écrire ses propres changements de
+ * statut : la table des transitions et la frise n'existent qu'à un endroit,
+ * et le backoffice n'y échappe pas.
  */
-@Module({})
+@Module({
+  imports: [ModuleComptes, ModuleDemandes],
+  controllers: [ControleurAdministration],
+  providers: [
+    ServiceAdministration,
+    { provide: DEPOT_ADMINISTRATION, useClass: DepotAdministrationPrisma },
+  ],
+  exports: [ServiceAdministration],
+})
 export class ModuleAdministration {}

@@ -10,6 +10,9 @@ export interface Plage {
   fin?: string;
 }
 
+/** Quelle des deux bornes le calendrier est en train de demander. */
+export type BorneDate = "debut" | "fin";
+
 export interface EtiquettesDates {
   ouvrir: string;
   titre: string;
@@ -28,6 +31,18 @@ export interface EtiquettesDates {
   vide: string;
   /** La plage choisie, mise en forme par l'application. */
   resume: (plage: Plage) => string;
+  /* ── Ce qui guide le prochain clic ── */
+  /** « Choisissez d'abord la date de début ». */
+  etapeDebut: string;
+  /** « Maintenant la date de fin ». */
+  etapeFin: string;
+  /** Ce qu'on affiche quand les deux bornes sont posées : un constat, pas un ordre. */
+  etapeComplete: string;
+  /** Intitulés des deux bornes, au-dessus du calendrier. */
+  debut: string;
+  fin: string;
+  /** Le nombre de nuits, une fois la plage complète. */
+  nuits: (nombre: number) => string;
 }
 
 /**
@@ -64,20 +79,75 @@ export function SelecteurDates({
    * la maquette tout en réutilisant ce calendrier — plutôt que d'en écrire un
    * second qui divergerait à la première correction.
    */
-  rendreChamp?: (etat: { ouvrir: () => void; resume: string | null }) => ReactNode;
+  rendreChamp?: (etat: {
+    /** Sans argument : le calendrier choisit la borne. Avec : il s'ouvre dessus. */
+    ouvrir: (borne?: BorneDate) => void;
+    resume: string | null;
+  }) => ReactNode;
   className?: string;
 }) {
   const [ouverte, setOuverte] = useState(false);
+  /**
+   * La borne que le prochain clic renseigne.
+   *
+   * Chaque case ouvre le calendrier pour **sa** date : on clique « Début », on
+   * choisit un jour, on valide. La plage en deux clics d'affilée demandait de
+   * deviner que le même calendrier servait aux deux bornes — c'est précisément
+   * ce qui n'était pas compris.
+   */
+  const [cible, setCible] = useState<BorneDate>("debut");
+  /** Ouvert depuis une case précise, ou depuis un déclencheur unique ? */
+  const [cibleImposee, setCibleImposee] = useState(false);
   const premier = minimum ?? isoDe(new Date());
   const [curseur, setCurseur] = useState(() => debutDeMois(plage.debut ?? premier));
 
   const bloquees = useMemo(() => new Set(indisponibles), [indisponibles]);
 
+  /** Le nombre de nuits, une fois les deux bornes posées. C'est l'unité dans
+   *  laquelle on raisonne un séjour — et celle dans laquelle il se facture. */
+  const nombreDeNuits =
+    plage.debut && plage.fin
+      ? Math.round(
+          (Date.parse(`${plage.fin}T00:00:00Z`) - Date.parse(`${plage.debut}T00:00:00Z`)) /
+            86_400_000,
+        )
+      : null;
+
+  /**
+   * Ouvre le calendrier, éventuellement sur une borne précise.
+   *
+   * L'argument est validé plutôt que cru : plusieurs appelants écrivent
+   * `onClick={ouvrir}`, ce qui transmettrait l'événement de souris à la place
+   * de la borne.
+   */
+  const ouvrir = (borne?: BorneDate | unknown) => {
+    const demandee: BorneDate | undefined =
+      borne === "debut" || borne === "fin" ? borne : undefined;
+    setCible(demandee ?? (plage.debut && !plage.fin ? "fin" : "debut"));
+    setCibleImposee(Boolean(demandee));
+    setOuverte(true);
+  };
+
+  /**
+   * Le premier jour choisissable pour la borne visée.
+   *
+   * Une fin ne peut pas précéder le début, ni tomber le même jour : une nuit
+   * au moins sépare une arrivée d'un départ.
+   */
+  const plancher =
+    cible === "fin" && plage.debut ? lendemain(plage.debut) : premier;
+
   const choisir = (iso: string) => {
-    // Premier clic : début. Deuxième : fin, ou nouveau début si antérieur.
-    if (!plage.debut || plage.fin) return onChange({ debut: iso });
-    if (iso < plage.debut) return onChange({ debut: iso });
-    onChange({ debut: plage.debut, fin: iso });
+    if (cible === "fin") {
+      return onChange({ debut: plage.debut, fin: iso });
+    }
+    // Un début postérieur à la fin viderait la plage de son sens : la fin
+    // repart à zéro plutôt que de produire une période à l'envers.
+    const fin = plage.fin && iso < plage.fin ? plage.fin : undefined;
+    onChange({ debut: iso, fin });
+    // Déclencheur unique : on enchaîne sur la fin, sans refermer. Case dédiée :
+    // on s'arrête, c'est cette date-là qu'on venait poser.
+    if (!cibleImposee) setCible("fin");
   };
 
   return (
@@ -87,7 +157,7 @@ export function SelecteurDates({
     <div className={cn(rendreChamp ? "contents" : "flex flex-col gap-1", className)}>
       {rendreChamp ? (
         rendreChamp({
-          ouvrir: () => setOuverte(true),
+          ouvrir,
           resume: plage.debut ? etiquettes.resume(plage) : null,
         })
       ) : (
@@ -95,7 +165,7 @@ export function SelecteurDates({
           <span className="text-petit text-encre">{libelle}</span>
           <button
             type="button"
-            onClick={() => setOuverte(true)}
+            onClick={() => ouvrir()}
             aria-label={etiquettes.ouvrir}
             className={cn(
               "flex min-h-[var(--size-control)] items-center gap-2 rounded-control border border-contour-champ",
@@ -116,8 +186,59 @@ export function SelecteurDates({
         onFermer={() => setOuverte(false)}
         titre={etiquettes.titre}
         etiquetteFermer={etiquettes.fermer}
+        // Deux mois de front demandent plus que les 560 px des autres feuilles.
+        className="sm:max-w-[680px]"
       >
         <div className="space-y-4">
+          {/*
+            Le calendrier ne disait pas ce qu'il attendait. Deux clics sont
+            nécessaires, et rien ne l'annonçait : on choisissait une date, la
+            feuille restait ouverte, et il fallait deviner que le clic suivant
+            servirait à la fin du séjour. Cette bande le dit, et montre l'état.
+          */}
+          <div className="rounded-card bg-champ px-4 py-3">
+            <p className="text-petit font-semibold text-encre">
+              {/* Ouvert depuis une case, la phrase nomme la borne qu'on vient
+                  poser — c'est la seule question du moment. Ouvert depuis un
+                  déclencheur unique, elle suit l'enchaînement, et constate une
+                  fois la plage complète plutôt que de donner un ordre. */}
+              {!cibleImposee && plage.debut && plage.fin
+                ? etiquettes.etapeComplete
+                : cible === "fin"
+                  ? etiquettes.etapeFin
+                  : etiquettes.etapeDebut}
+            </p>
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <Borne
+                libelle={etiquettes.debut}
+                valeur={plage.debut ? etiquettes.dateComplete(plage.debut) : null}
+                vide={etiquettes.vide}
+                actif={cible === "debut"}
+              />
+              <Icone nom="chevron-droite" taille={16} className="shrink-0 text-encre-douce" />
+              <Borne
+                libelle={etiquettes.fin}
+                valeur={plage.fin ? etiquettes.dateComplete(plage.fin) : null}
+                vide={etiquettes.vide}
+                actif={cible === "fin"}
+              />
+              {nombreDeNuits !== null && (
+                <span className="ml-auto shrink-0 rounded-pill bg-primaire px-3 py-1 text-legende font-semibold text-white">
+                  {etiquettes.nuits(nombreDeNuits)}
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/*
+            Deux mois de front dès qu'il y a la place.
+            Un séjour traverse souvent la fin du mois — du 25 octobre au
+            1er novembre, par exemple. Avec un seul mois à l'écran, il fallait
+            cliquer « mois suivant » pour poser la date de fin, et le début
+            sortait du champ de vision au moment même où on le comparait.
+            Sur téléphone, le second mois est masqué : la largeur n'y est pas,
+            et la navigation d'un mois à l'autre reprend son rôle.
+          */}
           <div className="flex items-center justify-between">
             <Navigation
               sens="precedent"
@@ -126,7 +247,14 @@ export function SelecteurDates({
               onClick={() => setCurseur(decalerMois(curseur, -1))}
             />
             <p className="text-titre-3 text-encre">
-              {etiquettes.nomMois(curseur.getFullYear(), curseur.getMonth())}
+              <span>{etiquettes.nomMois(curseur.getFullYear(), curseur.getMonth())}</span>
+              <span className="hidden sm:inline">
+                {" — "}
+                {etiquettes.nomMois(
+                  decalerMois(curseur, 1).getFullYear(),
+                  decalerMois(curseur, 1).getMonth(),
+                )}
+              </span>
             </p>
             <Navigation
               sens="suivant"
@@ -136,36 +264,26 @@ export function SelecteurDates({
             />
           </div>
 
-          <table className="w-full table-fixed border-collapse">
-            <thead>
-              <tr>
-                {etiquettes.jours.map((jour, i) => (
-                  <th key={i} scope="col" className="pb-2 text-legende font-normal text-encre-douce">
-                    {jour}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {semainesDe(curseur).map((semaine, i) => (
-                <tr key={i}>
-                  {semaine.map((iso, j) => (
-                    <td key={j} className="p-0">
-                      {iso && (
-                        <Jour
-                          iso={iso}
-                          plage={plage}
-                          desactive={iso < premier || bloquees.has(iso)}
-                          etiquette={etiquettes.dateComplete(iso)}
-                          onClick={() => choisir(iso)}
-                        />
-                      )}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <div className="grid gap-5 sm:grid-cols-2">
+            <Mois
+              debut={curseur}
+              plage={plage}
+              bloquees={bloquees}
+              etiquettes={etiquettes}
+              onChoisir={choisir}
+              plancher={plancher}
+            />
+            <div className="hidden sm:block">
+              <Mois
+                debut={decalerMois(curseur, 1)}
+                plage={plage}
+                  bloquees={bloquees}
+                etiquettes={etiquettes}
+                onChoisir={choisir}
+                plancher={plancher}
+              />
+            </div>
+          </div>
 
           <div className="flex gap-3">
             <button
@@ -178,7 +296,11 @@ export function SelecteurDates({
             <button
               type="button"
               onClick={() => setOuverte(false)}
-              className="min-h-[var(--size-touch)] flex-1 rounded-control bg-primaire text-bouton text-white"
+              // Ouvert sur une case précise, il suffit que cette date-là soit
+              // posée. Ouvert depuis un déclencheur unique, la plage entière est
+              // attendue : une moitié de réponse ne sert à rien à la recherche.
+              disabled={cibleImposee ? !plage[cible] : !plage.debut || !plage.fin}
+              className="min-h-[var(--size-touch)] flex-1 rounded-control bg-primaire text-bouton text-white disabled:opacity-45"
             >
               {etiquettes.valider}
             </button>
@@ -280,4 +402,97 @@ function semainesDe(curseur: Date): Array<Array<string | null>> {
   while (cases.length % 7 !== 0) cases.push(null);
 
   return Array.from({ length: cases.length / 7 }, (_, i) => cases.slice(i * 7, i * 7 + 7));
+}
+
+/** Une borne de la plage : son intitulé, sa valeur, et si c'est son tour. */
+function Borne({
+  libelle,
+  valeur,
+  vide,
+  actif,
+}: {
+  libelle: string;
+  valeur: string | null;
+  vide: string;
+  actif: boolean;
+}) {
+  return (
+    <span
+      className={cn(
+        "min-w-0 rounded-control border px-3 py-1.5",
+        actif ? "border-primaire bg-surface" : "border-contour bg-surface",
+      )}
+    >
+      <span className="block text-legende text-encre-douce">{libelle}</span>
+      <span
+        className={cn(
+          "block truncate text-petit font-semibold",
+          valeur ? "text-encre chiffres-tabulaires" : "text-encre-douce",
+        )}
+      >
+        {valeur ?? vide}
+      </span>
+    </span>
+  );
+}
+
+/** La grille d'un mois : en-têtes de colonnes et jours cliquables. */
+function Mois({
+  debut,
+  plage,
+  plancher,
+  bloquees,
+  etiquettes,
+  onChoisir,
+}: {
+  debut: Date;
+  plage: Plage;
+  /** Premier jour choisissable, qui dépend de la borne visée. */
+  plancher: string;
+  bloquees: Set<string>;
+  etiquettes: EtiquettesDates;
+  onChoisir: (iso: string) => void;
+}) {
+  return (
+    <table className="w-full table-fixed border-collapse">
+      <caption className="sr-only">
+        {etiquettes.nomMois(debut.getFullYear(), debut.getMonth())}
+      </caption>
+      <thead>
+        <tr>
+          {etiquettes.jours.map((jour, i) => (
+            <th key={i} scope="col" className="pb-2 text-legende font-normal text-encre-douce">
+              {jour}
+            </th>
+          ))}
+        </tr>
+      </thead>
+      <tbody>
+        {semainesDe(debut).map((semaine, i) => (
+          <tr key={i}>
+            {semaine.map((iso, j) => (
+              <td key={j} className="p-0">
+                {iso && (
+                  <Jour
+                    iso={iso}
+                    plage={plage}
+                    desactive={iso < plancher || bloquees.has(iso)}
+                    etiquette={etiquettes.dateComplete(iso)}
+                    onClick={() => onChoisir(iso)}
+                  />
+                )}
+              </td>
+            ))}
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
+/** Le jour suivant, en ISO. Une fin ne peut pas tomber le jour du début. */
+function lendemain(iso: string): string {
+  const d = new Date(`${iso}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + 1);
+  return d.toISOString().slice(0, 10);
 }

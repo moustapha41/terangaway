@@ -1,47 +1,53 @@
+"use client";
+
+import { useState } from "react";
 import Image from "next/image";
 import { CalendarDays, Car, ChevronRight, Plane } from "lucide-react";
-import { Lien } from "@/lib/i18n/lien";
+import { FeuilleBasse } from "@teranga/ui";
+import { BarreRechercheTransport } from "@/features/transport/barre-recherche-transport";
 import type { Langue } from "@/lib/i18n/langues";
-import { traducteurPour } from "@/lib/i18n/messages";
+import { useT } from "@/lib/i18n/contexte";
 
 const SERVICES = [
   {
     cle: "transfert",
-    href: "/transports/trajet",
+    onglet: "transfert" as const,
     image: "/images/hero-transport.png",
     position: "object-[center_35%]",
     icone: Plane,
   },
   {
     cle: "chauffeur",
-    href: "/transports/trajet",
+    onglet: "chauffeur" as const,
     image: "/images/service-transport.png",
     position: "object-center",
     icone: Car,
   },
   {
     cle: "location",
-    href: "/transports/location",
+    onglet: "location" as const,
     image: "/images/service-transport.png",
     position: "object-[70%_center]",
     icone: CalendarDays,
   },
-  {
-    cle: "taxi",
-    href: "/transports/taxi",
-    image: "/images/hero-transport.png",
-    position: "object-[80%_60%]",
-    icone: Car,
-  },
 ] as const;
 
 /**
- * Grille des 4 services — maquette transport.
- * Photos HQ (pas les crops flous de la planche) + texte en overlay, comme
- * la section « Nos services » de l'accueil.
+ * Grille des services de transport — maquette transport.
+ *
+ * Une carte n'emmène plus sur une page : elle ouvre **la recherche elle-même**,
+ * déjà réglée sur le service choisi. On remplit, on envoie, on voit les
+ * véhicules. La page intermédiaire ne faisait que redemander ce qu'on venait
+ * de cliquer, loin de la carte de recherche qu'on avait sous les yeux.
+ *
+ * Le composant est devenu client pour cette seule raison : la feuille a un
+ * état ouvert/fermé. Les textes passent par le contexte de langue, comme
+ * partout ailleurs côté navigateur.
  */
 export function NosServicesTransport({ langue }: { langue: Langue }) {
-  const t = traducteurPour(langue);
+  void langue;
+  const t = useT();
+  const [ouvert, setOuvert] = useState<(typeof SERVICES)[number] | null>(null);
 
   return (
     <section className="bg-fond">
@@ -54,10 +60,12 @@ export function NosServicesTransport({ langue }: { langue: Langue }) {
           {SERVICES.map((service) => {
             const Icone = service.icone;
             return (
-              <Lien
+              <button
                 key={service.cle}
-                href={service.href}
-                className="group relative block aspect-[4/5] overflow-hidden rounded-[18px] sm:aspect-[3/4]"
+                type="button"
+                onClick={() => setOuvert(service)}
+                aria-haspopup="dialog"
+                className="group relative block aspect-[4/5] w-full overflow-hidden rounded-[18px] text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primaire sm:aspect-[3/4]"
               >
                 <Image
                   src={service.image}
@@ -94,11 +102,32 @@ export function NosServicesTransport({ langue }: { langue: Langue }) {
                     <ChevronRight strokeWidth={2.2} className="h-4 w-4" />
                   </span>
                 </div>
-              </Lien>
+              </button>
             );
           })}
         </div>
       </div>
+
+      {/* La feuille du service ouvert. Montée sur `FeuilleBasse`, donc fermable
+          par Échap, par le fond et par sa croix — sans qu'on ait à le réécrire. */}
+      <FeuilleBasse
+        ouverte={ouvert !== null}
+        onFermer={() => setOuvert(null)}
+        titre={ouvert ? t(`transport.services.${ouvert.cle}Titre`) : ""}
+        etiquetteFermer={t("transport.services.fermer")}
+      >
+        {ouvert && (
+          <div className="space-y-4">
+            {/* Une phrase pour situer, puis la saisie. Ni photo ni promesses :
+                on est venu remplir un formulaire, pas lire une brochure. */}
+            <p className="text-petit text-encre-douce">
+              {t(`transport.services.${ouvert.cle}Texte`)}
+            </p>
+
+            <BarreRechercheTransport onglet={ouvert.onglet} nu />
+          </div>
+        )}
+      </FeuilleBasse>
     </section>
   );
 }

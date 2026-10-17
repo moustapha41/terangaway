@@ -31,7 +31,7 @@ function baseUrl(): string {
 export async function appelerApi<T>(
   chemin: string,
   options: {
-    method?: "GET" | "POST";
+    method?: "GET" | "POST" | "PATCH";
     corps?: unknown;
     headers?: Record<string, string>;
   } = {},

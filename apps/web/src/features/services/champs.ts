@@ -30,26 +30,45 @@ const DATES: Champ[] = [
 ];
 
 export const CHAMPS: Record<ServiceALaDemande, readonly Champ[]> = {
+  guides: [
+    ...DATES,
+    { cle: "langue", type: "choix", valeurs: ["francais", "anglais", "espagnol", "wolof"], obligatoire: true },
+    { cle: "duree", type: "choix", valeurs: ["demi-journee", "journee", "plusieurs-jours"] },
+  ],
   restauration: [
     ...DATES,
     { cle: "moment", type: "choix", valeurs: ["midi", "soir"], obligatoire: true },
     { cle: "cuisine", type: "choix", valeurs: ["senegalaise", "internationale", "indifferent"] },
     { cle: "quartier", type: "texte" },
   ],
-  visites: [
+  assistance: [
     ...DATES,
-    { cle: "lieu", type: "texte", obligatoire: true },
+    {
+      cle: "besoin",
+      type: "choix",
+      valeurs: ["accueil-aeroport", "demarches", "sante", "traduction", "autre"],
+      obligatoire: true,
+    },
+    { cle: "langue", type: "choix", valeurs: ["francais", "anglais", "espagnol", "wolof"] },
+  ],
+  decouverte: [
+    ...DATES,
+    {
+      cle: "theme",
+      type: "choix",
+      valeurs: ["culture", "nature", "plages", "artisanat", "vie-nocturne"],
+      obligatoire: true,
+    },
     { cle: "duree", type: "choix", valeurs: ["demi-journee", "journee", "plusieurs-jours"] },
   ],
-  guides: [
-    ...DATES,
-    { cle: "langue", type: "choix", valeurs: ["francais", "anglais", "espagnol", "wolof"], obligatoire: true },
-    { cle: "duree", type: "choix", valeurs: ["demi-journee", "journee", "plusieurs-jours"] },
-  ],
-  evenements: [
-    ...DATES,
-    { cle: "epreuve", type: "texte", obligatoire: true },
-    { cle: "categorie", type: "choix", valeurs: ["standard", "premiere", "famille"] },
+  // Pas de « personnes » ici : ce qui compte est le nombre de lignes, et une
+  // famille de quatre ne prend pas toujours quatre cartes.
+  internet: [
+    { cle: "date", type: "date", obligatoire: true },
+    { cle: "lignes", type: "nombre", obligatoire: true, min: 1, max: 20 },
+    { cle: "formule", type: "choix", valeurs: ["sim-locale", "esim", "wifi-portable"], obligatoire: true },
+    { cle: "donnees", type: "choix", valeurs: ["leger", "standard", "intensif"] },
+    { cle: "livraison", type: "choix", valeurs: ["aeroport", "logement", "point-retrait"], obligatoire: true },
   ],
 };
 

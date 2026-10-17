@@ -68,9 +68,10 @@ export type MotifRefus = (typeof MOTIFS_REFUS)[number];
  * vers un partenaire. Pas de fiche produit, pas de prix figé à l'envoi.
  */
 export const SERVICES_A_LA_DEMANDE = [
-  "restauration",
-  "visites",
   "guides",
-  "evenements",
+  "restauration",
+  "assistance",
+  "decouverte",
+  "internet",
 ] as const;
 export type ServiceALaDemande = (typeof SERVICES_A_LA_DEMANDE)[number];

@@ -28,6 +28,12 @@ export function etiquettesDates(t: Traducteur, langue: Langue): EtiquettesDates 
     nomMois: (annee, mois) => nomMois.format(new Date(annee, mois, 1)),
     dateComplete: (iso) => formaterDateComplete(new Date(`${iso}T00:00:00`), langue),
     vide: t("recherche.choisirDates"),
+    etapeDebut: t("recherche.etapeDebut"),
+    etapeFin: t("recherche.etapeFin"),
+    etapeComplete: t("recherche.etapeComplete"),
+    debut: t("fiche.debut"),
+    fin: t("fiche.fin"),
+    nuits: (nombre: number) => t("fiche.nuits", { nombre }),
     resume: (plage: Plage) =>
       plage.debut && plage.fin
         ? formaterPlage(new Date(`${plage.debut}T00:00:00`), new Date(`${plage.fin}T00:00:00`), langue)

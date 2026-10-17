@@ -5,6 +5,7 @@ import { ErreurMetier } from "../../commun/erreurs";
 import { extraireJetonRequete } from "../../commun/securite/hachage";
 import { ServiceComptes } from "../comptes/comptes.service";
 import { CreerDemandeLogementDto } from "./dto/creer-demande-logement.dto";
+import { CreerDemandeServiceDto } from "./dto/creer-demande-service.dto";
 import { CreerDemandeVehiculeDto } from "./dto/creer-demande-vehicule.dto";
 import { ServiceDemandes } from "./demandes.service";
 
@@ -73,6 +74,40 @@ export class ControleurDemandes {
       passagers: corps.passagers,
       bagages: corps.bagages,
       vol: corps.vol,
+      message: corps.message,
+      visiteurId,
+    });
+    return { donnees: demande };
+  }
+
+  @Post("service")
+  @ApiOperation({
+    summary: "Envoyer une demande de service sans catalogue",
+    description:
+      "Aucun prix n'est figé : le total vaut zéro tant que l'équipe n'a pas chiffré depuis le backoffice.",
+  })
+  @ApiHeader({ name: "x-visiteur-id", required: false })
+  @ApiHeader({ name: "authorization", required: false })
+  async creerService(
+    @Body() corps: CreerDemandeServiceDto,
+    @Headers("x-visiteur-id") visiteurHeader?: string,
+    @Headers("authorization") authHeader?: string,
+    @Headers("cookie") cookieHeader?: string,
+  ) {
+    const jeton = extraireJetonRequete(visiteurHeader, authHeader, cookieHeader);
+    const visiteurId = await this.comptes.exigerVisiteur(jeton, corps.code);
+
+    // Les détails arrivent du formulaire : on les ramène à des chaînes, et on
+    // écarte les champs vides plutôt que de les écrire dans la base.
+    const details: Record<string, string> = {};
+    for (const [cle, valeur] of Object.entries(corps.details ?? {})) {
+      const texte = typeof valeur === "string" ? valeur.trim() : String(valeur ?? "").trim();
+      if (texte) details[cle] = texte.slice(0, 500);
+    }
+
+    const demande = await this.demandes.creerService({
+      service: corps.service,
+      details,
       message: corps.message,
       visiteurId,
     });

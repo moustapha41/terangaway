@@ -25,7 +25,8 @@ export interface Demande {
     | { genre: "logement"; logementId: string; titre: string; vignette: string }
     | { genre: "vehicule"; vehiculeId: string; titre: string; vignette: string }
     /**
-     * Service à la demande (V2) : restauration, visites, guides, billetterie.
+     * Service à la demande (V2) : guide, restauration, assistance, découverte,
+     * carte SIM et internet.
      *
      * Pas d'identifiant d'offre — il n'y a pas de catalogue à pointer. Le
      * `titre` se compose de ce que le visiteur a décrit, et `details` garde sa

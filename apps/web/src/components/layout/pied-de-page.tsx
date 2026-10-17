@@ -34,7 +34,7 @@ const COLONNES = [
       { cle: "hotelsResidences", href: "/logements?type=hotel" },
       { cle: "appartements", href: "/logements?type=appartement" },
       { cle: "villas", href: "/logements?type=villa" },
-      { cle: "vtcTaxi", href: "/transports?type=vtc" },
+      { cle: "trajetChauffeur", href: "/transports?type=trajet" },
       { cle: "locationChauffeur", href: "/transports?type=location" },
     ],
   },

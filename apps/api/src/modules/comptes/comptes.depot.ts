@@ -46,6 +46,21 @@ export interface SessionVisiteur {
   token?: string;
 }
 
+/**
+ * Le compte derrière un jeton, avec son rôle.
+ *
+ * Le backoffice en a besoin et rien d'autre ne l'avait : `sessionVisiteur`
+ * rend une session, pas une autorisation. Faire porter le rôle par la session
+ * aurait laissé croire qu'un jeton suffit — c'est le compte qui est
+ * administrateur, et il peut cesser de l'être pendant que la session vit.
+ */
+export interface CompteDeSession {
+  id: string;
+  role: "VISITEUR" | "PRESTATAIRE" | "ADMINISTRATEUR";
+  email?: string;
+  nom?: string;
+}
+
 export interface SessionPrestataire {
   id: string;
   telephone: string;
@@ -72,6 +87,9 @@ export interface DepotComptes {
   creerSessionPrestataire(telephone: string): Promise<SessionPrestataire>;
   sessionPrestataire(id: string): Promise<SessionPrestataire | null>;
   revoquerSession?(idOuToken: string): Promise<void>;
+
+  /** Le compte vivant derrière ce jeton, rôle compris, ou `null`. */
+  compteDeSession(jeton: string): Promise<CompteDeSession | null>;
 
   /* ───────────────────────────── Inscription ───────────────────────────── */
 

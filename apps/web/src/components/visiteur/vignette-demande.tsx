@@ -11,10 +11,11 @@ import { Icone, type NomIcone } from "@teranga/ui";
  * service sur un aplat — le même traitement que sur la page Services.
  */
 const ICONE_SERVICE: Record<string, NomIcone> = {
-  restauration: "restauration",
-  visites: "visite",
   guides: "guide",
-  evenements: "evenement",
+  restauration: "restauration",
+  assistance: "assistance",
+  decouverte: "globe",
+  internet: "wifi",
 };
 
 export function VignetteDemande({

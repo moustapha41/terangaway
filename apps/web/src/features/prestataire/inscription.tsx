@@ -21,7 +21,9 @@ type TypeCompte = "logement" | "transport" | "les-deux";
  *
  * Rien n'est perdu entre les étapes : revenir en arrière garde toute la saisie.
  */
-const PRESTATIONS_TRANSPORT = ["trajet", "location", "taxi"] as const;
+// Le taxi a été retiré de la plateforme : un partenaire ne peut plus le
+// déclarer, puisque plus aucun écran ne le propose au visiteur.
+const PRESTATIONS_TRANSPORT = ["trajet", "location"] as const;
 
 export function Inscription() {
   const t = useT();

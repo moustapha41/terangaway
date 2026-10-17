@@ -1,4 +1,4 @@
-import type { Demande } from "@teranga/contracts";
+import type { Demande, ServiceALaDemande } from "@teranga/contracts";
 
 export interface EntreeCreationLogement {
   logementId: string;
@@ -23,6 +23,14 @@ export interface EntreeCreationVehicule {
   visiteurId: string;
 }
 
+export interface EntreeCreationService {
+  service: ServiceALaDemande;
+  /** La saisie du visiteur, champ par champ, telle que le formulaire la pose. */
+  details: Record<string, string>;
+  message?: string;
+  visiteurId: string;
+}
+
 /**
  * Port des demandes.
  *
@@ -34,6 +42,14 @@ export interface DepotDemandes {
   parId(id: string): Promise<Demande | null>;
   creerLogement(entree: EntreeCreationLogement): Promise<Demande>;
   creerVehicule(entree: EntreeCreationVehicule): Promise<Demande>;
+  /**
+   * Un service sans catalogue : rien à résoudre, rien à figer.
+   *
+   * Le total vaut zéro — « sur devis » — et c'est l'équipe qui chiffre depuis
+   * le backoffice. Écrire un prix ici reviendrait à promettre un montant que
+   * personne n'a encore calculé.
+   */
+  creerService(entree: EntreeCreationService): Promise<Demande>;
   enregistrer(demande: Demande): Promise<Demande>;
   visiteurDe?(demandeId: string): Promise<string | null> | string | undefined;
 }

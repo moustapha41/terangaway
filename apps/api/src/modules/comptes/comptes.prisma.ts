@@ -17,6 +17,7 @@ import {
 } from "../../commun/securite/hachage";
 import type {
   CodeOtp,
+  CompteDeSession,
   CompteResume,
   DepotComptes,
   FinaliteOtp,
@@ -248,6 +249,27 @@ export class DepotComptesPrisma implements DepotComptes {
       creeLe: session.creeLe.toISOString(),
       compteId: account.id,
       token,
+    };
+  }
+
+  /**
+   * Le compte derrière un jeton de session, rôle compris.
+   *
+   * Le rôle est relu en base à chaque appel, jamais déduit du jeton : retirer
+   * les droits d'administration doit fermer la porte tout de suite, sans
+   * attendre l'expiration de la session.
+   */
+  async compteDeSession(jeton: string): Promise<CompteDeSession | null> {
+    const session = await this.prisma.session.findUnique({
+      where: { tokenHash: hacherJetonDirect(jeton) },
+      include: { account: true },
+    });
+    if (!session || session.revokedAt || session.expiresAt <= new Date()) return null;
+    return {
+      id: session.account.id,
+      role: session.account.role,
+      email: session.account.email ?? undefined,
+      nom: session.account.nom ?? undefined,
     };
   }
 

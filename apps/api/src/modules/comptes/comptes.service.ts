@@ -1,5 +1,6 @@
 import { randomInt } from "node:crypto";
 import { HttpStatus, Inject, Injectable, Optional } from "@nestjs/common";
+import type { CompteAdministrateur } from "@teranga/contracts";
 
 import { ServiceEmail } from "../../commun/email/email.service";
 import { DEPOT_COMPTES } from "../../commun/depots/depot";
@@ -321,6 +322,40 @@ export class ServiceComptes {
 
     // Démo de développement sans auth explicite, sur demande expresse.
     return VISITEUR_DEMO;
+  }
+
+  /**
+   * Résout un administrateur depuis un jeton de session, ou refuse.
+   *
+   * Deux refus distincts, et c'est volontaire : pas de session vivante, c'est
+   * 401 — reconnectez-vous ; session vivante sur un compte sans le rôle, c'est
+   * 403 — ce n'est pas votre porte. Les confondre ferait boucler un visiteur
+   * égaré sur un écran de connexion qui ne lui servirait à rien.
+   *
+   * Le rôle est relu à chaque appel, jamais porté par le jeton : retirer les
+   * droits ferme l'accès tout de suite.
+   */
+  async exigerAdministrateur(enTete?: string): Promise<CompteAdministrateur> {
+    const refus = () =>
+      new ErreurMetier("NON_AUTHENTIFIE", "Session invalide ou expirée.", HttpStatus.UNAUTHORIZED);
+
+    if (!enTete) throw refus();
+    const jeton = enTete.startsWith("Bearer ") ? enTete.slice(7).trim() : enTete.trim();
+    // Les identités de démonstration sont des chaînes publiques : elles
+    // n'ouvrent jamais le backoffice, même quand le mode démo est actif.
+    if (!jeton || estIdentiteDemo(jeton)) throw refus();
+
+    const compte = await this.depot.compteDeSession(jeton);
+    if (!compte) throw refus();
+    if (compte.role !== "ADMINISTRATEUR") {
+      throw new ErreurMetier(
+        "ACCES_INTERDIT",
+        "Ce compte n'a pas accès au backoffice.",
+        HttpStatus.FORBIDDEN,
+      );
+    }
+
+    return { id: compte.id, email: compte.email, nom: compte.nom };
   }
 
   /* ──────────────────────────── Inscription ───────────────────────────── */

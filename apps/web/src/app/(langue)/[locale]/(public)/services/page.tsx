@@ -8,9 +8,9 @@ import { traducteurPour } from "@/lib/i18n/messages";
 /**
  * Page Services — maquette du dossier services.
  *
- * Elle montre les six services du produit cible, dont quatre sont reportés
- * après le MVP (§D.2). Ceux-là ouvrent une feuille « bientôt disponible »
- * plutôt que de mener à une page vide.
+ * Elle montre tous les services du produit cible. Deux ont un catalogue et la
+ * carte des points de repère s'ouvre directement ; les autres mènent à un
+ * formulaire de demande, que l'équipe traite à la main (§D.2).
  */
 const GARANTIES: { cle: string; icone: NomIcone }[] = [
   { cle: "garantieVerifies", icone: "verification" },
@@ -87,7 +87,7 @@ export default async function Services({ params }: { params: Promise<{ locale: s
         </div>
       </section>
 
-      {/* les six services */}
+      {/* les services */}
       <section className="mx-auto w-[92%] max-w-[1260px] pt-12">
         <p className="text-petit font-semibold uppercase tracking-[0.18em] text-jaune-fonce">
           {t("services.nosServices")}

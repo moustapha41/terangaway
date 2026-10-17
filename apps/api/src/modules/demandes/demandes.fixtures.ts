@@ -7,6 +7,7 @@ import { expireLePour } from "./machine-a-etats/delais";
 import type {
   DepotDemandes,
   EntreeCreationLogement,
+  EntreeCreationService,
   EntreeCreationVehicule,
 } from "./demandes.depot";
 
@@ -118,6 +119,32 @@ export class DepotDemandesFixtures implements DepotDemandes {
       prix: { prixParNuit: total, nuits: 1, fraisFixes: [], total },
       frise: [{ statut: "envoyee", horodatage: maintenant, origine: "visiteur" }],
       expireLe: expireLePour(genre),
+    };
+
+    this.demandes.unshift(demande);
+    this.parVisiteur.set(demande.id, entree.visiteurId);
+    return structuredClone(demande);
+  }
+
+  async creerService(entree: EntreeCreationService): Promise<Demande> {
+    const maintenant = new Date().toISOString();
+    const demande: Demande = {
+      id: `d-${Date.now()}`,
+      reference: `TW-${Math.floor(100000 + Math.random() * 900000)}`,
+      statut: "envoyee",
+      offre: {
+        genre: "service",
+        service: entree.service,
+        titre: entree.service,
+        details: entree.details,
+      },
+      // Un service n'a pas forcément de période : la date demandée tient lieu
+      // des deux bornes, et reste vide quand le formulaire n'en demande pas.
+      dates: { debut: entree.details.date ?? "", fin: entree.details.date ?? "" },
+      personnes: Number(entree.details.personnes ?? entree.details.lignes ?? 1) || 1,
+      message: entree.message,
+      prix: { total: 0 },
+      frise: [{ statut: "envoyee", horodatage: maintenant, origine: "visiteur" }],
     };
 
     this.demandes.unshift(demande);

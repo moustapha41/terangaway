@@ -57,7 +57,37 @@ async function main() {
     },
   });
 
-  console.log("✓ Comptes créés : visiteur-demo, prestataire-demo, terangaWay");
+  // Comptes d'équipe : les adresses de `ADMIN_EMAILS`, et rien d'autre.
+  //
+  // Le backoffice ne se déverrouille pas tout seul : sans cette variable,
+  // aucun compte administrateur n'existe, et la porte reste fermée. Un compte
+  // déjà présent est promu plutôt que recréé — une personne peut très bien
+  // avoir d'abord été visiteuse.
+  const adresses = (process.env.ADMIN_EMAILS ?? "")
+    .split(",")
+    .map((a) => a.trim().toLowerCase())
+    .filter(Boolean);
+
+  for (const email of adresses) {
+    await prisma.account.upsert({
+      where: { email },
+      update: { role: "ADMINISTRATEUR", estVerifie: true, verifieLe: new Date() },
+      create: {
+        email,
+        nom: "Équipe Teranga",
+        role: "ADMINISTRATEUR",
+        typeCompte: "VISITEUR",
+        estVerifie: true,
+        verifieLe: new Date(),
+      },
+    });
+  }
+
+  console.log(
+    adresses.length > 0
+      ? `✓ Comptes créés : visiteur-demo, prestataire-demo, terangaWay, ${adresses.length} administrateur(s)`
+      : "✓ Comptes créés : visiteur-demo, prestataire-demo, terangaWay (aucun administrateur : ADMIN_EMAILS est vide)",
+  );
 
   // 2. Demandes initiales
   for (const d of DEMANDES) {

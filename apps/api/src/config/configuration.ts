@@ -95,6 +95,17 @@ export function chargerConfiguration(env: NodeJS.ProcessEnv = process.env) {
       : (env.RESEND_API_KEY?.trim() ?? ""),
     emailFrom: requisEnv("EMAIL_FROM", "Teranga Way <auth@teranga-way.com>"),
     appUrl: requisEnv("APP_URL", isProd ? "https://teranga-way.com" : "http://localhost:3000"),
+    /**
+     * Les adresses qui ouvrent le backoffice, séparées par des virgules.
+     *
+     * Sur Postgres, c'est le rôle du compte qui fait foi : cette liste ne sert
+     * qu'au dépôt en mémoire, où il n'y a pas de table des comptes. Vide par
+     * défaut — sans variable, personne n'entre.
+     */
+    adminEmails: (env.ADMIN_EMAILS ?? "")
+      .split(",")
+      .map((s) => s.trim().toLowerCase())
+      .filter(Boolean),
     /** Clé secrète dédiée pour HMAC-SHA-256 des codes OTP (clé active) */
     otpSecret: secretsOtp[0],
     /** Liste ordonnée de toutes les clés autorisées pour vérification (rotation) */
