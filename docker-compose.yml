@@ -55,6 +55,9 @@ services:
       EMAIL_FROM: ${EMAIL_FROM:-Teranga Way <auth@teranga-way.com>}
       APP_URL: ${APP_URL:-https://teranga-way.com}
       OTP_SECRET: ${OTP_SECRET}
+      # Les adresses d'équipe qui ouvrent /admin. Vide, personne n'entre :
+      # `pnpm db:seed` les promeut au rôle ADMINISTRATEUR.
+      ADMIN_EMAILS: ${ADMIN_EMAILS:-}
       # Secret partagé avec le site pour /comptes/oauth/google. Laissé vide,
       # la route s'en remet au seul isolement du réseau interne.
       SECRET_OAUTH_INTERNE: ${SECRET_OAUTH_INTERNE:-}

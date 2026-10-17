@@ -32,12 +32,24 @@ export function FormulaireConnexionAdmin({
   const demanderCode = () =>
     demarrer(async () => {
       setErreur(null);
-      const { envoye } = await envoyerCodeAdminAction(email);
+      const { envoye, codeDemo, motif } = await envoyerCodeAdminAction(email);
       if (!envoye) {
-        setErreur(t("admin.erreurCode"));
+        setErreur(
+          motif === "injoignable"
+            ? t("admin.erreurServeur")
+            : motif === "envoi"
+              ? t("admin.erreurEnvoi")
+              : motif === "trop"
+                ? t("admin.erreurTropDeCodes")
+                : t("admin.erreurAdresse"),
+        );
         return;
       }
-      setNote(t("admin.codeEnvoye"));
+      setNote(
+        codeDemo
+          ? `${t("admin.codeEnvoye")} ${t("compte.codeDemo", { code: codeDemo })}`
+          : t("admin.codeEnvoye"),
+      );
       setEtape("code");
     });
 

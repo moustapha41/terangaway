@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "nest start --watch --exec \"node --import tsx\"",
+    "dev": "nest start --watch --exec \"node --import tsx --env-file-if-exists=.env\"",
     "build": "nest build",
     "start": "node --import tsx dist/main.js",
     "typecheck": "tsc --noEmit",

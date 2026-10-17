@@ -19,16 +19,38 @@ export type ResultatConnexionAdmin =
  * l'équipe : énumérer les comptes d'administration depuis l'écran de connexion
  * est exactement ce qu'on cherche à éviter. Le tri se fait après le code.
  */
-export async function envoyerCodeAdminAction(email: string): Promise<{ envoye: boolean }> {
+export async function envoyerCodeAdminAction(
+  email: string,
+): Promise<{
+  envoye: boolean;
+  codeDemo?: string;
+  motif?: "adresse" | "envoi" | "trop" | "injoignable";
+}> {
   const adresse = email.trim().toLowerCase();
-  if (!adresse.includes("@")) return { envoye: false };
+  if (!adresse.includes("@")) return { envoye: false, motif: "adresse" };
 
   try {
-    await apiEnvoyerOtp(adresse);
-  } catch {
-    // Même réponse qu'en cas de succès : l'écran ne doit rien révéler.
+    const reponse = await apiEnvoyerOtp(adresse);
+    // `codeDemo` n'existe que si l'API a explicitement ouvert le mode
+    // démonstration : sur un déploiement public, le champ est absent et il n'y
+    // a rien à afficher. C'est ce qui permet d'entrer en local sans Resend.
+    return { envoye: true, codeDemo: reponse.codeDemo };
+  } catch (erreur) {
+    // Taire une adresse inconnue, oui. Taire une API mal configurée, non :
+    // sans e-mail branché ni mode démo, le code ne partira jamais, et l'équipe
+    // attendrait indéfiniment un message qui n'existe pas. Le silence ne
+    // protège ici personne — il cache une panne de notre côté.
+    if (erreur instanceof ErreurApi) {
+      if (erreur.statut === 429) return { envoye: false, motif: "trop" };
+      if (erreur.statut >= 500) return { envoye: false, motif: "envoi" };
+      // 4xx : l'API a répondu, et ce qu'elle refuse regarde l'adresse. On se tait.
+      return { envoye: true };
+    }
+    // Pas même une réponse : API éteinte, port fermé, réseau coupé. Annoncer
+    // « le code vient de partir » enverrait l'équipe attendre un message
+    // qu'aucun serveur n'a seulement commencé à écrire.
+    return { envoye: false, motif: "injoignable" };
   }
-  return { envoye: true };
 }
 
 /**

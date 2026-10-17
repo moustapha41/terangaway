@@ -103,7 +103,12 @@ export async function apiRepondreAvecJeton(
 }
 
 export async function apiEnvoyerOtp(identifiant: string) {
-  return appelerApi<{ expireLe: string; delaiAttenteSecondes: number }>("/comptes/otp/envoyer", {
+  return appelerApi<{
+    expireLe: string;
+    delaiAttenteSecondes: number;
+    /** Présent uniquement quand l'API a ouvert le mode démonstration. */
+    codeDemo?: string;
+  }>("/comptes/otp/envoyer", {
     method: "POST",
     corps: { identifiant },
   });
