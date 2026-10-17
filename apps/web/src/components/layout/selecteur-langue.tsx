@@ -18,7 +18,13 @@ import { useLangue, useT } from "@/lib/i18n/contexte";
  * Bâti sur `<details>` : l'ouverture, la fermeture par Échap et le pliage au
  * clavier viennent du navigateur.
  */
-export function SelecteurLangue({ className }: { className?: string }) {
+export function SelecteurLangue({
+  className,
+  alignement = "droite",
+}: {
+  className?: string;
+  alignement?: "gauche" | "droite";
+}) {
   const t = useT();
   const langue = useLangue();
   const chemin = retirerLangue(usePathname());
@@ -36,7 +42,11 @@ export function SelecteurLangue({ className }: { className?: string }) {
         <Icone nom="chevron" taille={16} />
       </summary>
 
-      <ul className="absolute right-0 top-full z-40 mt-2 min-w-[180px] overflow-hidden rounded-card border border-contour bg-surface py-1 shadow-[0_12px_32px_-12px_rgb(2_20_38/0.25)]">
+      <ul
+        className={`absolute ${
+          alignement === "gauche" ? "left-0" : "right-0"
+        } top-full z-40 mt-2 min-w-[180px] overflow-hidden rounded-card border border-contour bg-surface py-1 shadow-[0_12px_32px_-12px_rgb(2_20_38/0.25)]`}
+      >
         {LANGUES.map((autre) => (
           <li key={autre}>
             <Link

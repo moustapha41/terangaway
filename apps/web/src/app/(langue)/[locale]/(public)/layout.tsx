@@ -1,6 +1,5 @@
 import { EnTete } from "@/components/layout/en-tete";
 import { PiedDePage } from "@/components/layout/pied-de-page";
-import { BarreDuBas } from "@/components/layout/barre-du-bas";
 import { estLangue } from "@/lib/i18n/langues";
 
 /** Les pages publiques portent la même enveloppe que les écrans visiteur. */
@@ -19,8 +18,6 @@ export default async function LayoutPublic({
       <EnTete />
       {children}
       <PiedDePage langue={langue} />
-      <div aria-hidden="true" className="h-[calc(72px+env(safe-area-inset-bottom))] lg:hidden" />
-      <BarreDuBas />
     </>
   );
 }

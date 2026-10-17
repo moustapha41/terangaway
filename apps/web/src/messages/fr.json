@@ -18,7 +18,13 @@
     "aPropos": "À propos",
     "aide": "Aide",
     "choisirLangue": "Choisir la langue",
-    "seConnecter": "Se connecter"
+    "seConnecter": "Se connecter",
+    "creerCompte": "Créer un compte",
+    "monCompte": "Mon compte",
+    "mesDemandes": "Mes demandes",
+    "seDeconnecter": "Se déconnecter",
+    "ouvrirMenu": "Ouvrir le menu",
+    "fermerMenu": "Fermer le menu"
   },
   "hero": {
     "surtitre": "JOJ Dakar 2026",

@@ -18,7 +18,13 @@
     "aPropos": "About",
     "aide": "Help",
     "choisirLangue": "Choose a language",
-    "seConnecter": "Sign in"
+    "seConnecter": "Sign in",
+    "creerCompte": "Create account",
+    "monCompte": "My account",
+    "mesDemandes": "My requests",
+    "seDeconnecter": "Sign out",
+    "ouvrirMenu": "Open menu",
+    "fermerMenu": "Close menu"
   },
   "hero": {
     "surtitre": "YOG Dakar 2026",

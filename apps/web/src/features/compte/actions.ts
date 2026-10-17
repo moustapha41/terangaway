@@ -166,3 +166,16 @@ export async function seDeconnecter() {
   jar.delete(COOKIE_VISITEUR);
   redirect("/fr");
 }
+
+export async function obtenirVisiteurConnecteNom(): Promise<string | null> {
+  const { visiteurConnecte } = await import("./session");
+  const vis = await visiteurConnecte();
+  if (!vis) return null;
+  const base = vis.identifiant.includes("@") ? vis.identifiant.split("@")[0] : vis.identifiant;
+  return base
+    .split(/[._\-\s]+/)
+    .filter(Boolean)
+    .map((mot) => mot.charAt(0).toUpperCase() + mot.slice(1))
+    .join(" ");
+}
+
