@@ -26,13 +26,16 @@ export function MesureAudience() {
   // toujours par diverger, et le script répond alors 404 en silence — le site
   // marche, la mesure ne compte rien, et personne ne s'en aperçoit.
   //
-  // C'est un **nom de fichier**, pas un domaine : « mesure » donne
-  // `https://stats.exemple.com/mesure.js`. L'extension est ajoutée ici.
-  const nom = (process.env.UMAMI_TRACKER_SCRIPT_NAME?.trim() || "mesure").replace(/\.js$/, "");
+  // C'est un **nom de chemin**, pas un domaine, et il est repris **tel quel** :
+  // Umami sert le script à l'adresse exacte qu'on lui a donnée. « mesure »
+  // donne `https://stats.exemple.com/mesure`, sans extension. Ajouter « .js »
+  // ici — ce que faisait la première version — produisait un 404 silencieux :
+  // le site marchait, la mesure ne comptait rien.
+  const nom = (process.env.UMAMI_TRACKER_SCRIPT_NAME?.trim() || "mesure").replace(/^\//, "");
 
   return (
     <Script
-      src={`${base}/${nom}.js`}
+      src={`${base}/${nom}`}
       data-website-id={site}
       strategy="afterInteractive"
       defer
