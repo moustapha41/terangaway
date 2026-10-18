@@ -1,5 +1,6 @@
 import Image from "next/image";
 import { Bouton, Carte, Icone, type NomIcone } from "@teranga/ui";
+import { CarrouselHero } from "@/features/services/carrousel-hero";
 import { GrilleServices } from "@/features/services/grille-services";
 import { Lien } from "@/lib/i18n/lien";
 import { estLangue, type Langue } from "@/lib/i18n/langues";
@@ -36,14 +37,7 @@ export default async function Services({ params }: { params: Promise<{ locale: s
       {/* hero */}
       <section className="relative">
         <div className="relative h-[min(420px,max(320px,26vw))] w-full overflow-hidden">
-          <Image
-            src="/images/banner-dakar.png"
-            alt={t("services.heroAlt")}
-            fill
-            priority
-            sizes="100vw"
-            className="object-cover object-[center_45%]"
-          />
+          <CarrouselHero />
           <div
             className="absolute inset-0"
             style={{

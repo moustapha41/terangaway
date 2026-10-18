@@ -71,7 +71,6 @@ export const SERVICES_A_LA_DEMANDE = [
   "guides",
   "restauration",
   "assistance",
-  "decouverte",
   "internet",
 ] as const;
 export type ServiceALaDemande = (typeof SERVICES_A_LA_DEMANDE)[number];

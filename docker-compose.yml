@@ -144,6 +144,24 @@ services:
     networks:
       - interne
       - dokploy-network
+    # Routage écrit à la main, et non par l'onglet « Domains » de Dokploy :
+    # celui-ci n'a jamais produit de label pour ce service, et Traefik répondait
+    # 404 avec son certificat par défaut faute de routeur pour l'hôte. Les noms
+    # d'entrypoints, le middleware de redirection et le résolveur reprennent
+    # exactement ceux que Dokploy pose sur `web`.
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=dokploy-network
+      - traefik.http.routers.teranga-way-umami-web.rule=Host(`stats.teranga-way.com`)
+      - traefik.http.routers.teranga-way-umami-web.entrypoints=web
+      - traefik.http.routers.teranga-way-umami-web.service=teranga-way-umami-web
+      - traefik.http.routers.teranga-way-umami-web.middlewares=redirect-to-https@file
+      - traefik.http.services.teranga-way-umami-web.loadbalancer.server.port=3000
+      - traefik.http.routers.teranga-way-umami-websecure.rule=Host(`stats.teranga-way.com`)
+      - traefik.http.routers.teranga-way-umami-websecure.entrypoints=websecure
+      - traefik.http.routers.teranga-way-umami-websecure.service=teranga-way-umami-websecure
+      - traefik.http.routers.teranga-way-umami-websecure.tls.certresolver=letsencrypt
+      - traefik.http.services.teranga-way-umami-websecure.loadbalancer.server.port=3000
 
 volumes:
   postgres_data:

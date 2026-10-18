@@ -30,9 +30,13 @@ const DATES: Champ[] = [
 ];
 
 export const CHAMPS: Record<ServiceALaDemande, readonly Champ[]> = {
+  // Guide et découverte sont un seul service : on demande la langue du guide
+  // et, sans l'exiger, le thème de la sortie — beaucoup savent d'abord qu'ils
+  // veulent un accompagnateur, le programme vient ensuite.
   guides: [
     ...DATES,
     { cle: "langue", type: "choix", valeurs: ["francais", "anglais", "espagnol", "wolof"], obligatoire: true },
+    { cle: "theme", type: "choix", valeurs: ["culture", "nature", "plages", "artisanat", "vie-nocturne"] },
     { cle: "duree", type: "choix", valeurs: ["demi-journee", "journee", "plusieurs-jours"] },
   ],
   restauration: [
@@ -50,16 +54,6 @@ export const CHAMPS: Record<ServiceALaDemande, readonly Champ[]> = {
       obligatoire: true,
     },
     { cle: "langue", type: "choix", valeurs: ["francais", "anglais", "espagnol", "wolof"] },
-  ],
-  decouverte: [
-    ...DATES,
-    {
-      cle: "theme",
-      type: "choix",
-      valeurs: ["culture", "nature", "plages", "artisanat", "vie-nocturne"],
-      obligatoire: true,
-    },
-    { cle: "duree", type: "choix", valeurs: ["demi-journee", "journee", "plusieurs-jours"] },
   ],
   // Pas de « personnes » ici : ce qui compte est le nombre de lignes, et une
   // famille de quatre ne prend pas toujours quatre cartes.

@@ -16,6 +16,7 @@ const LIENS = [
   { cle: "accueil", href: "/" },
   { cle: "logements", href: "/logements" },
   { cle: "transports", href: "/transports" },
+  { cle: "services", href: "/services" },
   { cle: "aPropos", href: "/a-propos" },
   { cle: "aide", href: "/aide" },
 ] as const;

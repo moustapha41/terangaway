@@ -6,6 +6,7 @@ import {
   Home,
   Bed,
   Car,
+  ConciergeBell,
   Info,
   Headphones,
   User,
@@ -32,6 +33,7 @@ const LIENS_NAVIGATION = [
   { cle: "accueil", href: "/", Icone: Home },
   { cle: "logements", href: "/logements", Icone: Bed },
   { cle: "transports", href: "/transports", Icone: Car },
+  { cle: "services", href: "/services", Icone: ConciergeBell },
   { cle: "aPropos", href: "/a-propos", Icone: Info },
   { cle: "aide", href: "/aide", Icone: Headphones },
 ] as const;

@@ -78,13 +78,15 @@ export default async function Aide({
       {/* hero avec la recherche */}
       <section className="relative">
         <div className="relative min-h-[320px] w-full overflow-hidden">
+          {/* Cadrage mobile sur les conseillers, à droite de l'image : au
+              centre, un écran étroit ne garderait que le stade. */}
           <Image
-            src="/images/banner-dakar.png"
+            src="/images/aide/hero.jpg"
             alt={t("aide.heroAlt")}
             fill
             priority
             sizes="100vw"
-            className="object-cover object-[center_45%]"
+            className="object-cover object-[74%_center] md:object-[center_45%]"
           />
           <div
             className="absolute inset-0"

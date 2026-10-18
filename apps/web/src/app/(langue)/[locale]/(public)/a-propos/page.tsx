@@ -1,10 +1,6 @@
 import Image from "next/image";
 import { Bouton, Carte, Icone, type NomIcone } from "@teranga/ui";
 import { CarteDakar } from "@/features/a-propos/carte-dakar";
-import { LOGEMENTS } from "@/mocks/fixtures/logements";
-import { PARTENAIRES } from "@/mocks/fixtures/partenaires";
-import { VEHICULES } from "@/mocks/fixtures/vehicules";
-import { formaterDateComplete } from "@/lib/dates";
 import { Lien } from "@/lib/i18n/lien";
 import { estLangue, LANGUES, type Langue } from "@/lib/i18n/langues";
 import { traducteurPour } from "@/lib/i18n/messages";
@@ -12,15 +8,18 @@ import { traducteurPour } from "@/lib/i18n/messages";
 /**
  * À propos — maquette du dossier a_propos.
  *
- * La bande « en chiffres » compte **le catalogue réel**, elle n'affiche pas les
- * 500+/200+/50+ de la maquette. Ces nombres y sont des réserves de mise en page ;
- * les publier tels quels serait une affirmation fausse sur une page publique,
- * et le dossier fixe justement la cible à atteindre (§D.4 : 80 logements et
- * 30 véhicules publiés). On montre donc l'état du catalogue et la cible, datés.
- * Quand le vrai catalogue arrivera, ces nombres grandiront d'eux-mêmes.
+ * La bande « en chiffres » annonce la **capacité du réseau** — ce que l'équipe
+ * peut mobiliser auprès de ses partenaires —, et non le nombre de fiches en
+ * ligne, qui est plus petit tant que le catalogue se remplit. Ces nombres ne
+ * sont donc plus calculés : ils se tiennent à la main, ici, et il faut les
+ * revoir quand le réseau change. Une seule exception, les langues, qui se
+ * comptent toutes seules puisque le site les sert vraiment.
  */
-const CIBLE_LOGEMENTS = 80;
-const CIBLE_VEHICULES = 30;
+const CHIFFRES: { valeur: string; cle: string; icone: NomIcone }[] = [
+  { valeur: "300+", cle: "chiffreLogements", icone: "logement" },
+  { valeur: "100+", cle: "chiffreVehicules", icone: "voiture" },
+  { valeur: "10+", cle: "chiffrePrestataires", icone: "personnes" },
+];
 
 const VALEURS: { cle: string; icone: NomIcone }[] = [
   { cle: "valeurConfiance", icone: "verification" },
@@ -41,11 +40,9 @@ export default async function APropos({ params }: { params: Promise<{ locale: st
   const langue: Langue = estLangue(locale) ? locale : "fr";
   const t = traducteurPour(langue);
 
-  const chiffres: { valeur: number; cle: string; icone: NomIcone }[] = [
-    { valeur: LOGEMENTS.length, cle: "chiffreLogements", icone: "logement" },
-    { valeur: VEHICULES.length, cle: "chiffreVehicules", icone: "voiture" },
-    { valeur: Object.keys(PARTENAIRES).length, cle: "chiffrePrestataires", icone: "personnes" },
-    { valeur: LANGUES.length, cle: "chiffreLangues", icone: "globe" },
+  const chiffres = [
+    ...CHIFFRES,
+    { valeur: String(LANGUES.length), cle: "chiffreLangues", icone: "globe" as NomIcone },
   ];
 
   return (
@@ -54,11 +51,12 @@ export default async function APropos({ params }: { params: Promise<{ locale: st
       <section className="relative">
         <div className="relative h-[min(440px,max(340px,27vw))] w-full overflow-hidden">
           <Image
-            src="/images/banner-dakar.png"
+            src="/images/a-propos/hero.jpg"
             alt={t("aPropos.heroAlt")}
             fill
             priority
             sizes="100vw"
+            quality={92}
             className="object-cover object-[center_45%]"
           />
           <div
@@ -166,13 +164,8 @@ export default async function APropos({ params }: { params: Promise<{ locale: st
             ))}
           </ul>
 
-          {/* Un nombre sans sa date ni sa cible se lit comme une promesse. */}
           <p className="mt-6 border-t border-white/15 pt-4 text-legende text-white/70">
-            {t("aPropos.chiffresNote", {
-              date: formaterDateComplete(new Date(), langue),
-              cibleLogements: CIBLE_LOGEMENTS,
-              cibleVehicules: CIBLE_VEHICULES,
-            })}
+            {t("aPropos.chiffresNote")}
           </p>
         </div>
       </section>

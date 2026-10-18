@@ -35,8 +35,6 @@ const ATTENDUS = new Map([
   // Les favoris sont stockés sur l'appareil : résoudre une liste d'identifiants
   // demande un point d'entrée que l'API n'a pas encore.
   ["src/app/(langue)/[locale]/(visiteur)/compte/favoris/page.tsx", "favoris : résolution par liste d'identifiants à créer"],
-  // Compte le catalogue pour la page « en chiffres ».
-  ["src/app/(langue)/[locale]/(public)/a-propos/page.tsx", "décompte du catalogue"],
 ]);
 
 function fichiers(dossier) {
