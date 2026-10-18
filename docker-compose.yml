@@ -97,6 +97,16 @@ services:
       PORT: "3100"
       HOSTNAME: "0.0.0.0"
       API_URL: ${API_URL:-http://api-interne:3101}
+      # Mesure d'audience. Vides tant qu'Umami n'est pas configuré : le script
+      # n'est alors pas posé du tout. Elles doivent figurer **ici** et pas
+      # seulement dans l'environnement de Dokploy — une variable déclarée là-bas
+      # ne sert qu'à la substitution `${...}` de ce fichier, elle n'entre pas
+      # dans le conteneur si le service ne la nomme pas.
+      UMAMI_URL: ${UMAMI_URL:-}
+      UMAMI_SITE_ID: ${UMAMI_SITE_ID:-}
+      # Même valeur que celle donnée au conteneur Umami : c'est le chemin où il
+      # sert son script.
+      UMAMI_TRACKER_SCRIPT_NAME: ${UMAMI_TRACKER_SCRIPT_NAME:-mesure}
     expose:
       - "3100"
     healthcheck:
