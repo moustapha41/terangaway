@@ -44,7 +44,8 @@ function CarteService({ service }: { service: Service }) {
             alt=""
             fill
             sizes="(max-width: 640px) 100vw, 33vw"
-            className="object-cover"
+            quality={92}
+            className={`object-cover ${service.position ?? ""}`}
           />
         ) : (
           <div className="flex h-full items-center justify-center bg-teinte-bleu text-primaire/70">

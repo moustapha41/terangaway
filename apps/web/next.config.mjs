@@ -20,6 +20,15 @@ const nextConfig = {
   // Paquets de l'atelier publiés en TypeScript brut : Next les compile lui-même.
   transpilePackages: ["@teranga/ui", "@teranga/tokens", "@teranga/contracts", "@teranga/fixtures"],
   devIndicators: false,
+  /**
+   * Les qualités que l'optimiseur d'images accepte.
+   *
+   * 75 est le défaut de Next ; 82 et 92 servent aux photos déjà petites, que
+   * la recompression standard abîme visiblement. Next 16 **refusera** toute
+   * valeur non déclarée ici : sans cette liste, ces images-là cesseraient de
+   * s'afficher le jour de la mise à jour.
+   */
+  images: { qualities: [75, 82, 92] },
   // Sortie autonome pour l'image Docker : Next rassemble le serveur et les
   // seules dépendances qu'il a réellement tracées. Sans cela, il faudrait
   // embarquer tout le node_modules du dépôt.

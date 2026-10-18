@@ -19,18 +19,42 @@ import { creerDemandeServiceAction } from "./actions";
  * Aucun prix n'est affiché ni demandé : il n'y a rien à chiffrer tant que
  * l'équipe n'a pas trouvé. C'est dit à l'écran, pour que personne n'attende
  * un paiement qui ne viendra pas.
+ *
+ * `messageInitial` et `valeursInitiales` amorcent le formulaire. Ils servent
+ * aux pages qui arrivent avec un contexte — « un guide pour Gorée » depuis la
+ * galerie des sites, « papiers perdus » depuis la page d'assistance — pour que
+ * le visiteur n'ait pas à ressaisir ce qu'il vient de cliquer. Tout reste
+ * modifiable : ce sont des amorces, pas des valeurs imposées.
  */
-export function FormulaireDemandeService({ service }: { service: ServiceALaDemande }) {
+export function FormulaireDemandeService({
+  service,
+  messageInitial = "",
+  valeursInitiales,
+}: {
+  service: ServiceALaDemande;
+  messageInitial?: string;
+  /** Valeurs de départ, par clé de champ. Les clés inconnues sont ignorées. */
+  valeursInitiales?: Record<string, string>;
+}) {
   const t = useT();
   const naviguer = useNaviguer();
 
   const declarations = CHAMPS[service];
   const [valeurs, setValeurs] = useState<Record<string, string>>(() =>
     Object.fromEntries(
-      declarations.map((c) => [c.cle, c.type === "nombre" ? "2" : c.valeurs?.[0] ?? ""]),
+      declarations.map((c) => {
+        // Une amorce ne vaut que si le champ la connaît : un « besoin » qui ne
+        // figure pas dans la déclaration afficherait un bouton sélectionné que
+        // le visiteur ne verrait nulle part.
+        const propose = valeursInitiales?.[c.cle];
+        const accepte =
+          propose !== undefined && (c.valeurs === undefined || c.valeurs.includes(propose));
+        if (accepte) return [c.cle, propose];
+        return [c.cle, c.type === "nombre" ? "2" : c.valeurs?.[0] ?? ""];
+      }),
     ),
   );
-  const [message, setMessage] = useState("");
+  const [message, setMessage] = useState(messageInitial);
   const [erreurs, setErreurs] = useState<Record<string, boolean>>({});
   const [envoi, setEnvoi] = useState<"repos" | "encours" | "fait" | "echec">("repos");
   const [motifEchec, setMotifEchec] = useState<string | null>(null);

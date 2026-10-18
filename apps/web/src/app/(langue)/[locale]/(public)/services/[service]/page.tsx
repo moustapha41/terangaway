@@ -13,8 +13,17 @@ import { traducteurPour } from "@/lib/i18n/messages";
  * depuis `SERVICES_A_LA_DEMANDE` : ajouter un service au contrat suffit à
  * ouvrir sa page, il n'y a pas de liste à tenir à jour en parallèle.
  */
+/** Les services qui ont leur propre page : la route statique l'emporte ici. */
+const PAGES_DEDIEES = new Set(["guides", "restauration", "assistance", "internet"]);
+
+/**
+ * Pré-générer un service qui a sa page produirait une page morte : Next sert
+ * toujours la route statique, jamais celle-ci.
+ */
 export function generateStaticParams() {
-  return SERVICES_A_LA_DEMANDE.map((service) => ({ service }));
+  return SERVICES_A_LA_DEMANDE.filter((service) => !PAGES_DEDIEES.has(service)).map((service) => ({
+    service,
+  }));
 }
 
 export default async function DemanderService({

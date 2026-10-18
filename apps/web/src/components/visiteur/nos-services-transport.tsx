@@ -2,35 +2,12 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { CalendarDays, Car, ChevronRight, Plane } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import { FeuilleBasse } from "@teranga/ui";
 import { BarreRechercheTransport } from "@/features/transport/barre-recherche-transport";
+import { SERVICES_TRANSPORT, type ServiceTransport } from "@/features/transport/services";
 import type { Langue } from "@/lib/i18n/langues";
 import { useT } from "@/lib/i18n/contexte";
-
-const SERVICES = [
-  {
-    cle: "transfert",
-    onglet: "transfert" as const,
-    image: "/images/hero-transport.png",
-    position: "object-[center_35%]",
-    icone: Plane,
-  },
-  {
-    cle: "chauffeur",
-    onglet: "chauffeur" as const,
-    image: "/images/service-transport.png",
-    position: "object-center",
-    icone: Car,
-  },
-  {
-    cle: "location",
-    onglet: "location" as const,
-    image: "/images/service-transport.png",
-    position: "object-[70%_center]",
-    icone: CalendarDays,
-  },
-] as const;
 
 /**
  * Grille des services de transport — maquette transport.
@@ -47,7 +24,7 @@ const SERVICES = [
 export function NosServicesTransport({ langue }: { langue: Langue }) {
   void langue;
   const t = useT();
-  const [ouvert, setOuvert] = useState<(typeof SERVICES)[number] | null>(null);
+  const [ouvert, setOuvert] = useState<ServiceTransport | null>(null);
 
   return (
     <section className="bg-fond">
@@ -56,8 +33,8 @@ export function NosServicesTransport({ langue }: { langue: Langue }) {
           {t("transport.services.titre")}
         </h2>
 
-        <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:mt-10 lg:grid-cols-4 lg:gap-5">
-          {SERVICES.map((service) => {
+        <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:mt-10 lg:grid-cols-3 lg:gap-5">
+          {SERVICES_TRANSPORT.map((service) => {
             const Icone = service.icone;
             return (
               <button
@@ -71,7 +48,8 @@ export function NosServicesTransport({ langue }: { langue: Langue }) {
                   src={service.image}
                   alt={t(`transport.services.${service.cle}Alt`)}
                   fill
-                  sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                  sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                  quality={92}
                   className={`object-cover transition-transform duration-500 group-hover:scale-[1.04] ${service.position}`}
                 />
 
@@ -124,7 +102,7 @@ export function NosServicesTransport({ langue }: { langue: Langue }) {
               {t(`transport.services.${ouvert.cle}Texte`)}
             </p>
 
-            <BarreRechercheTransport onglet={ouvert.onglet} nu />
+            <BarreRechercheTransport onglet={ouvert.cle} nu />
           </div>
         )}
       </FeuilleBasse>
