@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import "@fontsource-variable/inter";
 import "@/styles/globals.css";
 import { FournisseurLangue } from "@/lib/i18n/contexte";
+import { MesureAudience } from "@/components/layout/mesure-audience";
 import { BandeauHorsLigne } from "@/lib/hors-ligne/bandeau";
 import { EnregistrementServiceWorker } from "@/lib/hors-ligne/enregistrement";
 import { LANGUES, estLangue } from "@/lib/i18n/langues";
@@ -79,6 +80,7 @@ export default async function LayoutLangue({
           <BandeauHorsLigne />
           <div id="contenu">{children}</div>
           <EnregistrementServiceWorker />
+          <MesureAudience />
         </FournisseurLangue>
       </body>
     </html>

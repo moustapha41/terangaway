@@ -58,6 +58,8 @@ services:
       # Les adresses d'équipe qui ouvrent /admin. Vide, personne n'entre :
       # `pnpm db:seed` les promeut au rôle ADMINISTRATEUR.
       ADMIN_EMAILS: ${ADMIN_EMAILS:-}
+      # Voir .env.example : à n'ouvrir qu'avec le pare-feu restreint à Cloudflare.
+      DERRIERE_CLOUDFLARE: ${DERRIERE_CLOUDFLARE:-false}
       # Secret partagé avec le site pour /comptes/oauth/google. Laissé vide,
       # la route s'en remet au seul isolement du réseau interne.
       SECRET_OAUTH_INTERNE: ${SECRET_OAUTH_INTERNE:-}
@@ -103,6 +105,42 @@ services:
       timeout: 5s
       retries: 5
       start_period: 20s
+    networks:
+      - interne
+      - dokploy-network
+
+  # ─── Mesure d'audience ──────────────────────────────────────────────────────
+  #
+  # Umami plutôt que Google Analytics : sans cookie, donc **sans bandeau de
+  # consentement** (loi sénégalaise 2008-12, RGPD pour les visiteurs européens),
+  # et les données restent sur ce serveur. Plutôt que Plausible : celui-ci exige
+  # ClickHouse en plus, quand Umami se contente du PostgreSQL déjà là.
+  #
+  # Il vit dans son propre schéma de la base existante : aucune base à créer,
+  # aucun volume de plus, et une sauvegarde unique couvre tout.
+  umami:
+    image: docker.umami.is/umami-software/umami:postgresql-latest
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_TYPE: postgresql
+      DATABASE_URL: ${UMAMI_DATABASE_URL:-postgresql://${POSTGRES_USER:-teranga}:${POSTGRES_PASSWORD:-teranga}@postgres:5432/${POSTGRES_DB:-teranga}?schema=umami}
+      # Signe les jetons de session du tableau de bord. `openssl rand -hex 32`.
+      APP_SECRET: ${UMAMI_APP_SECRET}
+      # Le script s'appelle « script.js » par défaut, nom que les bloqueurs
+      # reconnaissent. Le renommer rend la mesure plus fidèle.
+      TRACKER_SCRIPT_NAME: ${UMAMI_TRACKER_SCRIPT_NAME:-mesure}
+      DISABLE_TELEMETRY: "1"
+    expose:
+      - "3000"
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"fetch('http://127.0.0.1:3000/api/heartbeat').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))\""]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
     networks:
       - interne
       - dokploy-network

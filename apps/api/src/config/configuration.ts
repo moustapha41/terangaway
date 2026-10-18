@@ -96,6 +96,19 @@ export function chargerConfiguration(env: NodeJS.ProcessEnv = process.env) {
     emailFrom: requisEnv("EMAIL_FROM", "Teranga Way <auth@teranga-way.com>"),
     appUrl: requisEnv("APP_URL", isProd ? "https://teranga-way.com" : "http://localhost:3000"),
     /**
+     * Le trafic arrive-t-il par Cloudflare ?
+     *
+     * Ouvert, l'API retient `CF-Connecting-IP` comme adresse du visiteur. Cet
+     * en-tête est posé par Cloudflare et **n'importe qui peut l'inventer** en
+     * frappant directement l'IP du serveur : ne l'ouvrir qu'une fois le
+     * pare-feu du VPS restreint aux plages de Cloudflare. Sans cela, on offre
+     * à l'attaquant le moyen de changer d'adresse à volonté, donc d'échapper
+     * à la limitation des codes.
+     *
+     * Fermé par défaut : une variable absente ne doit jamais ouvrir une porte.
+     */
+    derriereCloudflare: (env.DERRIERE_CLOUDFLARE ?? "").trim().toLowerCase() === "true",
+    /**
      * Les adresses qui ouvrent le backoffice, séparées par des virgules.
      *
      * Sur Postgres, c'est le rôle du compte qui fait foi : cette liste ne sert

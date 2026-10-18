@@ -1,5 +1,7 @@
 import type { Request } from "express";
 
+import { config } from "../../config/configuration";
+
 /**
  * Détermine si une adresse IP est privée, de bouclage local ou interne Docker (RFC 1918, RFC 4193).
  */
@@ -30,6 +32,27 @@ export function estIpPriveeOuInterne(ip: string): boolean {
  * (proxies internes Docker), et retient la première adresse IP externe légitime.
  */
 export function extraireIpClientSecurisee(req: Request): string {
+  /*
+   * Derrière Cloudflare, `X-Forwarded-For` ne désigne plus le visiteur.
+   *
+   * Traefik, qui ne fait pas confiance aux en-têtes entrants par défaut, le
+   * réécrit avec l'adresse de la socket — celle d'un nœud Cloudflare, qui est
+   * publique et survivrait donc au filtre « adresse privée » ci-dessous. Tous
+   * les visiteurs passant par le même nœud partageraient alors une identité :
+   * la limitation des codes OTP, qui compte par adresse, en bloquerait de
+   * vrais après quelques demandes.
+   *
+   * `CF-Connecting-IP` porte le visiteur réel. On ne le lit que si le
+   * déploiement déclare être derrière Cloudflare : cet en-tête s'invente en
+   * une ligne de curl pour qui atteint l'origine directement.
+   */
+  if (config.derriereCloudflare) {
+    const cloudflare = req.headers["cf-connecting-ip"];
+    if (typeof cloudflare === "string" && cloudflare.trim()) {
+      return cloudflare.trim().replace(/^::ffff:/, "");
+    }
+  }
+
   const xForwardedFor = req.headers["x-forwarded-for"];
   if (typeof xForwardedFor === "string" && xForwardedFor.trim()) {
     const ips = xForwardedFor.split(",").map((s) => s.trim().replace(/^::ffff:/, "")).filter(Boolean);

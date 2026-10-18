@@ -31,6 +31,11 @@ services:
     ports:
       - "3100:3100"
 
+  umami:
+    ports:
+      # Tableau de bord d'audience sur http://localhost:3102
+      - "3102:3000"
+
 networks:
   # En local, personne n'a installé Dokploy : le réseau est créé à la volée.
   dokploy-network:
