@@ -8,6 +8,7 @@ import { Lien } from "@/lib/i18n/lien";
 import { useLangue, useT } from "@/lib/i18n/contexte";
 import { formaterPrix, prixAffiche } from "@/lib/prix";
 import { useFavoris } from "@/features/favoris/use-favoris";
+import { situation } from "@/lib/lieu";
 
 /**
  * Carte de résultat, format liste — maquette du parcours logement, écran 02.
@@ -74,7 +75,7 @@ export function CarteLogementListe({
                 </Lien>
               </h3>
               <p className="mt-0.5 text-petit text-encre-douce">
-                {logement.quartier}, {logement.ville}
+                {situation(logement)}
               </p>
 
               {logement.note !== undefined && (

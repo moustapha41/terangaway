@@ -8,6 +8,7 @@ import { PrixConverti } from "@/features/preferences/prix-converti";
 import { Lien } from "@/lib/i18n/lien";
 import { useLangue, useT } from "@/lib/i18n/contexte";
 import { formaterPrix, prixAffiche } from "@/lib/prix";
+import { situation } from "@/lib/lieu";
 
 /**
  * Mes favoris — maquette de l'espace client, écran mobile 5.
@@ -75,7 +76,7 @@ export function ListeFavoris({ catalogue }: { catalogue: Logement[] }) {
                   </p>
                   <p className="mt-0.5 flex items-center gap-1.5 text-petit text-encre-douce">
                     <Icone nom="repere" taille={16} />
-                    {logement.quartier}, {logement.ville}
+                    {situation(logement)}
                   </p>
                   <p className="mt-2 text-prix text-encre chiffres-tabulaires">
                     {formaterPrix(prixAffiche(logement).montant, langue)}

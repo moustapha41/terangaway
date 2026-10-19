@@ -3,8 +3,9 @@ import { Lien } from "@/lib/i18n/lien";
 import { traducteurPour } from "@/lib/i18n/messages";
 import type { Langue } from "@/lib/i18n/langues";
 import { formaterPrix, prixAffiche } from "@/lib/prix";
-import type { Equipement } from "@teranga/contracts";
+import type { Equipement, Logement } from "@teranga/contracts";
 import { logementParId } from "@/mocks/api";
+import { situation } from "@/lib/lieu";
 import {
   ArrowRight,
   BadgeCheck,
@@ -27,14 +28,30 @@ import {
  * les quatre cartes de la page d'accueil menaient à des 404.
  *
  * En lisant la source, la carte ne peut plus mentir ni mener nulle part.
+ *
+ * La sélection est choisie, pas prise dans l'ordre du catalogue : ces quatre-là
+ * ont les photos qui tiennent le mieux la vignette, et elles couvrent les
+ * quatre budgets et les quatre formats que la plateforme propose — une villa
+ * familiale à Saly, une villa à grande piscine à Nguérigne, un studio à
+ * 25 000 F, une villa de cinq chambres à Somone. Changer la vitrine, c'est
+ * changer cette ligne.
  */
-const MIS_EN_AVANT = ["l-001", "l-002", "l-003", "l-004"];
+const MIS_EN_AVANT = ["l-012", "l-019", "l-016", "l-009"];
 
 const ICONE_EQUIPEMENT: Partial<Record<Equipement, typeof Wifi>> = {
   piscine: Waves,
   climatisation: Snowflake,
   wifi: Wifi,
 };
+
+/**
+ * La photo de couverture : celle que le catalogue marque `principale`, et non
+ * la première venue. Les deux coïncident aujourd'hui, mais c'est la marque qui
+ * fait foi — réordonner une série de photos ne doit pas changer la vitrine.
+ */
+function couverture(logement: Logement) {
+  return logement.photos.find((photo) => photo.principale) ?? logement.photos[0];
+}
 
 export async function HebergementsRecommandes({ langue }: { langue: Langue }) {
   const t = traducteurPour(langue);
@@ -89,8 +106,8 @@ export async function HebergementsRecommandes({ langue }: { langue: Langue }) {
               <Lien href={`/logements/${logement.slug}`} className="group block">
                 <div className="relative aspect-[4/3] overflow-hidden">
                   <Image
-                    src={logement.photos[0].url}
-                    alt={logement.photos[0].alt}
+                    src={couverture(logement).url}
+                    alt={couverture(logement).alt}
                     fill
                     sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
                     className="object-cover transition-transform duration-500 group-hover:scale-[1.03]"
@@ -110,21 +127,28 @@ export async function HebergementsRecommandes({ langue }: { langue: Langue }) {
                     <h3 className="text-[16px] font-bold leading-snug text-nuit">
                       {logement.titre}
                     </h3>
-                    <span className="flex shrink-0 items-center gap-1 text-[13.5px] font-semibold text-nuit">
-                      <Star
-                        strokeWidth={0}
-                        className="h-3.5 w-3.5 fill-jaune-vif text-jaune-vif"
-                      />
-                      <span className="chiffres-tabulaires">{logement.note?.toLocaleString(langue, { minimumFractionDigits: 1 })}</span>
-                      <span className="font-normal text-gris">
-                        ({logement.nombreAvis})
+                    {/* Aucune offre du catalogue n'est encore notée : la place
+                        restait prise par une étoile suivie d'un « () » vide.
+                        Tant qu'il n'y a pas d'avis, le titre prend la ligne. */}
+                    {logement.note !== undefined && (
+                      <span className="flex shrink-0 items-center gap-1 text-[13.5px] font-semibold text-nuit">
+                        <Star
+                          strokeWidth={0}
+                          className="h-3.5 w-3.5 fill-jaune-vif text-jaune-vif"
+                        />
+                        <span className="chiffres-tabulaires">
+                          {logement.note.toLocaleString(langue, { minimumFractionDigits: 1 })}
+                        </span>
+                        <span className="font-normal text-gris">
+                          ({logement.nombreAvis ?? 0})
+                        </span>
                       </span>
-                    </span>
+                    )}
                   </div>
 
                   <p className="mt-2 flex items-center gap-1.5 text-[13.5px] text-gris">
                     <MapPin strokeWidth={1.8} className="h-3.5 w-3.5 shrink-0" />
-                    {`${logement.quartier}, ${logement.ville}`}
+                    {situation(logement)}
                   </p>
 
                   <ul className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12.5px] text-gris">

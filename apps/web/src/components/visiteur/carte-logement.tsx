@@ -5,6 +5,7 @@ import { Lien } from "@/lib/i18n/lien";
 import { traducteurPour } from "@/lib/i18n/messages";
 import type { Langue } from "@/lib/i18n/langues";
 import { formaterPrix, prixAffiche } from "@/lib/prix";
+import { situation } from "@/lib/lieu";
 
 /**
  * Carte logement — dossier de conception §C.3 : photo 4:3, badge vérifié, titre,
@@ -61,7 +62,7 @@ export function CarteLogement({
 
           <p className="mt-2 flex items-center gap-1.5 text-petit text-encre-douce">
             <Icone nom="repere" taille={16} className="shrink-0" />
-            {logement.quartier}, {logement.ville}
+            {situation(logement)}
           </p>
 
           {logement.note !== undefined ? (
