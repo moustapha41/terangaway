@@ -2,7 +2,7 @@ import Image from "next/image";
 import { Lien } from "@/lib/i18n/lien";
 import { traducteurPour } from "@/lib/i18n/messages";
 import type { Langue } from "@/lib/i18n/langues";
-import { formaterPrix } from "@/lib/prix";
+import { formaterPrix, prixAffiche } from "@/lib/prix";
 import type { Equipement } from "@teranga/contracts";
 import { logementParId } from "@/mocks/api";
 import {
@@ -154,10 +154,10 @@ export async function HebergementsRecommandes({ langue }: { langue: Langue }) {
 
                   <p className="mt-4 text-[17px] font-bold text-nuit">
                     <span className="chiffres-tabulaires">
-                      {formaterPrix(logement.prixParNuit, langue)}
+                      {formaterPrix(prixAffiche(logement).montant, langue)}
                     </span>
                     <span className="ml-1 text-[13.5px] font-normal text-gris">
-                      {t("commun.parNuit")}
+                      {t(prixAffiche(logement).cleUnite)}
                     </span>
                   </p>
                 </div>

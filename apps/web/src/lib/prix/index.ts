@@ -1,3 +1,4 @@
+import type { Logement } from "@teranga/contracts";
 import type { Langue } from "@/lib/i18n/langues";
 
 /**
@@ -22,6 +23,23 @@ export function formaterMontant(montant: number, langue: Langue): string {
     .format(Math.round(montant))
     // L'espace insécable étroit évite que le montant se coupe en fin de ligne.
     .replace(/[  ,.\s]/g, " ");
+}
+
+/**
+ * Le prix que le visiteur voit, et l'unité qui va avec.
+ *
+ * La plupart des logements se louent à la nuitée. Quelques appartements de
+ * Dakar ne se louent qu'au mois : leur `prixParNuit` n'est que le loyer divisé
+ * par trente, un chiffre de calcul que personne n'a annoncé. Afficher cette
+ * division reviendrait à inventer un tarif — c'est le loyer qui s'affiche, et
+ * l'unité change avec lui.
+ */
+export function prixAffiche(
+  logement: Pick<Logement, "prixParNuit" | "prixParMois" | "seulementAuMois">,
+  ): { montant: number; cleUnite: "commun.parNuit" | "commun.parMois" } {
+  return logement.seulementAuMois && logement.prixParMois !== undefined
+    ? { montant: logement.prixParMois, cleUnite: "commun.parMois" }
+    : { montant: logement.prixParNuit, cleUnite: "commun.parNuit" };
 }
 
 /** « 75 000 FCFA ». Jamais le montant seul. */

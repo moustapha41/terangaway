@@ -7,6 +7,28 @@ export interface Photo {
   principale?: boolean;
 }
 
+/**
+ * Une visite filmée.
+ *
+ * Plusieurs propriétaires n'ont envoyé qu'une vidéo WhatsApp : pas une photo.
+ * En extraire des images donne des vignettes utilisables, mais la visite elle-
+ * même en dit plus long qu'une poignée de trames floues — elle reste donc sur
+ * la fiche, à côté des photos qu'on en a tirées.
+ *
+ * La bande son est retirée au montage : le propriétaire y parle, et sa voix
+ * porte volontiers un numéro ou une adresse, que la fiche ne livre pas avant
+ * confirmation (§D.4).
+ */
+export interface VideoLogement {
+  url: string;
+  /** Image d'attente, affichée avant lecture : une trame de cette vidéo. */
+  poster: string;
+  /** Ce que la visite montre, pour qui ne peut pas la regarder. */
+  legende: string;
+  /** Durée en secondes, annoncée avant de lancer la lecture. */
+  duree: number;
+}
+
 export interface Partenaire {
   id: string;
   /** Prénom et initiale seulement tant que la demande n'est pas confirmée. */
@@ -55,6 +77,17 @@ export interface Logement {
   lits: number;
   sallesDeBain: number;
   prixParNuit: number;
+  /**
+   * Loyer mensuel annoncé par le propriétaire, quand il en annonce un.
+   *
+   * Certains appartements de Dakar ne se louent qu'au mois. Leur `prixParNuit`
+   * n'est alors que ce loyer divisé par trente : un chiffre de calcul, que
+   * personne n'a jamais demandé à la nuitée. `seulementAuMois` dit à l'écran
+   * d'afficher le loyer, et non cette division.
+   */
+  prixParMois?: number;
+  /** Le propriétaire ne loue qu'au mois : voir `prixParMois`. */
+  seulementAuMois?: true;
   fraisFixes?: { libelle: string; montant: number }[];
   sejourMinimum?: number;
   inclus: Inclus[];
@@ -63,6 +96,17 @@ export interface Logement {
   conditionsAnnulation: string;
   moyensDePaiement: MoyenDePaiement[];
   photos: Photo[];
+  /** Visites filmées envoyées par le propriétaire, quand il y en a. */
+  videos?: VideoLogement[];
+  /**
+   * Les « photos » ne sont que des trames de la visite filmée.
+   *
+   * Quelques propriétaires n'ont envoyé qu'une vidéo. On en tire des images
+   * pour les cartes et la recherche, qui ont besoin d'une vignette, mais la
+   * fiche montre alors **la visite** et non cette mosaïque de trames floues :
+   * c'est le document d'origine, et il en dit bien plus long.
+   */
+  photosDeLaVisite?: true;
   description: string;
   partenaire: Partenaire;
   /**

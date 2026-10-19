@@ -4,6 +4,7 @@ import { Bandeau, Icone, type NomIcone } from "@teranga/ui";
 import { EnTeteSession } from "@/components/layout/en-tete-session";
 import { CarteHote } from "@/components/visiteur/carte-hote";
 import { GalerieMosaique } from "@/components/visiteur/galerie-mosaique";
+import { VisiteFilmee } from "@/components/visiteur/visite-filmee";
 import { EncadreReservation } from "@/features/logement/encadre-reservation";
 import { OngletsFiche } from "@/features/logement/onglets-fiche";
 import { Lien } from "@/lib/i18n/lien";
@@ -42,6 +43,9 @@ export default async function FicheLogement({
   const personnes = Number(recherche.personnes ?? 2);
   const avis = await avisLogement(slug, logement.nombreAvis ?? 0);
 
+  const visiteSeule =
+    logement.photosDeLaVisite === true && (logement.videos?.length ?? 0) > 0;
+
   return (
     <main className="bg-page pb-[calc(200px+env(safe-area-inset-bottom))] lg:pb-16">
       <EnTeteSession />
@@ -59,7 +63,13 @@ export default async function FicheLogement({
           <span className="text-encre">{logement.titre}</span>
         </nav>
 
-        <GalerieMosaique photos={logement.photos} logementId={logement.id} verifie={logement.verifie} />
+        {/* Quand les « photos » ne sont que des trames de la visite, c'est la
+            visite qui occupe la place : la mosaïque n'apporterait rien. */}
+        {visiteSeule ? (
+          <VisiteFilmee videos={logement.videos!} langue={langue} principale />
+        ) : (
+          <GalerieMosaique photos={logement.photos} logementId={logement.id} verifie={logement.verifie} />
+        )}
 
         <div className="mt-8 grid gap-8 lg:grid-cols-[1.6fr_1fr] lg:items-start">
           <div className="min-w-0 space-y-8">
@@ -111,6 +121,10 @@ export default async function FicheLogement({
                 </li>
               ))}
             </ul>
+
+            {!visiteSeule && logement.videos && logement.videos.length > 0 && (
+              <VisiteFilmee videos={logement.videos} langue={langue} />
+            )}
 
             <OngletsFiche logement={logement} avis={avis} />
 

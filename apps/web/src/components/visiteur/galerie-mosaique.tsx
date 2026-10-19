@@ -28,14 +28,52 @@ export function GalerieMosaique({
   const { estFavori, basculer } = useFavoris();
   const [courante, setCourante] = useState(0);
   const [pleinEcran, setPleinEcran] = useState<number | null>(null);
+  /** La photo réellement sous les yeux en plein écran : le défilement la déplace. */
+  const [vue, setVue] = useState(0);
   const dialogue = useRef<HTMLDialogElement>(null);
+  const bande = useRef<HTMLUListElement>(null);
 
   useEffect(() => {
     const element = dialogue.current;
     if (!element) return;
-    if (pleinEcran !== null && !element.open) element.showModal();
-    if (pleinEcran === null && element.open) element.close();
+    if (pleinEcran === null) {
+      if (element.open) element.close();
+      return;
+    }
+    if (!element.open) element.showModal();
+
+    /**
+     * Amener la photo choisie sous les yeux.
+     *
+     * Sans cela, la bande reste à son point de départ et le plein écran semble
+     * figé sur la première image, quelle que soit la vignette cliquée. On
+     * attend une image d'animation : avant l'ouverture, la boîte n'a pas de
+     * largeur, et un défilement de zéro pixel ne mène nulle part.
+     */
+    const image = requestAnimationFrame(() => {
+      const liste = bande.current;
+      if (!liste) return;
+      liste.scrollLeft = pleinEcran * liste.clientWidth;
+      setVue(pleinEcran);
+    });
+    return () => cancelAnimationFrame(image);
   }, [pleinEcran]);
+
+  /** Le défilement fait foi : c'est lui qui dit quelle photo est visible. */
+  const suivreDefilement = () => {
+    const liste = bande.current;
+    if (!liste || liste.clientWidth === 0) return;
+    const index = Math.round(liste.scrollLeft / liste.clientWidth);
+    setVue(Math.min(Math.max(index, 0), photos.length - 1));
+  };
+
+  const defiler = (pas: number) => {
+    const liste = bande.current;
+    if (!liste) return;
+    const cible = Math.min(Math.max(vue + pas, 0), photos.length - 1);
+    liste.scrollTo({ left: cible * liste.clientWidth, behavior: "smooth" });
+    setVue(cible);
+  };
 
   const favori = estFavori(logementId);
   const vignettes = photos.slice(1, 5);
@@ -136,7 +174,15 @@ export function GalerieMosaique({
       {/* plein écran */}
       <dialog
         ref={dialogue}
-        onClose={() => setPleinEcran(null)}
+        onClose={() => {
+          // En sortant, la grande photo de la mosaïque reprend là où on en était.
+          setCourante(vue);
+          setPleinEcran(null);
+        }}
+        onKeyDown={(evenement) => {
+          if (evenement.key === "ArrowRight") defiler(1);
+          if (evenement.key === "ArrowLeft") defiler(-1);
+        }}
         className="m-0 h-full max-h-none w-full max-w-none bg-primaire/95 p-0 backdrop:bg-primaire/80"
       >
         <button
@@ -148,13 +194,43 @@ export function GalerieMosaique({
           <Icone nom="fermeture" taille={24} />
         </button>
 
-        <ul className="flex h-full snap-x snap-mandatory items-center overflow-x-auto">
+        <ul
+          ref={bande}
+          onScroll={suivreDefilement}
+          className="flex h-full snap-x snap-mandatory items-center overflow-x-auto"
+        >
           {photos.map((photo, i) => (
             <li key={photo.url + i} className="relative h-[80%] w-full shrink-0 snap-start">
-              <Image src={photo.url} alt={photo.alt} fill sizes="100vw" className="object-contain" />
+              <Image
+                src={photo.url}
+                alt={photo.alt}
+                fill
+                sizes="100vw"
+                // Les voisines sont préparées, le reste attend d'être demandé :
+                // une fiche de quarante photos ne se télécharge pas d'un bloc.
+                priority={pleinEcran !== null && Math.abs(i - vue) <= 1}
+                loading={pleinEcran !== null && Math.abs(i - vue) <= 1 ? "eager" : "lazy"}
+                className="object-contain"
+              />
             </li>
           ))}
         </ul>
+
+        {photos.length > 1 && (
+          <>
+            <Fleche cote="gauche" etiquette={t("fiche.photoPrecedente")} onClick={() => defiler(-1)} />
+            <Fleche cote="droite" etiquette={t("fiche.photoSuivante")} onClick={() => defiler(1)} />
+            <p
+              aria-live="polite"
+              className="absolute bottom-14 left-1/2 -translate-x-1/2 rounded-pill bg-nuit/70 px-4 py-1.5 text-petit font-semibold text-white chiffres-tabulaires"
+            >
+              {t("fiche.photoCompteur", { index: vue + 1, total: photos.length })}
+            </p>
+            <p className="absolute bottom-5 left-1/2 max-w-[70vw] -translate-x-1/2 text-center text-legende text-white/80">
+              {photos[vue].alt}
+            </p>
+          </>
+        )}
       </dialog>
     </>
   );

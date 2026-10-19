@@ -7,7 +7,7 @@ import { useFavoris } from "@/features/favoris/use-favoris";
 import { PrixConverti } from "@/features/preferences/prix-converti";
 import { Lien } from "@/lib/i18n/lien";
 import { useLangue, useT } from "@/lib/i18n/contexte";
-import { formaterPrix } from "@/lib/prix";
+import { formaterPrix, prixAffiche } from "@/lib/prix";
 
 /**
  * Mes favoris — maquette de l'espace client, écran mobile 5.
@@ -78,12 +78,12 @@ export function ListeFavoris({ catalogue }: { catalogue: Logement[] }) {
                     {logement.quartier}, {logement.ville}
                   </p>
                   <p className="mt-2 text-prix text-encre chiffres-tabulaires">
-                    {formaterPrix(logement.prixParNuit, langue)}
+                    {formaterPrix(prixAffiche(logement).montant, langue)}
                     <span className="ml-1 text-petit font-normal text-encre-douce">
-                      {t("commun.parNuit")}
+                      {t(prixAffiche(logement).cleUnite)}
                     </span>
                   </p>
-                  <PrixConverti montant={logement.prixParNuit} />
+                  <PrixConverti montant={prixAffiche(logement).montant} />
                 </div>
 
                 <button

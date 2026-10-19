@@ -4,6 +4,8 @@
     "baseline": "Alojamientos y transportes verificados en Senegal",
     "verifie": "Verificado",
     "parNuit": "/ noche",
+    "parMois": "/ mes",
+    "visiteFilmee": "Visita en vídeo",
     "enSavoirPlus": "Saber más",
     "avis": {
       "one": "{nombre} opinión",
@@ -773,7 +775,11 @@
     "aucunPaiement": "Ningún pago en línea",
     "localisationTexte": "Se indica el barrio; la dirección exacta se le facilita tras su confirmación.",
     "aucunAvis": "Todavía no hay opiniones de este alojamiento.",
-    "noteSur": "{note} de 5"
+    "noteSur": "{note} de 5",
+    "visiteTitre": "La visita en vídeo",
+    "visiteSansSon": "Enviada por el propietario, sin sonido.",
+    "visiteDuree": "Visita de {duree}",
+    "sejourAuMois": "Alquilado por meses, estancia mínima de {nuits}."
   },
   "inclusLibelle": {
     "eau": "Agua",

@@ -4,7 +4,7 @@ import { BadgeVerifie, Carte, Icone, Squelette } from "@teranga/ui";
 import { Lien } from "@/lib/i18n/lien";
 import { traducteurPour } from "@/lib/i18n/messages";
 import type { Langue } from "@/lib/i18n/langues";
-import { formaterPrix } from "@/lib/prix";
+import { formaterPrix, prixAffiche } from "@/lib/prix";
 
 /**
  * Carte logement — dossier de conception §C.3 : photo 4:3, badge vérifié, titre,
@@ -43,6 +43,14 @@ export function CarteLogement({
           <span className="absolute bottom-3 left-3">
             <BadgeVerifie libelle={t("commun.verifie")} />
           </span>
+          {/* Le propriétaire n'a envoyé qu'une vidéo : autant le dire avant le
+              clic, la fiche montrera autre chose qu'une série de photos. */}
+          {logement.videos && logement.videos.length > 0 && (
+            <span className="absolute right-3 top-3 inline-flex items-center gap-1.5 rounded-pill bg-surface/95 px-2.5 py-1 text-legende font-semibold text-primaire">
+              <Icone nom="visite" taille={16} />
+              {t("commun.visiteFilmee")}
+            </span>
+          )}
         </div>
 
         <div className="p-4">
@@ -79,9 +87,9 @@ export function CarteLogement({
 
           {/* « Un prix n'apparaît jamais sans son unité » (§C.4). */}
           <p className="mt-4 text-prix text-encre chiffres-tabulaires">
-            {formaterPrix(logement.prixParNuit, langue)}
+            {formaterPrix(prixAffiche(logement).montant, langue)}
             <span className="ml-1 text-petit font-normal text-encre-douce">
-              {t("commun.parNuit")}
+              {t(prixAffiche(logement).cleUnite)}
             </span>
           </p>
         </div>

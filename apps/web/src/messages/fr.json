@@ -4,6 +4,8 @@
     "baseline": "Logements et transports vérifiés au Sénégal",
     "verifie": "Vérifié",
     "parNuit": "/ nuit",
+    "parMois": "/ mois",
+    "visiteFilmee": "Visite filmée",
     "enSavoirPlus": "En savoir plus",
     "avis": {
       "one": "{nombre} avis",
@@ -773,7 +775,11 @@
     "aucunPaiement": "Aucun paiement en ligne",
     "localisationTexte": "Le quartier est indiqué ; l'adresse exacte vous est donnée après votre confirmation.",
     "aucunAvis": "Pas encore d'avis pour ce logement.",
-    "noteSur": "{note} sur 5"
+    "noteSur": "{note} sur 5",
+    "visiteTitre": "La visite filmée",
+    "visiteSansSon": "Envoyée par le propriétaire, sans bande son.",
+    "visiteDuree": "Visite de {duree}",
+    "sejourAuMois": "Loué au mois, séjour minimum de {nuits}."
   },
   "inclusLibelle": {
     "eau": "Eau",

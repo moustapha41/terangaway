@@ -7,7 +7,7 @@ import { Icone } from "@teranga/ui";
 import { CarteTuiles } from "@/lib/carte/carte-tuiles";
 import { Lien } from "@/lib/i18n/lien";
 import { useLangue, useT } from "@/lib/i18n/contexte";
-import { formaterMontant, formaterPrix } from "@/lib/prix";
+import { formaterMontant, formaterPrix, prixAffiche } from "@/lib/prix";
 
 /**
  * Vue carte des résultats — maquette écran 07.
@@ -41,7 +41,7 @@ export function VueCarte({
           id: logement.id,
           latitude: logement.position!.latitude,
           longitude: logement.position!.longitude,
-          libelle: `${formaterMontant(Math.round(logement.prixParNuit / 1000), langue)}K`,
+          libelle: `${formaterMontant(Math.round(prixAffiche(logement).montant / 1000), langue)}K`,
           actif: logement.id === choisi,
           onClick: () => setChoisi((id) => (id === logement.id ? null : logement.id)),
         }))}
@@ -70,8 +70,8 @@ export function VueCarte({
                 {actif.quartier}, {actif.ville}
               </p>
               <p className="mt-1.5 text-petit font-semibold text-encre chiffres-tabulaires">
-                {formaterPrix(actif.prixParNuit, langue)}
-                <span className="ml-1 font-normal text-encre-douce">{t("commun.parNuit")}</span>
+                {formaterPrix(prixAffiche(actif).montant, langue)}
+                <span className="ml-1 font-normal text-encre-douce">{t(prixAffiche(actif).cleUnite)}</span>
               </p>
             </div>
 

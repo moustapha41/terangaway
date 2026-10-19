@@ -6,7 +6,7 @@ import type { Logement } from "@teranga/contracts";
 import { Icone } from "@teranga/ui";
 import { Lien } from "@/lib/i18n/lien";
 import { useLangue, useT } from "@/lib/i18n/contexte";
-import { formaterPrix } from "@/lib/prix";
+import { formaterPrix, prixAffiche } from "@/lib/prix";
 import { useFavoris } from "@/features/favoris/use-favoris";
 
 /**
@@ -123,9 +123,9 @@ export function CarteLogementListe({
 
           <div className="mt-4 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
             <p className="text-prix text-encre chiffres-tabulaires">
-              {formaterPrix(logement.prixParNuit, langue)}
+              {formaterPrix(prixAffiche(logement).montant, langue)}
               <span className="ml-1 text-petit font-normal text-encre-douce">
-                {t("commun.parNuit")}
+                {t(prixAffiche(logement).cleUnite)}
               </span>
             </p>
             <p className="text-petit text-encre-douce chiffres-tabulaires">

@@ -4,6 +4,8 @@
     "baseline": "Verified stays and transport in Senegal",
     "verifie": "Verified",
     "parNuit": "/ night",
+    "parMois": "/ month",
+    "visiteFilmee": "Video tour",
     "enSavoirPlus": "Find out more",
     "avis": {
       "one": "{nombre} review",
@@ -773,7 +775,11 @@
     "aucunPaiement": "No online payment",
     "localisationTexte": "The area is shown; the exact address is given to you after you confirm.",
     "aucunAvis": "No reviews for this place yet.",
-    "noteSur": "{note} out of 5"
+    "noteSur": "{note} out of 5",
+    "visiteTitre": "The video tour",
+    "visiteSansSon": "Sent by the owner, without sound.",
+    "visiteDuree": "{duree} tour",
+    "sejourAuMois": "Rented by the month, minimum stay {nuits}."
   },
   "inclusLibelle": {
     "eau": "Water",
