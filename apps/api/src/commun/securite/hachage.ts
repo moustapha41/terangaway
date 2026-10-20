@@ -179,6 +179,44 @@ const SCRYPT_MAXMEM = 64 * 1024 * 1024;
 export const LONGUEUR_MINIMALE_MOT_DE_PASSE = 10;
 
 /**
+ * Un mot de passe provisoire, lisible à voix haute et impossible à deviner.
+ *
+ * Il part par e-mail à l'issue d'une demande envoyée sans compte : il sera donc
+ * recopié à la main, parfois depuis un téléphone. D'où l'alphabet sans `0`, `O`,
+ * `1`, `I` ni `l` — les quatre confusions qui font échouer une saisie — et les
+ * groupes de quatre séparés par des traits.
+ *
+ * Seize caractères sur un alphabet de trente et un : près de quatre-vingts
+ * bits, très au-delà de ce qu'une attaque en ligne peut parcourir — et la
+ * connexion est de toute façon limitée en débit.
+ *
+ * Les octets au-delà du dernier multiple entier de l'alphabet sont rejetés
+ * plutôt que repliés par un modulo : un reste mal réparti favoriserait les
+ * premières lettres, et ce n'est pas du hasard qu'on veut presque.
+ */
+const ALPHABET_LISIBLE = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+
+export function genererMotDePasseProvisoire(longueur = 16): string {
+  const plafond = 256 - (256 % ALPHABET_LISIBLE.length);
+  const lettres: string[] = [];
+
+  while (lettres.length < longueur) {
+    for (const octet of randomBytes(longueur)) {
+      if (octet >= plafond) continue;
+      lettres.push(ALPHABET_LISIBLE[octet % ALPHABET_LISIBLE.length]);
+      if (lettres.length === longueur) break;
+    }
+  }
+
+  // Des groupes de quatre : c'est ainsi qu'on recopie un code sans se perdre.
+  const groupes: string[] = [];
+  for (let debut = 0; debut < longueur; debut += 4) {
+    groupes.push(lettres.slice(debut, debut + 4).join(""));
+  }
+  return groupes.join("-");
+}
+
+/**
  * Hache un mot de passe avec un sel aléatoire propre à ce mot de passe.
  *
  * Le sel est tiré au hasard à chaque appel : deux comptes ayant choisi le même

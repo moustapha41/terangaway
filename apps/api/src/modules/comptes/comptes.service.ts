@@ -6,6 +6,7 @@ import { ServiceEmail } from "../../commun/email/email.service";
 import { DEPOT_COMPTES } from "../../commun/depots/depot";
 import { ErreurMetier } from "../../commun/erreurs";
 import {
+  genererMotDePasseProvisoire,
   hacherMotDePasse,
   LONGUEUR_MINIMALE_MOT_DE_PASSE,
   motDePasseAcceptable,
@@ -35,6 +36,20 @@ const EMAIL_VALIDE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
  * personnelle qu'on n'a pas à divulguer.
  */
 const IDENTIFIANTS_REFUSES = "L'adresse e-mail ou le mot de passe ne correspond pas.";
+
+/**
+ * Qui envoie une demande, et ce qu'il faut lui écrire.
+ *
+ * `identifiants` n'est rempli qu'une fois : au moment précis où le compte
+ * vient d'être créé. Le mot de passe en clair n'existe que le temps de l'aller
+ * jusqu'à l'e-mail de confirmation ; il n'est ni stocké, ni journalisé, ni
+ * renvoyé au navigateur.
+ */
+export interface VisiteurDeDemande {
+  compteId: string;
+  email?: string;
+  identifiants?: { email: string; motDePasse: string };
+}
 
 @Injectable()
 export class ServiceComptes {
@@ -348,20 +363,41 @@ export class ServiceComptes {
   async visiteurPourDemande(
     jeton?: string,
     contact?: { email?: string; nom?: string; telephone?: string },
-  ): Promise<string> {
+  ): Promise<VisiteurDeDemande> {
     if (jeton) {
       const identite = await this.exigerVisiteur(jeton).catch(() => null);
-      if (identite) return identite;
+      if (identite) {
+        const session = await this.depot.sessionVisiteur(
+          jeton.startsWith("Bearer ") ? jeton.slice(7).trim() : jeton.trim(),
+        );
+        return { compteId: identite, email: session?.email ?? contact?.email?.trim() };
+      }
     }
 
     const email = contact?.email?.trim();
     if (email) {
-      const compte = await this.depot.visiteurDeContact({
+      // Le mot de passe n'est engendré que si l'adresse est inconnue : il part
+      // avec l'e-mail de confirmation, et c'est le seul moment où il existe en
+      // clair. Un compte déjà là garde le sien — remplacer le mot de passe de
+      // quelqu'un sur une simple demande reviendrait à lui prendre son compte.
+      const connu = await this.depot.compteParEmail(email);
+      const motDePasse = connu ? undefined : genererMotDePasseProvisoire();
+
+      const { compte, creeMaintenant } = await this.depot.visiteurDeContact({
         email,
         nom: contact?.nom,
         telephone: contact?.telephone,
+        motDePasseHash: motDePasse ? hacherMotDePasse(motDePasse) : undefined,
       });
-      return compte.id;
+
+      return {
+        compteId: compte.id,
+        email: compte.email ?? email,
+        identifiants:
+          creeMaintenant && motDePasse
+            ? { email: compte.email ?? email, motDePasse }
+            : undefined,
+      };
     }
 
     throw new ErreurMetier(
@@ -660,12 +696,22 @@ export class ServiceComptes {
 
     // Mot de passe bon mais adresse jamais confirmée : on le dit, pour pouvoir
     // renvoyer la personne vers la vérification plutôt que la laisser bloquée.
+    //
+    // Sauf si ce mot de passe est celui que nous avons engendré et expédié à
+    // cette adresse à l'issue d'une demande : s'en servir, c'est avoir relevé
+    // la boîte, et c'est précisément la preuve qu'attendait la vérification.
+    // Le refuser condamnerait l'e-mail que nous venons d'écrire.
     if (!compte.estVerifie) {
-      throw new ErreurMetier(
-        "COMPTE_NON_VERIFIE",
-        "Votre adresse e-mail n'est pas encore confirmée. Vérifiez votre compte pour continuer.",
-        HttpStatus.FORBIDDEN,
-      );
+      if (!compte.motDePasseProvisoire) {
+        throw new ErreurMetier(
+          "COMPTE_NON_VERIFIE",
+          "Votre adresse e-mail n'est pas encore confirmée. Vérifiez votre compte pour continuer.",
+          HttpStatus.FORBIDDEN,
+        );
+      }
+      // L'adresse est prouvée à l'instant : le compte s'active, et le mot de
+      // passe cesse d'être provisoire.
+      await this.depot.activerCompte(compte.id);
     }
 
     for (const cle of cles) this.limiteurConnexion.reinitialiser(cle);

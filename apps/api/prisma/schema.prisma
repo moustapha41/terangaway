@@ -56,6 +56,16 @@ model Account {
   /// continuent de se connecter par code à usage unique. `NULL` veut dire
   /// « ce compte n'a pas de mot de passe », jamais « mot de passe vide ».
   motDePasseHash String?
+
+  /// Ce mot de passe a-t-il été engendré par nous et envoyé par e-mail ?
+  ///
+  /// Une demande envoyée sans compte ouvre un compte et expédie des
+  /// identifiants à l'adresse saisie. Tant que personne ne s'en est servi,
+  /// l'adresse n'est pas prouvée — d'où `estVerifie: false` — mais le mot de
+  /// passe doit tout de même ouvrir la porte, sans quoi l'e-mail ne servirait
+  /// à rien. Ce drapeau est exactement cette exception, et il retombe à la
+  /// première connexion : la boîte a alors été relevée, l'adresse est prouvée.
+  motDePasseProvisoire Boolean @default(false)
   charteSigneeLe DateTime?
   creeLe         DateTime       @default(now())
   misAJourLe     DateTime       @updatedAt

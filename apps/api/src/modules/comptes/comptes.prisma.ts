@@ -26,6 +26,22 @@ import type {
   VerificationRateLimit,
 } from "./comptes.depot";
 
+/**
+ * Les colonnes d'un compte vues du dehors — et pas une de plus.
+ *
+ * Une seule liste, partagée : le jour où un champ manque ici, `resumer` le
+ * remplace par sa valeur par défaut sans rien dire, et une règle entière se
+ * met à décider sur une donnée absente. C'est arrivé à `motDePasseProvisoire`.
+ */
+const SELECTION_RESUME = {
+  id: true,
+  email: true,
+  nom: true,
+  estVerifie: true,
+  motDePasseHash: true,
+  motDePasseProvisoire: true,
+} as const;
+
 @Injectable()
 export class DepotComptesPrisma implements DepotComptes {
   constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
@@ -512,7 +528,7 @@ export class DepotComptesPrisma implements DepotComptes {
 
     const compte = await this.prisma.account.findUnique({
       where: { email: normalise },
-      select: { id: true, email: true, nom: true, estVerifie: true, motDePasseHash: true },
+      select: SELECTION_RESUME,
     });
     if (!compte) return null;
 
@@ -546,7 +562,7 @@ export class DepotComptesPrisma implements DepotComptes {
         typeCompte: "VISITEUR",
         estVerifie: false,
       },
-      select: { id: true, email: true, nom: true, estVerifie: true, motDePasseHash: true },
+      select: SELECTION_RESUME,
     });
 
     return this.resumer(compte);
@@ -569,8 +585,10 @@ export class DepotComptesPrisma implements DepotComptes {
   async activerCompte(compteId: string): Promise<CompteResume> {
     const compte = await this.prisma.account.update({
       where: { id: compteId },
-      data: { estVerifie: true, verifieLe: new Date() },
-      select: { id: true, email: true, nom: true, estVerifie: true, motDePasseHash: true },
+      // Le drapeau « provisoire » retombe ici : l'adresse est prouvée, le mot
+      // de passe cesse d'être une exception et redevient un mot de passe.
+      data: { estVerifie: true, verifieLe: new Date(), motDePasseProvisoire: false },
+      select: SELECTION_RESUME,
     });
     return this.resumer(compte);
   }
@@ -581,7 +599,8 @@ export class DepotComptesPrisma implements DepotComptes {
     email: string;
     nom?: string;
     telephone?: string;
-  }): Promise<CompteResume> {
+    motDePasseHash?: string;
+  }): Promise<{ compte: CompteResume; creeMaintenant: boolean }> {
     const email = normaliserDestination(contact.email);
     const nom = contact.nom?.trim().slice(0, 120) || undefined;
     // Les chiffres seulement, comme partout ailleurs. Une saisie trop courte
@@ -589,28 +608,47 @@ export class DepotComptesPrisma implements DepotComptes {
     const chiffres = contact.telephone ? normaliserTelephone(contact.telephone) : "";
     const telephone = chiffres.length >= 6 ? chiffres : undefined;
 
-    const selection = {
-      id: true,
-      email: true,
-      nom: true,
-      estVerifie: true,
-      motDePasseHash: true,
-    } as const;
-
-    // Ni `estVerifie`, ni `verifieLe` : une demande n'est pas une preuve que
-    // l'on relève cette boîte. Le compte créé ici reste un carnet d'adresses.
-    const compte = await this.prisma.account.upsert({
+    const existant = await this.prisma.account.findUnique({
       where: { email },
-      update: {},
-      create: {
-        email,
-        nom,
-        role: "VISITEUR",
-        typeCompte: "VISITEUR",
-        estVerifie: false,
-      },
-      select: selection,
+      select: SELECTION_RESUME,
     });
+
+    // `create` et non `upsert` : il faut savoir si ce compte vient de naître,
+    // et un `upsert` ne le dit pas. La collision est rattrapée plus bas — deux
+    // demandes simultanées sur la même adresse ne doivent pas en perdre une.
+    //
+    // Ni `estVerifie`, ni `verifieLe` : une demande n'est pas une preuve que
+    // l'on relève cette boîte. Ce qui la prouvera, c'est l'usage du mot de
+    // passe expédié à cette adresse.
+    let compte = existant;
+    let creeMaintenant = false;
+
+    if (!compte) {
+      try {
+        compte = await this.prisma.account.create({
+          data: {
+            email,
+            nom,
+            role: "VISITEUR",
+            typeCompte: "VISITEUR",
+            estVerifie: false,
+            motDePasseHash: contact.motDePasseHash,
+            motDePasseProvisoire: Boolean(contact.motDePasseHash),
+          },
+          select: SELECTION_RESUME,
+        });
+        creeMaintenant = true;
+      } catch {
+        // Quelqu'un a créé le compte entre la lecture et l'écriture : on le
+        // relit, et il n'est pas « créé maintenant » de notre fait.
+        compte = await this.prisma.account.findUnique({
+          where: { email },
+          select: SELECTION_RESUME,
+        });
+      }
+    }
+
+    if (!compte) throw new Error(`Compte de contact introuvable pour ${email}`);
 
     if (nom) await this.renseignerNomSiVide(compte.id, nom);
     if (telephone) await this.renseignerTelephoneSiVide(compte.id, telephone);
@@ -619,9 +657,9 @@ export class DepotComptesPrisma implements DepotComptes {
     // posé, pas celui d'avant.
     const relu = await this.prisma.account.findUnique({
       where: { id: compte.id },
-      select: selection,
+      select: SELECTION_RESUME,
     });
-    return this.resumer(relu ?? compte);
+    return { compte: this.resumer(relu ?? compte), creeMaintenant };
   }
 
   /**
@@ -659,6 +697,7 @@ export class DepotComptesPrisma implements DepotComptes {
     nom: string | null;
     estVerifie: boolean;
     motDePasseHash: string | null;
+    motDePasseProvisoire?: boolean;
   }): CompteResume {
     return {
       id: compte.id,
@@ -666,6 +705,7 @@ export class DepotComptesPrisma implements DepotComptes {
       nom: compte.nom,
       estVerifie: compte.estVerifie,
       aUnMotDePasse: Boolean(compte.motDePasseHash),
+      motDePasseProvisoire: compte.motDePasseProvisoire ?? false,
     };
   }
 }

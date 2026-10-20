@@ -843,6 +843,8 @@
     "titre": "Votre demande est envoyée",
     "reference": "Référence {reference}",
     "prochaineEtape": "Votre hôte répond en général en moins d'une heure. Vous serez prévenu à chaque changement.",
+    "emailEnvoye": "Un e-mail de confirmation vient de partir vers votre adresse, avec votre référence.",
+    "emailIdentifiants": "Si vous n'aviez pas encore de compte, il contient aussi vos identifiants pour suivre vos demandes.",
     "voirMaDemande": "Voir ma demande",
     "retourAccueil": "Revenir à l'accueil"
   },

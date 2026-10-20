@@ -3,6 +3,7 @@ import { Resend } from "resend";
 
 import { config } from "../../config/configuration";
 import { ErreurMetier } from "../erreurs";
+import { genererEmailDemande, type DetailsDemande } from "./modeles/demande.modele";
 import { genererEmailOtp } from "./modeles/otp.modele";
 
 export const RESEND_CLIENT = "RESEND_CLIENT";
@@ -21,6 +22,58 @@ export class ServiceEmail {
       this.resend = clientInjecte;
     } else if (config.resendApiKey) {
       this.resend = new Resend(config.resendApiKey);
+    }
+  }
+
+  /**
+   * Confirme une demande à son auteur, et lui remet ses identifiants s'il
+   * vient d'avoir un compte.
+   *
+   * **Ne lève jamais.** La demande est déjà enregistrée quand on arrive ici :
+   * la faire échouer parce que Resend bégaie ferait perdre au visiteur une
+   * demande qui est, elle, bel et bien partie chez le propriétaire. Un échec
+   * s'écrit dans le journal et rien d'autre — jamais le mot de passe, qui ne
+   * doit figurer nulle part ailleurs que dans l'e-mail.
+   */
+  async envoyerConfirmationDemande(
+    email: string,
+    details: Omit<DetailsDemande, "urlSite"> & { urlSite?: string },
+  ): Promise<{ envoye: boolean }> {
+    const destinataire = email.trim().toLowerCase();
+    const modele = genererEmailDemande({ ...details, urlSite: details.urlSite ?? config.appUrl });
+
+    if (!this.resend) {
+      this.logger.warn(
+        `[Sans Resend] Confirmation de ${details.reference} non envoyée à ${destinataire}.` +
+          (details.identifiants ? " Des identifiants n'ont donc pas été remis." : ""),
+      );
+      return { envoye: false };
+    }
+
+    try {
+      const reponse = await this.resend.emails.send({
+        from: config.emailFrom,
+        to: destinataire,
+        subject: modele.sujet,
+        html: modele.html,
+        text: modele.texte,
+      });
+
+      if (reponse.error) {
+        this.logger.error(
+          `Confirmation de ${details.reference} refusée par Resend pour ${destinataire} : ${reponse.error.message}`,
+        );
+        return { envoye: false };
+      }
+
+      this.logger.log(
+        `Confirmation de ${details.reference} envoyée à ${destinataire} (id: ${reponse.data?.id})`,
+      );
+      return { envoye: true };
+    } catch (erreur) {
+      const message = (erreur as Error)?.message ?? "Erreur inconnue";
+      this.logger.error(`Confirmation de ${details.reference} non partie vers ${destinataire} : ${message}`);
+      return { envoye: false };
     }
   }
 

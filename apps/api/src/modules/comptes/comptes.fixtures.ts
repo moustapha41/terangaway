@@ -174,10 +174,7 @@ export class DepotComptesFixtures implements DepotComptes {
    * `CompteResume` : le dépôt en mémoire respecte la même discipline que celui
    * sur Postgres, sinon les tests ne prouveraient rien.
    */
-  private readonly comptes = new Map<
-    string,
-    { id: string; email: string; nom: string | null; estVerifie: boolean; motDePasseHash: string | null }
-  >();
+  private readonly comptes = new Map<string, CompteEnMemoire>();
 
   async compteParEmail(email: string): Promise<CompteResume | null> {
     const normalise = normaliserDestination(email);
@@ -200,6 +197,8 @@ export class DepotComptesFixtures implements DepotComptes {
       // L'inscription n'est pas acquise avant la vérification du code.
       estVerifie: false,
       motDePasseHash: entree.motDePasseHash,
+      // Un mot de passe choisi par la personne n'a rien de provisoire.
+      motDePasseProvisoire: false,
     };
     this.comptes.set(email, compte);
     return resumerCompte(compte);
@@ -219,7 +218,7 @@ export class DepotComptesFixtures implements DepotComptes {
   async activerCompte(compteId: string): Promise<CompteResume> {
     for (const [cle, compte] of this.comptes) {
       if (compte.id === compteId) {
-        const actif = { ...compte, estVerifie: true };
+        const actif = { ...compte, estVerifie: true, motDePasseProvisoire: false };
         this.comptes.set(cle, actif);
         return resumerCompte(actif);
       }
@@ -233,21 +232,26 @@ export class DepotComptesFixtures implements DepotComptes {
     email: string;
     nom?: string;
     telephone?: string;
-  }): Promise<CompteResume> {
+    motDePasseHash?: string;
+  }): Promise<{ compte: CompteResume; creeMaintenant: boolean }> {
     const email = normaliserDestination(contact.email);
     const nom = contact.nom?.trim().slice(0, 120) || null;
     const existant = this.comptes.get(email);
 
-    // Le compte reste non vérifié : une demande ne prouve pas l'adresse.
-    const compte = {
-      id: existant?.id ?? `cmp-${email}`,
+    // Le compte reste non vérifié : une demande ne prouve pas l'adresse. Le
+    // mot de passe n'est posé qu'à la création — celui d'un compte existant ne
+    // se remplace pas sur une simple demande.
+    const compte: CompteEnMemoire = existant ?? {
+      id: `cmp-${email}`,
       email,
-      nom: existant?.nom ?? nom,
-      estVerifie: existant?.estVerifie ?? false,
-      motDePasseHash: existant?.motDePasseHash ?? null,
+      nom,
+      estVerifie: false,
+      motDePasseHash: contact.motDePasseHash ?? null,
+      motDePasseProvisoire: Boolean(contact.motDePasseHash),
     };
+    if (!compte.nom && nom) compte.nom = nom;
     this.comptes.set(email, compte);
-    return resumerCompte(compte);
+    return { compte: resumerCompte(compte), creeMaintenant: !existant };
   }
 
   async verifierMotDePasseCompte(compteId: string, motDePasse: string): Promise<boolean> {
@@ -260,19 +264,24 @@ export class DepotComptesFixtures implements DepotComptes {
   }
 }
 
-/** Vue publique d'un compte : la présence d'un mot de passe, jamais l'empreinte. */
-function resumerCompte(compte: {
+/** Un compte tel que le dépôt en mémoire le garde, empreinte comprise. */
+interface CompteEnMemoire {
   id: string;
   email: string;
   nom: string | null;
   estVerifie: boolean;
   motDePasseHash: string | null;
-}): CompteResume {
+  motDePasseProvisoire: boolean;
+}
+
+/** Vue publique d'un compte : la présence d'un mot de passe, jamais l'empreinte. */
+function resumerCompte(compte: CompteEnMemoire): CompteResume {
   return {
     id: compte.id,
     email: compte.email,
     nom: compte.nom,
     estVerifie: compte.estVerifie,
     aUnMotDePasse: Boolean(compte.motDePasseHash),
+    motDePasseProvisoire: compte.motDePasseProvisoire,
   };
 }

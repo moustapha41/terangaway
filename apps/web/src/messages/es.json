@@ -843,6 +843,8 @@
     "titre": "Su solicitud se ha enviado",
     "reference": "Referencia {reference}",
     "prochaineEtape": "Su anfitrión suele responder en menos de una hora. Le avisaremos de cada cambio.",
+    "emailEnvoye": "Acabamos de enviar un correo de confirmación a su dirección, con su número de referencia.",
+    "emailIdentifiants": "Si todavía no tenía cuenta, también contiene sus datos de acceso para seguir sus solicitudes.",
     "voirMaDemande": "Ver mi solicitud",
     "retourAccueil": "Volver al inicio"
   },

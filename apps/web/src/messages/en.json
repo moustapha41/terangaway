@@ -843,6 +843,8 @@
     "titre": "Your request has been sent",
     "reference": "Reference {reference}",
     "prochaineEtape": "Your host usually replies within the hour. You will be told at every change.",
+    "emailEnvoye": "A confirmation email has just been sent to your address, with your reference number.",
+    "emailIdentifiants": "If you did not have an account yet, it also contains your login details for following your requests.",
     "voirMaDemande": "See my request",
     "retourAccueil": "Back to the home page"
   },

@@ -28,6 +28,14 @@ export interface CompteResume {
   estVerifie: boolean;
   /** Ce compte a-t-il un mot de passe, ou se connecte-t-il seulement par code ? */
   aUnMotDePasse: boolean;
+  /**
+   * Ce mot de passe est-il celui que nous avons engendré et envoyé par e-mail ?
+   *
+   * Il ouvre la session alors même que l'adresse n'est pas vérifiée : s'en
+   * servir, c'est avoir relevé la boîte où il a été expédié. Il retombe à la
+   * première connexion.
+   */
+  motDePasseProvisoire: boolean;
 }
 
 export interface VerificationRateLimit {
@@ -130,12 +138,24 @@ export interface DepotComptes {
    * Le nom et le numéro ne sont posés que sur les champs restés vides : ce sont
    * des coordonnées de rappel, et une saisie de passage ne doit pas écraser ce
    * que la personne a elle-même renseigné sur son compte.
+   *
+   * `creeMaintenant` dit si ce compte vient de naître. C'est à cela que l'on
+   * sait s'il faut joindre des identifiants à l'e-mail de confirmation : on
+   * n'envoie un mot de passe qu'à qui n'en avait pas.
    */
   visiteurDeContact(contact: {
     email: string;
     nom?: string;
     telephone?: string;
-  }): Promise<CompteResume>;
+    /**
+     * Mot de passe provisoire, déjà haché, posé **seulement à la création**.
+     *
+     * Un compte qui existe déjà garde le sien : une demande de passage ne doit
+     * pas changer le mot de passe de quelqu'un — ce serait, à la lettre, le
+     * moyen de lui prendre son compte.
+     */
+    motDePasseHash?: string;
+  }): Promise<{ compte: CompteResume; creeMaintenant: boolean }>;
 
   /* ──────────────────────── Connexion par Google ──────────────────────── */
 

@@ -109,6 +109,14 @@ export default async function Confirmation({
                 {t("confirmation.prochaineEtape")}
               </p>
 
+              {/* L'e-mail est le vrai fil : il porte la référence, et les
+                  identifiants quand le compte vient d'être ouvert. Le dire
+                  ici évite d'attendre devant un écran qui ne bouge plus. */}
+              <p className="mx-auto mt-2.5 max-w-[40ch] text-[13px] leading-relaxed text-encre-douce">
+                {t("confirmation.emailEnvoye")}
+                {!visiteur && ` ${t("confirmation.emailIdentifiants")}`}
+              </p>
+
               <div className="mt-6 space-y-2.5 sm:mx-auto sm:max-w-[320px]">
                 {visiteur && (
                   <Lien href="/mes-demandes" className="block">

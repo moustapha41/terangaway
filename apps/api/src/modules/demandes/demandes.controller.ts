@@ -1,9 +1,11 @@
 import { Body, Controller, Headers, Post } from "@nestjs/common";
 import { ApiHeader, ApiOperation, ApiTags } from "@nestjs/swagger";
+import type { Demande } from "@teranga/contracts";
 
+import { ServiceEmail } from "../../commun/email/email.service";
 import { ErreurMetier } from "../../commun/erreurs";
 import { extraireJetonRequete } from "../../commun/securite/hachage";
-import { ServiceComptes } from "../comptes/comptes.service";
+import { ServiceComptes, type VisiteurDeDemande } from "../comptes/comptes.service";
 import { CreerDemandeLogementDto } from "./dto/creer-demande-logement.dto";
 import { CreerDemandeServiceDto } from "./dto/creer-demande-service.dto";
 import { CreerDemandeVehiculeDto } from "./dto/creer-demande-vehicule.dto";
@@ -15,6 +17,7 @@ export class ControleurDemandes {
   constructor(
     private readonly demandes: ServiceDemandes,
     private readonly comptes: ServiceComptes,
+    private readonly email: ServiceEmail,
   ) {}
 
   @Post("logement")
@@ -28,7 +31,7 @@ export class ControleurDemandes {
     @Headers("cookie") cookieHeader?: string,
   ) {
     const jeton = extraireJetonRequete(visiteurHeader, authHeader, cookieHeader);
-    const visiteurId = await this.comptes.visiteurPourDemande(jeton, corps.contact);
+    const visiteur = await this.comptes.visiteurPourDemande(jeton, corps.contact);
     const demande = await this.demandes.creerLogement({
       logementId: corps.logementId,
       debut: corps.debut,
@@ -36,8 +39,9 @@ export class ControleurDemandes {
       personnes: corps.personnes,
       heureArrivee: corps.heureArrivee,
       message: corps.message,
-      visiteurId,
+      visiteurId: visiteur.compteId,
     });
+    await this.confirmerParEmail(visiteur, demande);
     return { donnees: demande };
   }
 
@@ -52,7 +56,7 @@ export class ControleurDemandes {
     @Headers("cookie") cookieHeader?: string,
   ) {
     const jeton = extraireJetonRequete(visiteurHeader, authHeader, cookieHeader);
-    const visiteurId = await this.comptes.visiteurPourDemande(jeton, corps.contact);
+    const visiteur = await this.comptes.visiteurPourDemande(jeton, corps.contact);
 
     // Deux heures minimum pour un trajet (§B.3).
     if (corps.prestation === "trajet") {
@@ -75,8 +79,9 @@ export class ControleurDemandes {
       bagages: corps.bagages,
       vol: corps.vol,
       message: corps.message,
-      visiteurId,
+      visiteurId: visiteur.compteId,
     });
+    await this.confirmerParEmail(visiteur, demande);
     return { donnees: demande };
   }
 
@@ -95,7 +100,7 @@ export class ControleurDemandes {
     @Headers("cookie") cookieHeader?: string,
   ) {
     const jeton = extraireJetonRequete(visiteurHeader, authHeader, cookieHeader);
-    const visiteurId = await this.comptes.visiteurPourDemande(jeton, corps.contact);
+    const visiteur = await this.comptes.visiteurPourDemande(jeton, corps.contact);
 
     // Les détails arrivent du formulaire : on les ramène à des chaînes, et on
     // écarte les champs vides plutôt que de les écrire dans la base.
@@ -109,8 +114,50 @@ export class ControleurDemandes {
       service: corps.service,
       details,
       message: corps.message,
-      visiteurId,
+      visiteurId: visiteur.compteId,
     });
+    await this.confirmerParEmail(visiteur, demande);
     return { donnees: demande };
   }
+
+  /**
+   * Accuse réception de la demande à son auteur — et lui remet ses identifiants
+   * si le compte vient de naître.
+   *
+   * C'est le seul moment où le mot de passe engendré existe en clair, et il ne
+   * va qu'à l'adresse saisie. L'envoi ne peut pas faire échouer la demande :
+   * elle est enregistrée, le propriétaire l'a, et un e-mail qui ne part pas ne
+   * doit pas effacer cela de l'écran du visiteur.
+   */
+  private async confirmerParEmail(visiteur: VisiteurDeDemande, demande: Demande): Promise<void> {
+    if (!visiteur.email) return;
+
+    await this.email.envoyerConfirmationDemande(visiteur.email, {
+      reference: demande.reference,
+      titre: demande.offre.titre,
+      sejour: periode(demande),
+      total: demande.prix.total > 0 ? formaterFrancs(demande.prix.total) : undefined,
+      identifiants: visiteur.identifiants,
+    });
+  }
+}
+
+/** « 1 novembre 2026 → 8 novembre 2026 », ou le seul jour d'un trajet. */
+function periode(demande: Demande): string | undefined {
+  const { debut, fin } = demande.dates;
+  if (!debut) return undefined;
+  const jour = (iso: string) =>
+    new Date(iso).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" });
+  return !fin || fin === debut ? jour(debut) : `${jour(debut)} → ${jour(fin)}`;
+}
+
+/**
+ * Le total en francs, monnaie du paiement.
+ *
+ * Le site affiche des euros ou des dollars au visiteur, mais le règlement a
+ * lieu sur place, en francs : c'est ce montant-là qu'il tendra, et c'est donc
+ * celui que l'écrit doit porter.
+ */
+function formaterFrancs(montant: number): string {
+  return `${new Intl.NumberFormat("fr-FR").format(montant).replace(/\u202f|\u00a0/g, " ")} FCFA`;
 }
