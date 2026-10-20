@@ -5,8 +5,9 @@ import { Lien } from "@/lib/i18n/lien";
 import { traducteurPour } from "@/lib/i18n/messages";
 import type { Langue } from "@/lib/i18n/langues";
 import { formaterDateComplete } from "@/lib/dates";
-import { formaterPrix } from "@/lib/prix";
+import { formaterPrixVisiteur } from "@/lib/prix";
 import { VignetteDemande } from "@/components/visiteur/vignette-demande";
+import { titreOffre } from "@/lib/i18n/titre-logement";
 
 /**
  * Carte de réservation — maquette du tableau de bord et de « Mes réservations ».
@@ -47,7 +48,7 @@ export function CarteReservation({
 
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-start justify-between gap-2">
-            <p className="text-titre-3 text-encre">{demande.offre.titre}</p>
+            <p className="text-titre-3 text-encre">{titreOffre(demande.offre, t)}</p>
             <BadgeStatut statut={demande.statut} libelle={t(`statut.${demande.statut}`)} />
           </div>
 
@@ -73,7 +74,7 @@ export function CarteReservation({
           </ul>
 
           <p className="mt-3 text-prix text-encre chiffres-tabulaires">
-            {formaterPrix(
+            {formaterPrixVisiteur(
               parNuit ? (demande.prix as { prixParNuit: number }).prixParNuit : demande.prix.total,
               langue,
             )}

@@ -9,7 +9,7 @@ import { Lien } from "@/lib/i18n/lien";
 import { estLangue, type Langue } from "@/lib/i18n/langues";
 import { traducteurPour } from "@/lib/i18n/messages";
 import type { Traducteur } from "@/lib/i18n/traducteur";
-import { formaterPrix } from "@/lib/prix";
+import { formaterPrixVisiteur } from "@/lib/prix";
 import { obtenirVehicule } from "@/mocks/api";
 
 /**
@@ -134,7 +134,7 @@ function BarreAction({
     <Carte className="min-w-0 p-4 sm:p-6 lg:sticky lg:top-6">
       {prix !== undefined && (
         <p className="text-prix text-encre chiffres-tabulaires">
-          {formaterPrix(prix, langue)}
+          {formaterPrixVisiteur(prix, langue)}
           <span className="ml-1 text-petit font-normal text-encre-douce">{unite}</span>
         </p>
       )}

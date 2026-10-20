@@ -1,4 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
+import { Type } from "class-transformer";
 import {
   IsIn,
   IsInt,
@@ -9,7 +10,10 @@ import {
   MaxLength,
   Min,
   MinLength,
+  ValidateNested,
 } from "class-validator";
+
+import { ContactDemandeDto } from "./contact-demande.dto";
 
 export class CreerDemandeVehiculeDto {
   @ApiProperty({ example: "v-001" })
@@ -58,10 +62,14 @@ export class CreerDemandeVehiculeDto {
   @MaxLength(500)
   message?: string;
 
-  @ApiPropertyOptional({ example: "123456" })
+  @ApiPropertyOptional({
+    type: ContactDemandeDto,
+    description:
+      "Coordonnées du visiteur, quand aucune session n'est ouverte. Plus de code à saisir : " +
+      "l'adresse rattache la demande, elle ne vaut pas identité.",
+  })
   @IsOptional()
-  @IsString()
-  @MinLength(6)
-  @MaxLength(6)
-  code?: string;
+  @ValidateNested()
+  @Type(() => ContactDemandeDto)
+  contact?: ContactDemandeDto;
 }

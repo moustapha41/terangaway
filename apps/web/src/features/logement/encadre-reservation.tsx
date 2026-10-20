@@ -7,8 +7,7 @@ import { useLangue, useT } from "@/lib/i18n/contexte";
 import { etiquettesDates } from "@/features/transport/etiquettes-dates";
 import { FENETRE_JEUX } from "@/lib/dates/sejour";
 import { formaterDateComplete, nombreDeNuits } from "@/lib/dates";
-import { formaterPrix, prixAffiche } from "@/lib/prix";
-import { PrixConverti } from "@/features/preferences/prix-converti";
+import { formaterPrixVisiteur, prixAffiche, totalSejour } from "@/lib/prix";
 import { useNaviguer } from "@/lib/i18n/naviguer";
 
 /**
@@ -46,7 +45,7 @@ export function EncadreReservation({
       : 1;
 
   const fraisFixes = logement.fraisFixes ?? [];
-  const total = logement.prixParNuit * nuits + fraisFixes.reduce((s, f) => s + f.montant, 0);
+  const total = totalSejour(logement, nuits, fraisFixes);
 
   /**
    * Quelques appartements de Dakar ne se louent qu'au mois. Leur afficher un
@@ -54,7 +53,6 @@ export function EncadreReservation({
    * pas : c'est le loyer qui s'annonce, et la durée minimale avec lui.
    */
   const auMois = logement.seulementAuMois === true && logement.prixParMois !== undefined;
-  const aConvertir = auMois ? (logement.prixParMois as number) : total;
 
   const demander = () => {
     const params = new URLSearchParams({ personnes: String(voyageurs) });
@@ -74,10 +72,13 @@ export function EncadreReservation({
     >
       <div className="mx-auto w-[92%] max-w-[1260px] lg:w-full">
         <p className="text-prix text-encre chiffres-tabulaires">
-          {formaterPrix(prixAffiche(logement).montant, langue)}
+          {formaterPrixVisiteur(prixAffiche(logement).montant, langue)}
           <span className="ml-1 text-petit font-normal text-encre-douce">
             {t(prixAffiche(logement).cleUnite)}
           </span>
+        </p>
+        <p className="mt-0.5 text-petit text-encre-douce chiffres-tabulaires">
+          {formaterPrixVisiteur(logement.prixParNuit, langue)} {t("commun.parNuit")}
         </p>
         <p className="mt-0.5 text-petit text-encre-douce chiffres-tabulaires">
           {auMois
@@ -85,13 +86,10 @@ export function EncadreReservation({
                 nuits: t("fiche.nuits", { nombre: logement.sejourMinimum ?? 30 }),
               })
             : t("resultats.totalNuits", {
-                prix: formaterPrix(total, langue),
+                prix: formaterPrixVisiteur(total, langue),
                 nuits: t("fiche.nuits", { nombre: nuits }),
               })}
         </p>
-        {/* §C.4 : la conversion est un texte secondaire, le prix qui engage
-            reste en FCFA — c'est lui qu'on paiera sur place. */}
-        <PrixConverti montant={aConvertir} />
 
         {/* Dates et voyageurs : masqués sous lg, où la barre reste une barre d'action. */}
         <div className="mt-4 hidden gap-3 lg:grid lg:grid-cols-2">

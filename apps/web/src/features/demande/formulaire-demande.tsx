@@ -1,22 +1,20 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import type { Logement } from "@teranga/contracts";
 import { ArrowRight, ChevronDown, Mail, Phone, User, Users } from "lucide-react";
-import { Bandeau, Carte, ChampCode, Compteur, FeuilleBasse, Icone } from "@teranga/ui";
+import { Bandeau, Carte, Compteur, Icone } from "@teranga/ui";
 import { IndicateurEtapes } from "./indicateur-etapes";
 import { Lien } from "@/lib/i18n/lien";
 import { useLangue, useT } from "@/lib/i18n/contexte";
 import { useEnLigne } from "@/lib/hors-ligne/etat-reseau";
 import { formaterDateComplete, nombreDeNuits } from "@/lib/dates";
-import { formaterPrix } from "@/lib/prix";
-import { PrixConverti } from "@/features/preferences/prix-converti";
+import { formaterPrixVisiteur, prixAffiche, sousTotalSejour } from "@/lib/prix";
+import { titreLogement } from "@/lib/i18n/titre-logement";
 import { useNaviguer } from "@/lib/i18n/naviguer";
 import { creerDemandeLogementAction } from "@/features/demande/actions";
-import { demanderCodeOtpAction } from "@/features/compte/actions";
 import { nomLisible } from "@/features/compte/cookie";
-import { CODE_DE_DEMONSTRATION, type EtatEnvoi } from "@/mocks/api";
-import { apiMockActive } from "@/lib/api/http";
+import { type EtatEnvoi } from "@/mocks/api";
 import { mettreDemandeDeCoteEtSInscrire, oublierBrouillonAction } from "./actions";
 import type { BrouillonLogement } from "./brouillon";
 
@@ -27,10 +25,11 @@ import type { BrouillonLogement } from "./brouillon";
  * 2. Récapitulatif — l'offre, les dates, le détail du prix.
  * 3. Confirmation — page séparée, après l'envoi.
  *
- * La maquette ne montre pas le code à six chiffres ; le dossier l'exige à
- * l'envoi quand le visiteur n'est pas connecté (§B.2, étape 4). Il apparaît donc
- * en feuille basse au-dessus de l'étape 2, ce qui respecte les deux : trois
- * étapes visibles, et aucune demande envoyée sans numéro vérifié.
+ * Il n'y a pas de code à six chiffres : la demande part avec les coordonnées
+ * saisies à l'étape 1. Attendre un courriel, le rouvrir, recopier six chiffres
+ * — c'était trois occasions d'abandonner juste avant d'aboutir, pour une
+ * demande qui n'engage ni paiement ni réservation ferme. L'équipe rappelle sur
+ * l'adresse et le numéro donnés ; c'est là que la vérification a lieu.
  *
  * Rien n'est perdu entre les étapes : revenir en arrière garde toute la saisie.
  */
@@ -49,8 +48,6 @@ const INDICATIFS = [
   { code: "+44", pays: "United Kingdom", drapeau: "🇬🇧" },
   { code: "+1", pays: "USA / Canada", drapeau: "🇺🇸" },
 ];
-
-const SECONDES_AVANT_RENVOI = 30;
 
 const CHAMP =
   "min-w-0 flex-1 bg-transparent text-[16px] text-encre outline-none placeholder:text-encre-douce";
@@ -119,10 +116,7 @@ export function FormulaireDemande({
   const [voyageurs, setVoyageurs] = useState(brouillon?.personnes ?? personnes);
   const [message, setMessage] = useState(brouillon?.message ?? "");
 
-  const [code, setCode] = useState("");
-  const [feuilleCode, setFeuilleCode] = useState(false);
   const [enCours, setEnCours] = useState(false);
-  const [erreurCode, setErreurCode] = useState<"faux" | "expire" | null>(null);
   /**
    * Message d'échec de l'envoi, affiché tel quel.
    *
@@ -131,62 +125,12 @@ export function FormulaireDemande({
    * moyen de savoir que rien n'était parti.
    */
   const [echec, setEchec] = useState<string | null>(null);
-  /** Le code a-t-il réellement été envoyé ? Le silence n'est pas une réponse. */
-  const [etatCode, setEtatCode] = useState<"inconnu" | "envoye" | "echec">("inconnu");
   const [erreurs, setErreurs] = useState<Record<string, boolean>>({});
   const [pris, setPris] = useState<Logement[] | null>(null);
-  const [compteARebours, setCompteARebours] = useState(SECONDES_AVANT_RENVOI);
-  const minuterie = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  useEffect(() => {
-    if (!feuilleCode) return;
-    setCompteARebours(SECONDES_AVANT_RENVOI);
-    minuterie.current = setInterval(
-      () => setCompteARebours((reste) => (reste <= 1 ? 0 : reste - 1)),
-      1000,
-    );
-    return () => {
-      if (minuterie.current) clearInterval(minuterie.current);
-    };
-  }, [feuilleCode]);
-
-  /**
-   * L'indice « le code est 123456 », et seulement là où il est vrai.
-   *
-   * `apiMockActive()` lit `NEXT_PUBLIC_API_MOCK`, figé à la construction : la
-   * valeur est donc la même côté serveur et côté navigateur, sans aller-retour.
-   */
-  const indiceDemo = apiMockActive()
-    ? t("demande.codeDemo", { code: CODE_DE_DEMONSTRATION })
-    : etatCode === "envoye"
-      ? t("demande.codeEnvoye")
-      : undefined;
-
-  /**
-   * Demande un code et **regarde si l'envoi a réussi**.
-   *
-   * L'appel était auparavant `demanderCodeOtpAction(email).catch(() => {})` :
-   * si Resend tombait, ou si l'adresse était limitée en débit, la feuille
-   * s'ouvrait exactement comme si un code était parti.
-   */
-  async function demanderCode() {
-    setErreurCode(null);
-    if (!email) {
-      setEtatCode("echec");
-      return;
-    }
-    try {
-      const resultat = await demanderCodeOtpAction(email);
-      setEtatCode(resultat.succes ? "envoye" : "echec");
-      if (!resultat.succes) setEchec(resultat.erreur);
-    } catch {
-      setEtatCode("echec");
-    }
-  }
 
   const nuits = nombreDeNuits(new Date(`${debut}T00:00:00`), new Date(`${fin}T00:00:00`)) || 1;
   const fraisFixes = logement.fraisFixes ?? [];
-  const sousTotal = logement.prixParNuit * nuits;
+  const sousTotal = sousTotalSejour(logement, nuits);
   const total = sousTotal + fraisFixes.reduce((s, f) => s + f.montant, 0);
 
   const etapes = [
@@ -206,9 +150,8 @@ export function FormulaireDemande({
     setEtape(2);
   }
 
-  async function envoyer(avecCode?: string) {
+  async function envoyer() {
     setEnCours(true);
-    setErreurCode(null);
     setEchec(null);
     try {
       const resultat = await creerDemandeLogementAction(
@@ -218,10 +161,9 @@ export function FormulaireDemande({
           fin,
           personnes: voyageurs,
           message,
-          code: avecCode,
         },
         etatSimule,
-        { email, telephone },
+        { email, nom, telephone: `${indicatif} ${telephone}` },
       );
 
       if (resultat.succes) {
@@ -236,35 +178,19 @@ export function FormulaireDemande({
       // c'est précisément ce que faisait la version déployée pour « serveur »
       // et « validation », les deux cas les plus fréquents en production.
       switch (resultat.erreur) {
-        case "code_invalide":
-          setErreurCode(resultat.raison ?? "faux");
-          setCode("");
-          break;
-        case "trop_de_tentatives":
-          setFeuilleCode(false);
-          setEchec(resultat.message ?? t("demande.echecTentatives"));
-          break;
-        case "session":
-          setFeuilleCode(false);
-          setEchec(resultat.message ?? t("demande.echecSession"));
-          break;
         case "logement_pris":
-          setFeuilleCode(false);
           setPris(resultat.alternatives ?? []);
           break;
         case "validation":
-          setFeuilleCode(false);
           setEtape(1);
           setEchec(resultat.message ?? t("demande.echecTexte"));
           break;
         default:
-          setFeuilleCode(false);
           setEchec(resultat.message ?? t("demande.echecTexte"));
       }
     } catch {
       // Action serveur injoignable : le dire, plutôt que d'arrêter le bouton
       // de tourner sans un mot.
-      setFeuilleCode(false);
       setEchec(t("demande.echecTexte"));
     } finally {
       setEnCours(false);
@@ -416,16 +342,13 @@ export function FormulaireDemande({
             )}
           </div>
 
-          {/* Nombre de voyageurs */}
-          <div className="flex h-[48px] items-center justify-between rounded-[14px] border border-contour-champ bg-champ/60 px-3.5 transition-colors">
-            <div className="flex items-center gap-2.5 text-encre">
-              <Users strokeWidth={1.8} className="h-4 w-4 text-encre-douce" />
-              <span className="text-[13px] font-semibold text-encre">
-                {t("demande.nombreVoyageurs")}
-              </span>
-            </div>
+          {/* Nombre de voyageurs. Le libellé vient du compteur lui-même, comme
+              partout ailleurs : la ligne l'écrivait une seconde fois à côté. */}
+          <div className="flex h-[48px] items-center gap-2.5 rounded-[14px] border border-contour-champ bg-champ/60 px-3.5 transition-colors">
+            <Users strokeWidth={1.8} className="h-4 w-4 shrink-0 text-encre-douce" />
             <Compteur
               libelle={t("demande.nombreVoyageurs")}
+              className="flex-1"
               valeur={voyageurs}
               min={1}
               max={logement.capacite}
@@ -494,28 +417,35 @@ export function FormulaireDemande({
           <section className="space-y-2">
             <h2 className="text-[15px] font-bold text-encre">{t("demande.detailDuPrix")}</h2>
             <dl className="space-y-1.5 border-b border-contour/80 pb-3">
+              {/* « 130 000 F × 7 nuits » ne dit plus le prix quand le
+                  propriétaire fait une semaine moins chère que sept nuitées :
+                  la ligne annonce alors l'hébergement et sa durée, sans une
+                  multiplication que le montant dément. */}
               <Ligne
-                terme={t("fiche.detailNuits", {
-                  prix: formaterPrix(logement.prixParNuit, langue),
-                  nuits: t("fiche.nuits", { nombre: nuits }),
-                })}
-                valeur={formaterPrix(sousTotal, langue)}
+                terme={
+                  sousTotal === logement.prixParNuit * nuits
+                    ? t("fiche.detailNuits", {
+                        prix: formaterPrixVisiteur(logement.prixParNuit, langue),
+                        nuits: t("fiche.nuits", { nombre: nuits }),
+                      })
+                    : t("fiche.detailSejour", { nuits: t("fiche.nuits", { nombre: nuits }) })
+                }
+                valeur={formaterPrixVisiteur(sousTotal, langue)}
               />
               {fraisFixes.map((frais) => (
                 <Ligne
                   key={frais.libelle}
                   terme={frais.libelle}
-                  valeur={formaterPrix(frais.montant, langue)}
+                  valeur={formaterPrixVisiteur(frais.montant, langue)}
                 />
               ))}
               {/* Zéro, et affiché : c'est la preuve de « aucun frais caché ». */}
-              <Ligne terme={t("demande.fraisDeService")} valeur={formaterPrix(0, langue)} />
+              <Ligne terme={t("demande.fraisDeService")} valeur={formaterPrixVisiteur(0, langue)} />
             </dl>
             <div className="flex items-baseline justify-between text-[17px] font-bold text-encre chiffres-tabulaires">
               <span className="text-[14px] font-normal text-encre-douce">{t("fiche.total")}</span>
-              <span>{formaterPrix(total, langue)}</span>
+              <span>{formaterPrixVisiteur(total, langue)}</span>
             </div>
-            <PrixConverti montant={total} className="block text-right text-legende text-encre-douce" />
             <p className="text-legende text-encre-douce">{t("demande.prixFige")}</p>
           </section>
 
@@ -530,16 +460,7 @@ export function FormulaireDemande({
             <button
               type="button"
               disabled={!enLigne || enCours}
-              onClick={() => {
-                if (visiteur) {
-                  // Session valide : aucun code à redemander (§B.1).
-                  void envoyer();
-                } else {
-                  setEtatCode("inconnu");
-                  setFeuilleCode(true);
-                  void demanderCode();
-                }
-              }}
+              onClick={() => void envoyer()}
               className={
                 "group relative flex h-[48px] sm:h-[50px] flex-1 items-center justify-center gap-2.5 rounded-pill " +
                 "border border-transparent bg-primaire text-[15.5px] sm:text-[16px] font-semibold text-white " +
@@ -565,116 +486,44 @@ export function FormulaireDemande({
           </div>
 
           <p className="text-center text-[12.5px] text-encre-douce">{t("demande.delaiReponse")}</p>
+
+          {/*
+            La sortie vers un vrai compte, pour qui veut suivre ses demandes
+            depuis son espace. La saisie est mise de côté côté serveur avant de
+            quitter la page : au retour, le récapitulatif est rétabli tel quel
+            et la demande part sans rien resaisir.
+          */}
+          {!visiteur && (
+            <p className="text-center text-petit text-encre-douce">
+              {t("demande.plutotUnCompte")}{" "}
+              <button
+                type="button"
+                className="font-semibold text-primaire underline underline-offset-2"
+                onClick={() =>
+                  void mettreDemandeDeCoteEtSInscrire(
+                    {
+                      genre: "logement",
+                      logementId: logement.id,
+                      debut,
+                      fin,
+                      personnes: voyageurs,
+                      nom,
+                      email,
+                      telephone,
+                      message,
+                    },
+                    `/demande/${logement.id}?debut=${debut}&fin=${fin}&personnes=${voyageurs}`,
+                    langue,
+                  )
+                }
+              >
+                {t("demande.creerUnCompte")}
+              </button>
+            </p>
+          )}
         </div>
       )}
 
-      <FeuilleBasse
-        ouverte={feuilleCode}
-        onFermer={() => setFeuilleCode(false)}
-        titre="Code de vérification"
-        etiquetteFermer={t("demande.fermer")}
-      >
-        <div className="space-y-5">
-          <p className="text-corps text-encre-douce">
-            {email
-              ? `Un code de vérification à six chiffres a été envoyé à l'adresse e-mail ${email}. Saisissez-le pour confirmer votre demande.`
-              : t("demande.codeTexte")}
-          </p>
-
-          <ChampCode
-            libelle={t("demande.codeLibelle")}
-            valeur={code}
-            onChange={setCode}
-            etat={
-              enCours
-                ? "verification"
-                : erreurCode === "expire"
-                  ? "expire"
-                  : erreurCode
-                    ? "erreur"
-                    : "vide"
-            }
-            message={
-              erreurCode === "expire"
-                ? t("demande.codeExpire")
-                : erreurCode === "faux"
-                  ? t("demande.codeFaux")
-                  : etatCode === "echec"
-                    ? t("demande.codeNonEnvoye")
-                    : // Le code fixe n'existe que dans le mock. L'annoncer quand
-                      // la vraie API répond, c'était afficher « le code est
-                      // 123456 » sur le site public.
-                      indiceDemo
-            }
-          />
-
-          <button
-            type="button"
-            disabled={code.length < 6 || enCours}
-            onClick={() => envoyer(code)}
-            className={
-              "group relative flex h-[50px] w-full items-center justify-center gap-2.5 rounded-pill " +
-              "border border-transparent bg-primaire text-[16px] font-semibold text-white " +
-              "shadow-[0_4px_16px_-4px_rgb(0_29_53/0.4)] transition-all duration-200 " +
-              "hover:border-jaune-vif hover:bg-[#072c4e] hover:shadow-[0_6px_24px_-4px_rgba(244,185,66,0.35)] " +
-              "hover:ring-2 hover:ring-jaune-vif/50 focus-visible:outline-2 focus-visible:outline-offset-2 " +
-              "focus-visible:outline-primaire active:scale-[0.99] disabled:opacity-45"
-            }
-          >
-            <span>{enCours ? t("demande.envoiEnCours") : t("demande.envoyerMaDemande")}</span>
-            <ArrowRight
-              strokeWidth={2.2}
-              className="h-5 w-5 transition-transform duration-200 group-hover:translate-x-1"
-            />
-          </button>
-
-          <button
-            type="button"
-            disabled={compteARebours > 0}
-            onClick={() => {
-              setCompteARebours(SECONDES_AVANT_RENVOI);
-              void demanderCode();
-            }}
-            className="flex h-[46px] w-full items-center justify-center rounded-pill border border-contour bg-surface text-[14.5px] font-semibold text-encre transition-colors hover:bg-champ disabled:opacity-50"
-          >
-            {compteARebours > 0
-              ? t("demande.codeRenvoyerDans", { secondes: compteARebours })
-              : t("demande.codeRenvoyer")}
-          </button>
-
-          {/*
-            La sortie vers un vrai compte. La saisie est mise de côté côté
-            serveur avant de quitter la page : au retour, le récapitulatif est
-            rétabli tel quel et la demande part sans nouveau code.
-          */}
-          <p className="text-center text-petit text-encre-douce">
-            {t("demande.plutotUnCompte")}{" "}
-            <button
-              type="button"
-              className="font-semibold text-primaire underline underline-offset-2"
-              onClick={() =>
-                void mettreDemandeDeCoteEtSInscrire(
-                  {
-                    genre: "logement",
-                    logementId: logement.id,
-                    debut,
-                    fin,
-                    personnes: voyageurs,
-                    nom,
-                    email,
-                    telephone,
-                    message,
-                  },
-                  `/demande/${logement.id}?debut=${debut}&fin=${fin}&personnes=${voyageurs}`,
-                  langue,
-                )
-              }
-            >
-              {t("demande.creerUnCompte")}
-            </button>
-          </p>
-        </div>
-      </FeuilleBasse>
     </div>
   );
 }
@@ -696,15 +545,18 @@ function Alternatives({ logements }: { logements: Logement[] }) {
           <li key={autre.id}>
             <Carte className="h-full">
               <Lien href={`/logements/${autre.slug}`} className="block p-4">
-                <p className="text-titre-3 text-encre">{autre.titre}</p>
+                <p className="text-titre-3 text-encre">{titreLogement(autre, t)}</p>
                 <p className="mt-1 text-petit text-encre-douce">
                   {autre.quartier}, {autre.ville}
                 </p>
                 <p className="mt-3 text-prix text-encre chiffres-tabulaires">
-                  {formaterPrix(autre.prixParNuit, langue)}
+                  {formaterPrixVisiteur(prixAffiche(autre).montant, langue)}
                   <span className="ml-1 text-petit font-normal text-encre-douce">
-                    {t("commun.parNuit")}
+                    {t(prixAffiche(autre).cleUnite)}
                   </span>
+                </p>
+                <p className="mt-0.5 text-legende text-encre-douce chiffres-tabulaires">
+                  {formaterPrixVisiteur(autre.prixParNuit, langue)} {t("commun.parNuit")}
                 </p>
               </Lien>
             </Carte>

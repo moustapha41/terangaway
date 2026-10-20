@@ -1,4 +1,5 @@
 import type { Logement } from "@teranga/contracts";
+import type { Traducteur } from "@/lib/i18n/traducteur";
 
 /**
  * Le lieu d'un logement, tel qu'il s'écrit sous un titre.
@@ -14,8 +15,28 @@ import type { Logement } from "@teranga/contracts";
  */
 const QUARTIER_INCONNU = "Non précisé";
 
-export function situation(logement: Pick<Logement, "quartier" | "ville">): string {
-  return logement.quartier === QUARTIER_INCONNU
-    ? logement.ville
-    : `${logement.quartier}, ${logement.ville}`;
+/**
+ * Les quartiers qui sont des mots et non des noms propres.
+ *
+ * « Centre » se traduit, « Almadies » et « Nguérigne » ne se traduisent pas :
+ * ce sont des lieux, et un lieu garde son nom. Un quartier absent de cette
+ * table s'écrit donc tel quel, dans les trois langues.
+ */
+const CLES_QUARTIER: Record<string, string> = {
+  Centre: "quartier.centre",
+  "Bord de lagune": "quartier.bordDeLagune",
+  "Résidence Mangrove": "quartier.residenceMangrove",
+  "Cité Makiyou Faye": "quartier.citeMakiyouFaye",
+};
+
+export function situation(
+  logement: Pick<Logement, "quartier" | "ville">,
+  t: Traducteur,
+): string {
+  if (logement.quartier === QUARTIER_INCONNU) return logement.ville;
+
+  const cle = CLES_QUARTIER[logement.quartier];
+  const traduit = cle ? t(cle) : undefined;
+  const quartier = traduit && traduit !== cle ? traduit : logement.quartier;
+  return `${quartier}, ${logement.ville}`;
 }

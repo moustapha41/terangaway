@@ -10,6 +10,7 @@
     "./*": "./src/*.ts"
   },
   "scripts": {
+    "verifier:traductions": "node scripts/verifier-traductions.mjs",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

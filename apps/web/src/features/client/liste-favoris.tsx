@@ -4,11 +4,11 @@ import Image from "next/image";
 import type { Logement } from "@teranga/contracts";
 import { Bouton, Carte, Icone } from "@teranga/ui";
 import { useFavoris } from "@/features/favoris/use-favoris";
-import { PrixConverti } from "@/features/preferences/prix-converti";
 import { Lien } from "@/lib/i18n/lien";
 import { useLangue, useT } from "@/lib/i18n/contexte";
-import { formaterPrix, prixAffiche } from "@/lib/prix";
+import { formaterPrixVisiteur, prixAffiche } from "@/lib/prix";
 import { situation } from "@/lib/lieu";
+import { titreLogement } from "@/lib/i18n/titre-logement";
 
 /**
  * Mes favoris — maquette de l'espace client, écran mobile 5.
@@ -71,20 +71,22 @@ export function ListeFavoris({ catalogue }: { catalogue: Logement[] }) {
                       href={`/logements/${logement.slug}`}
                       className="after:absolute after:inset-0 after:content-['']"
                     >
-                      {logement.titre}
+                      {titreLogement(logement, t)}
                     </Lien>
                   </p>
                   <p className="mt-0.5 flex items-center gap-1.5 text-petit text-encre-douce">
                     <Icone nom="repere" taille={16} />
-                    {situation(logement)}
+                    {situation(logement, t)}
                   </p>
                   <p className="mt-2 text-prix text-encre chiffres-tabulaires">
-                    {formaterPrix(prixAffiche(logement).montant, langue)}
+                    {formaterPrixVisiteur(prixAffiche(logement).montant, langue)}
                     <span className="ml-1 text-petit font-normal text-encre-douce">
                       {t(prixAffiche(logement).cleUnite)}
                     </span>
                   </p>
-                  <PrixConverti montant={prixAffiche(logement).montant} />
+                  <p className="mt-0.5 text-legende text-encre-douce chiffres-tabulaires">
+                    {formaterPrixVisiteur(logement.prixParNuit, langue)} {t("commun.parNuit")}
+                  </p>
                 </div>
 
                 <button

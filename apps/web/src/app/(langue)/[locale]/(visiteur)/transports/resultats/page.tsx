@@ -10,7 +10,7 @@ import { formaterDateComplete, formaterHeure } from "@/lib/dates";
 import { Lien } from "@/lib/i18n/lien";
 import { estLangue, type Langue } from "@/lib/i18n/langues";
 import { traducteurPour } from "@/lib/i18n/messages";
-import { formaterPrix } from "@/lib/prix";
+import { formaterPrixVisiteur } from "@/lib/prix";
 import { chercherVehicules, facettesVehicules } from "@/mocks/api";
 
 /**
@@ -267,7 +267,7 @@ function CarteResultat({
 
           <div className="shrink-0 sm:text-right">
             <p className="text-titre-3 text-encre chiffres-tabulaires">
-              {formaterPrix(prixDe(vehicule), langue)}
+              {formaterPrixVisiteur(prixDe(vehicule), langue)}
             </p>
             <p className="text-legende text-encre-douce">
               {vehicule.prixParTrajet ? t("transport.parTrajet") : t("transport.parJour")}

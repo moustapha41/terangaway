@@ -46,7 +46,7 @@ export const LOGEMENTS: Logement[] = [
     chambres: 4,
     lits: 4,
     sallesDeBain: 2,
-    prixParNuit: 150000,
+    prixParNuit: 155000,
     prixParMois: 1100000,
     inclus: ["eau", "electricite"],
     equipements: ["climatisation", "wifi", "cuisine", "piscine", "tv", "balcon-terrasse"],
@@ -86,7 +86,8 @@ export const LOGEMENTS: Logement[] = [
     chambres: 4,
     lits: 4,
     sallesDeBain: 5,
-    prixParNuit: 125000,
+    prixParNuit: 130000,
+    prixParSemaine: 650000,
     prixParMois: 1200000,
     inclus: ["eau"],
     equipements: ["climatisation", "wifi", "cuisine", "piscine", "tv", "parking", "gardien", "eau-chaude", "balcon-terrasse"],
@@ -139,7 +140,7 @@ export const LOGEMENTS: Logement[] = [
     chambres: 6,
     lits: 6,
     sallesDeBain: 3,
-    prixParNuit: 175000,
+    prixParNuit: 180000,
     inclus: ["eau", "electricite"],
     equipements: ["climatisation", "cuisine", "tv", "eau-chaude", "balcon-terrasse"],
     conditionsAnnulation: ANNULATION,
@@ -217,7 +218,7 @@ export const LOGEMENTS: Logement[] = [
     chambres: 2,
     lits: 2,
     sallesDeBain: 2,
-    prixParNuit: 70000,
+    prixParNuit: 90000,
     prixParMois: 1500000,
     inclus: ["eau", "electricite"],
     equipements: ["piscine", "cuisine", "tv", "climatisation", "parking", "balcon-terrasse"],
@@ -267,7 +268,8 @@ export const LOGEMENTS: Logement[] = [
     chambres: 2,
     lits: 2,
     sallesDeBain: 2,
-    prixParNuit: 110000,
+    prixParNuit: 125000,
+    prixParSemaine: 600000,
     prixParMois: 1350000,
     inclus: ["eau"],
     equipements: ["cuisine", "eau-chaude", "balcon-terrasse"],
@@ -307,7 +309,8 @@ export const LOGEMENTS: Logement[] = [
     chambres: 3,
     lits: 3,
     sallesDeBain: 2,
-    prixParNuit: 180000,
+    prixParNuit: 185000,
+    prixParSemaine: 1050000,
     inclus: ["eau", "electricite"],
     equipements: ["cuisine", "tv", "climatisation", "eau-chaude", "balcon-terrasse"],
     conditionsAnnulation: ANNULATION,
@@ -345,7 +348,7 @@ export const LOGEMENTS: Logement[] = [
       { url: "/images/logements/villa-mangrove-trois-chambres/30.jpg", alt: "Séjour et cuisine ouverts l'un sur l'autre" },
     ],
     description:
-      "Villa de trois chambres dans la résidence Mangrove, pour un court ou un long séjour. Décoration naturelle, séjour ouvert sur la terrasse, cuisine avec îlot, hamacs et jardin fleuri. Tarifs dégressifs : 170 000 FCFA la nuit pour deux nuits, 160 000 pour trois à quatre nuits, 140 000 à la semaine et 120 000 pour deux semaines.",
+      "Villa de trois chambres dans la résidence Mangrove, pour un court ou un long séjour. Décoration naturelle, séjour ouvert sur la terrasse, cuisine avec îlot, hamacs et jardin fleuri. Tarifs dégressifs : 175 000 FCFA la nuit pour deux nuits, 170 000 pour trois à quatre nuits, 150 000 à la semaine et 135 000 pour deux semaines.",
     partenaire: COLLECTE,
     position: { latitude: 14.4944, longitude: -17.0398 },
     verifie: true,
@@ -432,7 +435,7 @@ export const LOGEMENTS: Logement[] = [
     chambres: 3,
     lits: 3,
     sallesDeBain: 2,
-    prixParNuit: 130000,
+    prixParNuit: 140000,
     inclus: ["eau", "electricite"],
     equipements: ["piscine", "cuisine", "tv", "climatisation", "eau-chaude", "balcon-terrasse"],
     conditionsAnnulation: ANNULATION,
@@ -471,7 +474,7 @@ export const LOGEMENTS: Logement[] = [
     chambres: 5,
     lits: 5,
     sallesDeBain: 3,
-    prixParNuit: 150000,
+    prixParNuit: 160000,
     inclus: ["eau", "electricite"],
     equipements: ["piscine", "cuisine", "tv", "climatisation", "lave-linge", "parking", "eau-chaude", "balcon-terrasse"],
     conditionsAnnulation: ANNULATION,
@@ -564,7 +567,7 @@ export const LOGEMENTS: Logement[] = [
     chambres: 4,
     lits: 4,
     sallesDeBain: 3,
-    prixParNuit: 175000,
+    prixParNuit: 180000,
     inclus: ["eau", "electricite"],
     equipements: ["piscine", "climatisation", "tv", "cuisine", "eau-chaude", "balcon-terrasse"],
     conditionsAnnulation: ANNULATION,
@@ -659,7 +662,7 @@ export const LOGEMENTS: Logement[] = [
     chambres: 1,
     lits: 1,
     sallesDeBain: 1,
-    prixParNuit: 45000,
+    prixParNuit: 55000,
     inclus: ["eau", "electricite"],
     equipements: ["piscine", "cuisine", "lave-linge", "climatisation", "tv", "eau-chaude", "balcon-terrasse"],
     conditionsAnnulation: ANNULATION,
@@ -702,7 +705,7 @@ export const LOGEMENTS: Logement[] = [
     chambres: 4,
     lits: 4,
     sallesDeBain: 4,
-    prixParNuit: 130000,
+    prixParNuit: 150000,
     inclus: ["eau", "electricite"],
     equipements: ["piscine", "climatisation", "tv", "cuisine", "eau-chaude", "balcon-terrasse"],
     conditionsAnnulation: ANNULATION,
@@ -745,7 +748,7 @@ export const LOGEMENTS: Logement[] = [
     chambres: 1,
     lits: 1,
     sallesDeBain: 1,
-    prixParNuit: 45000,
+    prixParNuit: 70000,
     inclus: ["eau", "electricite"],
     equipements: ["climatisation", "tv", "cuisine", "eau-chaude"],
     conditionsAnnulation: ANNULATION,
@@ -783,7 +786,7 @@ export const LOGEMENTS: Logement[] = [
     chambres: 2,
     lits: 2,
     sallesDeBain: 1,
-    prixParNuit: 30000,
+    prixParNuit: 45000,
     inclus: ["eau", "electricite"],
     equipements: ["climatisation", "tv", "cuisine", "eau-chaude"],
     conditionsAnnulation: ANNULATION,
@@ -823,7 +826,7 @@ export const LOGEMENTS: Logement[] = [
     chambres: 1,
     lits: 1,
     sallesDeBain: 1,
-    prixParNuit: 22000,
+    prixParNuit: 35000,
     inclus: ["eau"],
     equipements: ["climatisation", "tv", "cuisine", "eau-chaude"],
     regles: ["L'électricité est à la charge du locataire"],
@@ -854,7 +857,7 @@ export const LOGEMENTS: Logement[] = [
     chambres: 1,
     lits: 1,
     sallesDeBain: 1,
-    prixParNuit: 25000,
+    prixParNuit: 45000,
     inclus: ["eau", "electricite"],
     equipements: ["climatisation", "tv", "cuisine", "eau-chaude"],
     conditionsAnnulation: ANNULATION,
@@ -887,7 +890,7 @@ export const LOGEMENTS: Logement[] = [
     chambres: 5,
     lits: 6,
     sallesDeBain: 5,
-    prixParNuit: 150000,
+    prixParNuit: 160000,
     inclus: ["eau", "electricite"],
     equipements: ["piscine", "cuisine", "tv", "climatisation", "eau-chaude", "balcon-terrasse"],
     conditionsAnnulation: ANNULATION,
@@ -1045,7 +1048,7 @@ export const LOGEMENTS: Logement[] = [
     chambres: 7,
     lits: 8,
     sallesDeBain: 2,
-    prixParNuit: 650000,
+    prixParNuit: 700000,
     inclus: ["eau", "electricite"],
     equipements: ["piscine", "cuisine", "balcon-terrasse"],
     conditionsAnnulation: ANNULATION,
@@ -1080,7 +1083,7 @@ export const LOGEMENTS: Logement[] = [
     chambres: 4,
     lits: 4,
     sallesDeBain: 2,
-    prixParNuit: 150000,
+    prixParNuit: 160000,
     inclus: ["eau", "electricite"],
     equipements: ["climatisation", "tv"],
     conditionsAnnulation: ANNULATION,
@@ -1131,8 +1134,8 @@ export const LOGEMENTS: Logement[] = [
     chambres: 1,
     lits: 1,
     sallesDeBain: 1,
-    prixParNuit: 25000,
-    prixParMois: 600000,
+    prixParNuit: 40000,
+    prixParMois: 650000,
     inclus: ["eau", "electricite"],
     equipements: ["climatisation", "tv", "cuisine", "eau-chaude"],
     conditionsAnnulation: ANNULATION,
@@ -1157,16 +1160,17 @@ export const LOGEMENTS: Logement[] = [
     ],
     photosDeLaVisite: true,
     description:
-      "Appartement meublé à la cité Makiyou Faye : salon climatisé, coin repas, cuisine équipée avec chauffe-eau, une chambre et une salle d'eau. Les photos sont des images de la visite filmée, qui se regarde sur cette fiche. Également loué au mois, à 600 000 F CFA.",
+      "Appartement meublé à la cité Makiyou Faye : salon climatisé, coin repas, cuisine équipée avec chauffe-eau, une chambre et une salle d'eau. Les photos sont des images de la visite filmée, qui se regarde sur cette fiche. Également loué au mois, à 650 000 F CFA.",
     partenaire: COLLECTE,
     verifie: true,
   },
   {
-    // Dossier 18. Le propriétaire n'annonce qu'un loyer : « 650k/ mois », à
-    // Dakar. `seulementAuMois` fait afficher ce loyer-là ; `prixParNuit` n'est
-    // que sa division par trente, gardée pour le total du séjour minimum de
-    // trente nuits. Personne n'a jamais demandé 21 667 F la nuit, et plus aucun
-    // écran ne l'annonce.
+    // Dossier 18. Le propriétaire n'annonçait qu'un loyer — « 650k/ mois », à
+    // Dakar — et `prixParNuit` n'était que sa division par trente, un chiffre
+    // que personne n'avait annoncé. Il donne maintenant les deux : 655 000 F le
+    // mois, 50 000 F la journée. La nuitée est donc un tarif, plus un calcul :
+    // elle s'affiche, et le séjour minimum de trente nuits n'a plus de raison
+    // d'être.
     //
     // Les deux chambres et les deux salles d'eau, elles, sont dans la visite :
     // ces chiffres sont vus, pas supposés. Le quartier reste inconnu.
@@ -1180,10 +1184,8 @@ export const LOGEMENTS: Logement[] = [
     chambres: 2,
     lits: 2,
     sallesDeBain: 2,
-    prixParNuit: 21667,
-    prixParMois: 650000,
-    seulementAuMois: true,
-    sejourMinimum: 30,
+    prixParNuit: 50000,
+    prixParMois: 655000,
     inclus: ["eau", "electricite"],
     equipements: ["climatisation", "tv", "cuisine", "eau-chaude"],
     conditionsAnnulation: ANNULATION,
@@ -1211,14 +1213,15 @@ export const LOGEMENTS: Logement[] = [
     ],
     photosDeLaVisite: true,
     description:
-      "Appartement meublé de deux chambres, salon avec téléviseur, cuisine équipée et chauffe-eau. Loué au mois : 650 000 F CFA. Les images sont tirées de la visite filmée transmise par le propriétaire.",
+      "Appartement meublé de deux chambres, salon avec téléviseur, cuisine équipée et chauffe-eau. Loué à la journée, 50 000 F CFA, ou au mois, 655 000 F CFA. Les images sont tirées de la visite filmée transmise par le propriétaire.",
     partenaire: COLLECTE,
     verifie: true,
   },
   {
-    // Dossier 19. Deux vidéos, « 600k/mois » pour toute annonce, à Dakar. Même
-    // règle qu'au dossier 18 : c'est le loyer qui s'affiche, la division par
-    // trente ne sert qu'à calculer le total du séjour minimum.
+    // Dossier 19. Deux vidéos et, pour toute annonce, « 600k/mois » — devenu
+    // 650 000 F le mois et 45 000 F la journée. Comme au dossier 18, la nuitée
+    // est maintenant annoncée par le propriétaire : elle s'affiche, et le
+    // minimum de trente nuits tombe avec la location au mois seul.
     //
     // Les deux visites ne montrent clairement qu'une chambre, derrière un
     // couloir qui en dessert visiblement d'autres. Le catalogue s'en tient à ce
@@ -1233,10 +1236,8 @@ export const LOGEMENTS: Logement[] = [
     chambres: 1,
     lits: 1,
     sallesDeBain: 1,
-    prixParNuit: 20000,
-    prixParMois: 600000,
-    seulementAuMois: true,
-    sejourMinimum: 30,
+    prixParNuit: 45000,
+    prixParMois: 650000,
     inclus: ["eau", "electricite"],
     equipements: ["cuisine", "tv"],
     conditionsAnnulation: ANNULATION,
@@ -1267,7 +1268,7 @@ export const LOGEMENTS: Logement[] = [
     ],
     photosDeLaVisite: true,
     description:
-      "Appartement meublé, cuisine équipée et salon avec téléviseur. Loué au mois : 600 000 F CFA. Les images sont tirées des deux visites filmées transmises par le propriétaire.",
+      "Appartement meublé, cuisine équipée et salon avec téléviseur. Loué à la journée, 45 000 F CFA, ou au mois, 650 000 F CFA. Les images sont tirées des deux visites filmées transmises par le propriétaire.",
     partenaire: COLLECTE,
     verifie: true,
   },

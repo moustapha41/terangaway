@@ -116,6 +116,27 @@ export interface DepotComptes {
   /** Compare un mot de passe à l'empreinte du compte, sans la faire sortir du dépôt. */
   verifierMotDePasseCompte(compteId: string, motDePasse: string): Promise<boolean>;
 
+  /* ────────────────────── Demande envoyée sans compte ────────────────────── */
+
+  /**
+   * Le compte de contact derrière une demande envoyée sans session.
+   *
+   * Retrouve le compte portant cette adresse, ou en crée un **non vérifié**,
+   * sans mot de passe. Il n'ouvre aucune session et ne marque jamais une
+   * adresse comme vérifiée : envoyer une demande n'est pas prouver qu'on relève
+   * cette boîte. C'est ce qui permet de ne plus exiger de code à l'envoi sans
+   * ouvrir pour autant la lecture des demandes de quelqu'un d'autre.
+   *
+   * Le nom et le numéro ne sont posés que sur les champs restés vides : ce sont
+   * des coordonnées de rappel, et une saisie de passage ne doit pas écraser ce
+   * que la personne a elle-même renseigné sur son compte.
+   */
+  visiteurDeContact(contact: {
+    email: string;
+    nom?: string;
+    telephone?: string;
+  }): Promise<CompteResume>;
+
   /* ──────────────────────── Connexion par Google ──────────────────────── */
 
   /**

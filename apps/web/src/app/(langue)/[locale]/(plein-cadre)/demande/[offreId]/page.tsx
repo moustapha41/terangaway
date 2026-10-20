@@ -12,14 +12,15 @@ import { SEJOUR_DEFAUT } from "@/lib/dates/sejour";
 import { logementParId, vehiculeParId, type EtatEnvoi } from "@/mocks/api";
 import { visiteurConnecte } from "@/features/compte/session";
 import { lireBrouillonLogement, lireBrouillonTransport } from "@/features/demande/brouillon";
-import { formaterPrix } from "@/lib/prix";
+import { formaterPrixVisiteur, prixAffiche } from "@/lib/prix";
+import { titreLogement } from "@/lib/i18n/titre-logement";
 
 /**
  * Écran 4 · Demande — harmonisation premium d'après la page de connexion Teranga Way.
  *
  * 1. Image de Dakar plein écran avec voile bleu nuit protecteur.
  * 2. Boutons de navigation flottants en haut de page (Retour accueil + Sélecteur de langue).
- * 3. Carte centrale blanc cassé / translucide (bg-surface/88, coins 26px, backdrop-blur-xl).
+ * 3. Carte centrale blanc cassé / translucide (bg-surface/78, coins 26px, backdrop-blur-xl).
  * 4. Structure interne :
  *    - Logo Teranga Way centré en haut de carte
  *    - Petit badge discret (« Logement » ou « Transport ») + Récapitulatif compact de l'offre
@@ -49,7 +50,7 @@ export default async function Demande({
     ? { email: visiteur.email, telephone: visiteur.telephone, identifiant: visiteur.identifiant }
     : undefined;
 
-  const logement = await logementParId(offreId);
+  const logement = await logementParId(offreId, langue);
   const vehicule = logement ? undefined : await vehiculeParId(offreId);
   if (!logement && !vehicule) notFound();
 
@@ -66,11 +67,11 @@ export default async function Demande({
 
   return (
     <main className="relative flex min-h-screen flex-col overflow-x-hidden bg-primaire">
-      {/* Fond Dakar en plein écran, fixé pour un défilement naturel et fluide */}
+      {/* Fond propre au parcours de demande, fixé pour un défilement naturel et fluide */}
       <div className="fixed inset-0 pointer-events-none">
         <Image
-          src="/images/fond-connexion.jpg"
-          alt={t("connexion.illustrationAlt")}
+          src="/images/fond-demande.jpg"
+          alt={t("demande.illustrationAlt")}
           fill
           priority
           sizes="100vw"
@@ -92,7 +93,7 @@ export default async function Demande({
 
         {/* Carte centrale ivoire / blanc cassé translucide */}
         <div className="flex flex-1 items-center justify-center py-4 sm:py-6">
-          <section className="w-full max-w-[490px] sm:max-w-[510px] rounded-[22px] sm:rounded-[26px] bg-surface/88 p-4 sm:p-6 shadow-[0_28px_70px_-24px_rgb(2_20_38/0.55)] backdrop-blur-xl">
+          <section className="w-full max-w-[490px] sm:max-w-[510px] rounded-[22px] sm:rounded-[26px] bg-surface/78 p-4 sm:p-6 origin-center sm:scale-[0.92] lg:scale-[0.80] shadow-[0_28px_70px_-24px_rgb(2_20_38/0.55)] backdrop-blur-xl">
             {/* 1. Logo Teranga Way centré en haut de la carte */}
             <Lien
               href="/"
@@ -113,7 +114,7 @@ export default async function Demande({
             {logement ? (
               <Lien
                 href={`/logements/${logement.slug}`}
-                title={logement.titre}
+                title={titreLogement(logement, t)}
                 className="group mt-3.5 flex items-center gap-2.5 rounded-[14px] border border-contour-champ/60 bg-champ/50 p-2 sm:p-2.5 transition-colors hover:bg-champ/75"
               >
                 <span className="relative h-11 w-12 sm:h-12 sm:w-14 shrink-0 overflow-hidden rounded-[9px] bg-champ">
@@ -136,15 +137,18 @@ export default async function Demande({
                     </span>
                   </div>
                   <p className="mt-0.5 truncate text-[13px] sm:text-[13.5px] font-bold text-encre group-hover:text-primaire">
-                    {logement.titre}
+                    {titreLogement(logement, t)}
                   </p>
                 </div>
                 <div className="text-right shrink-0 pl-1">
                   <p className="text-[13px] sm:text-[14px] font-bold text-primaire chiffres-tabulaires">
-                    {formaterPrix(logement.prixParNuit, langue)}
+                    {formaterPrixVisiteur(prixAffiche(logement).montant, langue)}
                   </p>
                   <p className="text-[10px] text-encre-douce">
-                    {t("commun.parNuit")}
+                    {t(prixAffiche(logement).cleUnite)}
+                  </p>
+                  <p className="text-[10px] text-encre-douce chiffres-tabulaires">
+                    {formaterPrixVisiteur(logement.prixParNuit, langue)} {t("commun.parNuit")}
                   </p>
                 </div>
               </Lien>
@@ -179,7 +183,7 @@ export default async function Demande({
                 </div>
                 <div className="text-right shrink-0 pl-1">
                   <p className="text-[13px] sm:text-[14px] font-bold text-primaire chiffres-tabulaires">
-                    {formaterPrix(prixVehicule, langue)}
+                    {formaterPrixVisiteur(prixVehicule, langue)}
                   </p>
                 </div>
               </Lien>

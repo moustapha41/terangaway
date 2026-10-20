@@ -1,5 +1,18 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
-import { IsInt, IsISO8601, IsOptional, IsString, Max, MaxLength, Min, MinLength } from "class-validator";
+import { Type } from "class-transformer";
+import {
+  IsInt,
+  IsISO8601,
+  IsOptional,
+  IsString,
+  Max,
+  MaxLength,
+  Min,
+  MinLength,
+  ValidateNested,
+} from "class-validator";
+
+import { ContactDemandeDto } from "./contact-demande.dto";
 
 export class CreerDemandeLogementDto {
   @ApiProperty({ example: "l-001" })
@@ -33,12 +46,13 @@ export class CreerDemandeLogementDto {
   message?: string;
 
   @ApiPropertyOptional({
-    description: "Code OTP à six chiffres. Obligatoire tant qu'aucune session n'est active.",
-    example: "123456",
+    type: ContactDemandeDto,
+    description:
+      "Coordonnées du visiteur, quand aucune session n'est ouverte. Plus de code à saisir : " +
+      "l'adresse rattache la demande, elle ne vaut pas identité.",
   })
   @IsOptional()
-  @IsString()
-  @MinLength(6)
-  @MaxLength(6)
-  code?: string;
+  @ValidateNested()
+  @Type(() => ContactDemandeDto)
+  contact?: ContactDemandeDto;
 }

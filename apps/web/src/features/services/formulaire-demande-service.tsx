@@ -55,6 +55,12 @@ export function FormulaireDemandeService({
     ),
   );
   const [message, setMessage] = useState(messageInitial);
+  // Les coordonnées voyagent avec la demande : il n'y a plus de code à saisir,
+  // et c'est par là que l'équipe rappellera. Sans elles, personne ne sait à qui
+  // répondre — ce service n'a pas de catalogue, tout se règle de vive voix.
+  const [nom, setNom] = useState("");
+  const [email, setEmail] = useState("");
+  const [telephone, setTelephone] = useState("");
   const [erreurs, setErreurs] = useState<Record<string, boolean>>({});
   const [envoi, setEnvoi] = useState<"repos" | "encours" | "fait" | "echec">("repos");
   const [motifEchec, setMotifEchec] = useState<string | null>(null);
@@ -64,29 +70,34 @@ export function FormulaireDemandeService({
     setValeurs((avant) => ({ ...avant, [cle]: valeur }));
 
   async function envoyer() {
-    const manques = Object.fromEntries(
+    const manques: Record<string, boolean> = Object.fromEntries(
       declarations
         .filter((c) => c.obligatoire && !valeurs[c.cle]?.trim())
         .map((c) => [c.cle, true]),
     );
+    manques.contactNom = nom.trim().length < 2;
+    manques.contactEmail = !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    manques.contactTelephone = telephone.replace(/\D/g, "").length < 6;
     setErreurs(manques);
-    if (Object.keys(manques).length > 0) return;
+    if (Object.values(manques).some(Boolean)) return;
 
     setEnvoi("encours");
-    const resultat = await creerDemandeServiceAction({
-      service,
-      details: valeurs,
-      message: message.trim() || undefined,
-    });
+    const resultat = await creerDemandeServiceAction(
+      {
+        service,
+        details: valeurs,
+        message: message.trim() || undefined,
+      },
+      { email, nom, telephone },
+    );
 
     if (resultat.succes) {
       setReference(resultat.demande.reference);
       setEnvoi("fait");
     } else {
       console.error("[service] envoi de la demande impossible", resultat.erreur);
-      // L'action nomme la cause (session non ouverte, trop de tentatives…).
-      // L'afficher vaut mieux qu'un message générique : le visiteur sait alors
-      // s'il doit redemander un code ou simplement réessayer.
+      // L'action nomme la cause. L'afficher vaut mieux qu'un message générique :
+      // le visiteur sait alors s'il doit corriger sa saisie ou réessayer.
       setMotifEchec(resultat.message ?? null);
       setEnvoi("echec");
     }
@@ -131,6 +142,33 @@ export function FormulaireDemandeService({
           enErreur={erreurs[c.cle] === true}
         />
       ))}
+
+      <Champ
+        libelle={t("demande.nomComplet")}
+        autoComplete="name"
+        value={nom}
+        onChange={(e) => setNom(e.target.value)}
+        erreur={erreurs.contactNom ? t("demande.nomRequis") : undefined}
+      />
+      <Champ
+        libelle={t("demande.email")}
+        type="email"
+        inputMode="email"
+        autoComplete="email"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        erreur={erreurs.contactEmail ? t("demande.emailRequis") : undefined}
+      />
+      <Champ
+        libelle={t("demande.telephone")}
+        type="tel"
+        inputMode="tel"
+        autoComplete="tel"
+        tabulaire
+        value={telephone}
+        onChange={(e) => setTelephone(e.target.value)}
+        erreur={erreurs.contactTelephone ? t("demande.telephoneRequis") : undefined}
+      />
 
       <label className="block">
         <span className="mb-1.5 block text-petit text-encre">

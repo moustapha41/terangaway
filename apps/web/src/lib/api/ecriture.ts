@@ -8,6 +8,19 @@ import type { Demande, MotifRefus, ServiceALaDemande } from "@teranga/contracts"
 
 import { appelerApi } from "./http";
 
+/**
+ * Les coordonnées qui accompagnent une demande envoyée sans compte.
+ *
+ * Il n'y a plus de code à saisir à l'envoi : l'adresse rattache la demande et
+ * donne à l'équipe de quoi rappeler, sans valoir identité pour autant — aucune
+ * session ne s'ouvre avec elle.
+ */
+export interface ContactDemande {
+  email: string;
+  nom?: string;
+  telephone?: string;
+}
+
 export async function apiCreerDemandeLogement(corps: {
   logementId: string;
   debut: string;
@@ -15,7 +28,7 @@ export async function apiCreerDemandeLogement(corps: {
   personnes: number;
   heureArrivee?: string;
   message?: string;
-  code?: string;
+  contact?: ContactDemande;
 }): Promise<Demande> {
   return appelerApi<Demande>("/demandes/logement", { method: "POST", corps });
 }
@@ -30,7 +43,7 @@ export async function apiCreerDemandeVehicule(corps: {
   bagages: number;
   vol?: string;
   message?: string;
-  code?: string;
+  contact?: ContactDemande;
 }): Promise<Demande> {
   return appelerApi<Demande>("/demandes/vehicule", { method: "POST", corps });
 }
@@ -226,7 +239,7 @@ export async function apiCreerDemandeService(corps: {
   service: ServiceALaDemande;
   details: Record<string, string>;
   message?: string;
-  code?: string;
+  contact?: ContactDemande;
 }): Promise<Demande> {
   return appelerApi<Demande>("/demandes/service", { method: "POST", corps });
 }

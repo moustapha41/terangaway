@@ -15,7 +15,7 @@
     "db:migrate": "pnpm --filter @teranga/api db:migrate",
     "db:seed": "pnpm --filter @teranga/api db:seed",
     "format": "prettier --write .",
-    "verifier": "pnpm -F @teranga/tokens verifier && pnpm -F @teranga/web i18n:verifier && pnpm -F @teranga/web i18n:cles && pnpm -F @teranga/web contraste && pnpm -F @teranga/web couture && pnpm -F @teranga/api verifier:depots && pnpm -r typecheck"
+    "verifier": "pnpm -F @teranga/tokens verifier && pnpm -F @teranga/web i18n:verifier && pnpm -F @teranga/web i18n:cles && pnpm -F @teranga/fixtures verifier:traductions && pnpm -F @teranga/web contraste && pnpm -F @teranga/web couture && pnpm -F @teranga/api verifier:depots && pnpm -r typecheck"
   },
   "devDependencies": {
     "turbo": "^2.1.3",

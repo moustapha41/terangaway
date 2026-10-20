@@ -4,7 +4,7 @@ import { BadgeVerifie, Carte, Icone } from "@teranga/ui";
 import { Lien } from "@/lib/i18n/lien";
 import { traducteurPour } from "@/lib/i18n/messages";
 import type { Langue } from "@/lib/i18n/langues";
-import { formaterPrix } from "@/lib/prix";
+import { formaterPrixVisiteur } from "@/lib/prix";
 
 /**
  * Carte véhicule — §C.3 : photo 4:3, badge vérifié, modèle, catégorie, places,
@@ -70,7 +70,7 @@ export function CarteVehicule({
 
           {prix !== undefined && (
             <p className="mt-4 text-prix text-encre chiffres-tabulaires">
-              {formaterPrix(prix, langue)}
+              {formaterPrixVisiteur(prix, langue)}
               <span className="ml-1 text-petit font-normal text-encre-douce">{unite}</span>
             </p>
           )}

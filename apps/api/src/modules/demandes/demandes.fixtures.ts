@@ -1,5 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import type { Demande } from "@teranga/contracts";
+import { totalSejour, type Demande } from "@teranga/contracts";
 import { DEMANDES, LOGEMENTS, VEHICULES } from "@teranga/fixtures";
 
 import { ErreurMetier, introuvable } from "../../commun/erreurs";
@@ -59,7 +59,7 @@ export class DepotDemandesFixtures implements DepotDemandes {
 
     const fraisFixes = logement.fraisFixes ?? [];
     const total =
-      logement.prixParNuit * nuits + fraisFixes.reduce((s, f) => s + f.montant, 0);
+      totalSejour(logement, nuits, fraisFixes);
     const maintenant = new Date().toISOString();
 
     const demande: Demande = {

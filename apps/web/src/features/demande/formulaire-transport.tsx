@@ -1,19 +1,17 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { ArrowRight } from "lucide-react";
 import type { Vehicule } from "@teranga/contracts";
-import { Bandeau, Carte, Champ, ChampCode, Compteur, FeuilleBasse, Icone } from "@teranga/ui";
+import { Bandeau, Carte, Champ, Compteur, Icone } from "@teranga/ui";
 import { IndicateurEtapes } from "./indicateur-etapes";
 import { formaterDateComplete, formaterHeure } from "@/lib/dates";
 import { useLangue, useT } from "@/lib/i18n/contexte";
 import { useNaviguer } from "@/lib/i18n/naviguer";
-import { formaterPrix } from "@/lib/prix";
+import { formaterPrixVisiteur } from "@/lib/prix";
 import { creerDemandeTransportAction } from "./actions";
-import { demanderCodeOtpAction } from "@/features/compte/actions";
 import { nomLisible } from "@/features/compte/cookie";
-import { CODE_DE_DEMONSTRATION, type EtatEnvoi } from "@/mocks/api";
-import { apiMockActive } from "@/lib/api/http";
+import { type EtatEnvoi } from "@/mocks/api";
 import { mettreDemandeDeCoteEtSInscrire, oublierBrouillonAction } from "./actions";
 import type { BrouillonTransport } from "./brouillon";
 
@@ -73,50 +71,8 @@ export function FormulaireTransport({
   const [envoi, setEnvoi] = useState<"repos" | "encours" | "fait">("repos");
   const [reference, setReference] = useState("");
 
-  const [code, setCode] = useState("");
-  const [feuilleCode, setFeuilleCode] = useState(false);
-  const [erreurCode, setErreurCode] = useState<"faux" | "expire" | null>(null);
   /** Message d'échec de l'envoi : une demande refusée doit se voir. */
   const [echec, setEchec] = useState<string | null>(null);
-  /** Le code a-t-il réellement été envoyé ? */
-  const [etatCode, setEtatCode] = useState<"inconnu" | "envoye" | "echec">("inconnu");
-  const [compteARebours, setCompteARebours] = useState(30);
-  const minuterie = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  useEffect(() => {
-    if (!feuilleCode) return;
-    setCompteARebours(30);
-    minuterie.current = setInterval(
-      () => setCompteARebours((reste) => (reste <= 1 ? 0 : reste - 1)),
-      1000,
-    );
-    return () => {
-      if (minuterie.current) clearInterval(minuterie.current);
-    };
-  }, [feuilleCode]);
-
-  /** L'indice « le code est 123456 » n'a de sens que si le mock répond. */
-  const indiceDemo = apiMockActive()
-    ? t("demande.codeDemo", { code: CODE_DE_DEMONSTRATION })
-    : etatCode === "envoye"
-      ? t("demande.codeEnvoye")
-      : undefined;
-
-  /** Demande un code et lit le résultat de l'envoi, au lieu de l'ignorer. */
-  async function demanderCode() {
-    setErreurCode(null);
-    if (!email) {
-      setEtatCode("echec");
-      return;
-    }
-    try {
-      const resultat = await demanderCodeOtpAction(email);
-      setEtatCode(resultat.succes ? "envoye" : "echec");
-      if (!resultat.succes) setEchec(resultat.erreur);
-    } catch {
-      setEtatCode("echec");
-    }
-  }
 
   const prix =
     prestation === "journee"
@@ -131,7 +87,7 @@ export function FormulaireTransport({
     if (!manques.depart) setEtape(2);
   }
 
-  async function envoyer(avecCode?: string) {
+  async function envoyer() {
     const manques = {
       nom: nom.trim().length < 2,
       email: !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email),
@@ -140,15 +96,7 @@ export function FormulaireTransport({
     setErreurs(manques);
     if (Object.values(manques).some(Boolean)) return;
 
-    if (!visiteur && !avecCode) {
-      setEtatCode("inconnu");
-      setFeuilleCode(true);
-      void demanderCode();
-      return;
-    }
-
     setEnvoi("encours");
-    setErreurCode(null);
     setEchec(null);
     try {
       const resultat = await creerDemandeTransportAction(
@@ -162,15 +110,13 @@ export function FormulaireTransport({
           bagages,
           vol: vol.trim() || undefined,
           message: message.trim() || undefined,
-          code: avecCode,
         },
         etatSimule,
-        { email, telephone },
+        { email, nom, telephone },
       );
 
       if (resultat.succes) {
         await oublierBrouillonAction().catch(() => {});
-        setFeuilleCode(false);
         setReference(resultat.demande.reference);
         setEnvoi("fait");
         setEtape(3);
@@ -178,36 +124,20 @@ export function FormulaireTransport({
         setEnvoi("repos");
         // Comme pour le logement : aucune issue ne se termine en silence.
         switch (resultat.erreur) {
-          case "code_invalide":
-            setErreurCode(resultat.raison ?? "faux");
-            setCode("");
-            break;
-          case "trop_de_tentatives":
-            setFeuilleCode(false);
-            setEchec(resultat.message ?? t("demande.echecTentatives"));
-            break;
-          case "session":
-            setFeuilleCode(false);
-            setEchec(resultat.message ?? t("demande.echecSession"));
-            break;
           case "delai_trop_court":
-            setFeuilleCode(false);
             setEtape(1);
             setEchec(resultat.message ?? t("demandeTransport.delaiTropCourt"));
             break;
           case "validation":
-            setFeuilleCode(false);
             setEtape(1);
             setEchec(resultat.message ?? t("demande.echecTexte"));
             break;
           default:
-            setFeuilleCode(false);
             setEchec(resultat.message ?? t("demande.echecTexte"));
         }
       }
     } catch {
       setEnvoi("repos");
-      setFeuilleCode(false);
       setEchec(t("demande.echecTexte"));
     }
   }
@@ -374,7 +304,7 @@ export function FormulaireTransport({
               </Ligne>
               <Ligne terme={t("demandeTransport.recapTotal")}>
                 <span className="chiffres-tabulaires font-semibold">
-                  {formaterPrix(prix, langue)}
+                  {formaterPrixVisiteur(prix, langue)}
                 </span>
               </Ligne>
             </dl>
@@ -410,6 +340,40 @@ export function FormulaireTransport({
               {t("demandeTransport.precedent")}
             </button>
           </div>
+
+          {/* Même sortie que côté logement : un vrai compte, sans perdre la saisie. */}
+          {!visiteur && (
+            <p className="text-center text-petit text-encre-douce">
+              {t("demande.plutotUnCompte")}{" "}
+              <button
+                type="button"
+                className="font-semibold text-primaire underline underline-offset-2"
+                onClick={() =>
+                  void mettreDemandeDeCoteEtSInscrire(
+                    {
+                      genre: "vehicule",
+                      vehiculeId: vehicule.id,
+                      prestation,
+                      depart: lieuDepart,
+                      arrivee: lieuArrivee || undefined,
+                      quand: moment,
+                      passagers: voyageurs,
+                      bagages,
+                      vol: vol || undefined,
+                      nom,
+                      email,
+                      telephone,
+                      message,
+                    },
+                    `/demande/${vehicule.id}?prestation=${prestation}&quand=${encodeURIComponent(moment)}&passagers=${voyageurs}`,
+                    langue,
+                  )
+                }
+              >
+                {t("demande.creerUnCompte")}
+              </button>
+            </p>
+          )}
         </form>
       )}
 
@@ -457,107 +421,6 @@ export function FormulaireTransport({
         </div>
       )}
 
-      <FeuilleBasse
-        ouverte={feuilleCode}
-        onFermer={() => setFeuilleCode(false)}
-        titre="Code de vérification"
-        etiquetteFermer={t("demande.fermer")}
-      >
-        <div className="space-y-5">
-          <p className="text-corps text-encre-douce">
-            {email
-              ? `Un code de vérification à six chiffres a été envoyé à l'adresse e-mail ${email}. Saisissez-le pour confirmer votre demande.`
-              : t("demande.codeTexte")}
-          </p>
-
-          <ChampCode
-            libelle={t("demande.codeLibelle")}
-            valeur={code}
-            onChange={setCode}
-            etat={
-              envoi === "encours"
-                ? "verification"
-                : erreurCode === "expire"
-                  ? "expire"
-                  : erreurCode
-                    ? "erreur"
-                    : "vide"
-            }
-            message={
-              erreurCode === "expire"
-                ? t("demande.codeExpire")
-                : erreurCode === "faux"
-                  ? t("demande.codeFaux")
-                  : etatCode === "echec"
-                    ? t("demande.codeNonEnvoye")
-                    : indiceDemo
-            }
-          />
-
-          <button
-            type="button"
-            disabled={code.length < 6 || envoi === "encours"}
-            onClick={() => void envoyer(code)}
-            className={
-              "group relative flex h-[50px] w-full items-center justify-center gap-2.5 rounded-pill " +
-              "border border-transparent bg-primaire text-[16px] font-semibold text-white " +
-              "shadow-[0_4px_16px_-4px_rgb(0_29_53/0.4)] transition-all duration-200 " +
-              "hover:border-jaune-vif hover:bg-[#072c4e] hover:shadow-[0_6px_24px_-4px_rgba(244,185,66,0.35)] " +
-              "hover:ring-2 hover:ring-jaune-vif/50 focus-visible:outline-2 focus-visible:outline-offset-2 " +
-              "focus-visible:outline-primaire active:scale-[0.99] disabled:opacity-45"
-            }
-          >
-            <span>{envoi === "encours" ? t("demande.envoiEnCours") : t("demandeTransport.envoyer")}</span>
-            <ArrowRight strokeWidth={2.2} className="h-5 w-5 transition-transform group-hover:translate-x-1" />
-          </button>
-
-          <button
-            type="button"
-            disabled={compteARebours > 0}
-            onClick={() => {
-              setCompteARebours(30);
-              void demanderCode();
-            }}
-            className="flex h-[46px] w-full items-center justify-center rounded-pill border border-contour bg-surface text-[14.5px] font-semibold text-encre transition-colors hover:bg-champ disabled:opacity-50"
-          >
-            {compteARebours > 0
-              ? t("demande.codeRenvoyerDans", { secondes: compteARebours })
-              : t("demande.codeRenvoyer")}
-          </button>
-
-          {/* Même sortie que côté logement : un vrai compte, sans perdre la saisie. */}
-          <p className="text-center text-petit text-encre-douce">
-            {t("demande.plutotUnCompte")}{" "}
-            <button
-              type="button"
-              className="font-semibold text-primaire underline underline-offset-2"
-              onClick={() =>
-                void mettreDemandeDeCoteEtSInscrire(
-                  {
-                    genre: "vehicule",
-                    vehiculeId: vehicule.id,
-                    prestation,
-                    depart: lieuDepart,
-                    arrivee: lieuArrivee || undefined,
-                    quand: moment,
-                    passagers: voyageurs,
-                    bagages,
-                    vol: vol || undefined,
-                    nom,
-                    email,
-                    telephone,
-                    message,
-                  },
-                  `/demande/${vehicule.id}?prestation=${prestation}&quand=${encodeURIComponent(moment)}&passagers=${voyageurs}`,
-                  langue,
-                )
-              }
-            >
-              {t("demande.creerUnCompte")}
-            </button>
-          </p>
-        </div>
-      </FeuilleBasse>
     </div>
   );
 }

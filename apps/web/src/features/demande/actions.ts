@@ -8,22 +8,23 @@ import {
   confirmerDemande,
   envoyerDemande,
   envoyerDemandeTransport,
-  CodeInvalide,
+  DelaiTropCourt,
   LogementPris,
-  CODE_DE_DEMONSTRATION,
   type EntreeDemande,
   type EntreeDemandeTransport,
   type EtatEnvoi,
 } from "@/mocks/api";
-import { ouvrirSession } from "@/features/compte/actions";
 import {
   effacerBrouillon,
   poserBrouillon,
   type BrouillonDemande,
 } from "@/features/demande/brouillon";
 import { visiteurConnecte } from "@/features/compte/session";
-import { verifierCodeEtOuvrirSession } from "@/features/compte/verification-otp";
-import { apiMockActive } from "@/lib/api/http";
+import {
+  coordonneesDemande,
+  ouvrirSessionDemo,
+  type Coordonnees,
+} from "@/features/demande/coordonnees";
 import { resoudreDestination } from "@/features/compte/destination";
 import { estLangue, type Langue } from "@/lib/i18n/langues";
 
@@ -53,14 +54,7 @@ export type ResultatDemandeLogement =
   | { succes: true; demande: Demande }
   | {
       succes: false;
-      erreur:
-        | "code_invalide"
-        | "trop_de_tentatives"
-        | "session"
-        | "logement_pris"
-        | "validation"
-        | "serveur";
-      raison?: "faux" | "expire";
+      erreur: "logement_pris" | "validation" | "serveur";
       alternatives?: Logement[];
       message?: string;
     };
@@ -72,7 +66,7 @@ export type ResultatDemandeLogement =
 export async function creerDemandeLogementAction(
   entree: EntreeDemande,
   etatSimule: EtatEnvoi = "normal",
-  contact?: { email?: string; telephone?: string },
+  contact?: Coordonnees,
 ): Promise<ResultatDemandeLogement> {
   // Validation stricte des données côté serveur
   if (!entree.logementId || typeof entree.logementId !== "string") {
@@ -86,34 +80,13 @@ export async function creerDemandeLogementAction(
     return { succes: false, erreur: "validation", message: "Nombre de personnes invalide." };
   }
 
-  // Vérifier si une session visiteur valide existe déjà
+  // Une session ouverte rattache la demande au compte ; sinon, les coordonnées
+  // saisies suffisent, et c'est là tout le changement : plus de code à l'envoi.
   const sessionActive = await visiteurConnecte();
+  const envoyeur = coordonneesDemande(contact);
 
-  if (!sessionActive) {
-    const codeOtp = entree.code?.trim();
-    if (!codeOtp && !apiMockActive()) {
-      return { succes: false, erreur: "code_invalide", raison: "faux" };
-    }
-
-    if (codeOtp) {
-      if (!apiMockActive()) {
-        const email = contact?.email?.trim();
-        if (!email) {
-          return { succes: false, erreur: "validation", message: "Adresse e-mail requise pour valider le code." };
-        }
-        const verification = await verifierCodeEtOuvrirSession(email, codeOtp);
-        if (!verification.ok) {
-          return { succes: false, ...verification.echec };
-        }
-      } else {
-        if (codeOtp !== CODE_DE_DEMONSTRATION) {
-          return { succes: false, erreur: "code_invalide", raison: "faux" };
-        }
-        const email = contact?.email?.trim() || "visiteur@teranga-way.com";
-        const mockToken = `session-mock-${Buffer.from(email).toString("hex")}`;
-        await ouvrirSession(mockToken);
-      }
-    }
+  if (!sessionActive && !envoyeur) {
+    return { succes: false, erreur: "validation", message: "Adresse e-mail requise." };
   }
 
   try {
@@ -125,24 +98,18 @@ export async function creerDemandeLogementAction(
         personnes,
         heureArrivee: entree.heureArrivee?.trim(),
         message: entree.message ? entree.message.slice(0, 2000).trim() : undefined,
+        contact: envoyeur,
       },
       etatSimule,
     );
 
-    if (!sessionActive && apiMockActive()) {
-      const email = contact?.email?.trim() || "visiteur@teranga-way.com";
-      const mockToken = `session-mock-${Buffer.from(email).toString("hex")}`;
-      await ouvrirSession(mockToken);
-    }
+    if (!sessionActive) await ouvrirSessionDemo(envoyeur?.email);
 
     revalidatePath("/[locale]/mes-demandes", "page");
     revalidatePath("/[locale]/compte", "page");
 
     return { succes: true, demande };
   } catch (erreur) {
-    if (erreur instanceof CodeInvalide) {
-      return { succes: false, erreur: "code_invalide", raison: erreur.raison };
-    }
     if (erreur instanceof LogementPris) {
       return { succes: false, erreur: "logement_pris", alternatives: erreur.alternatives };
     }
@@ -160,14 +127,7 @@ export type ResultatDemandeTransport =
   | { succes: true; demande: Demande }
   | {
       succes: false;
-      erreur:
-        | "code_invalide"
-        | "trop_de_tentatives"
-        | "session"
-        | "delai_trop_court"
-        | "validation"
-        | "serveur";
-      raison?: "faux" | "expire";
+      erreur: "delai_trop_court" | "validation" | "serveur";
       message?: string;
     };
 
@@ -178,7 +138,7 @@ export type ResultatDemandeTransport =
 export async function creerDemandeTransportAction(
   entree: EntreeDemandeTransport,
   etatSimule: EtatEnvoi = "normal",
-  contact?: { email?: string; telephone?: string },
+  contact?: Coordonnees,
 ): Promise<ResultatDemandeTransport> {
   // Validation stricte des données côté serveur
   if (!entree.vehiculeId || typeof entree.vehiculeId !== "string") {
@@ -195,34 +155,11 @@ export async function creerDemandeTransportAction(
     return { succes: false, erreur: "validation", message: "Nombre de passagers invalide." };
   }
 
-  // Vérifier si une session visiteur valide existe déjà
   const sessionActive = await visiteurConnecte();
+  const envoyeur = coordonneesDemande(contact);
 
-  if (!sessionActive) {
-    const codeOtp = entree.code?.trim();
-    if (!codeOtp && !apiMockActive()) {
-      return { succes: false, erreur: "code_invalide", raison: "faux" };
-    }
-
-    if (codeOtp) {
-      if (!apiMockActive()) {
-        const email = contact?.email?.trim();
-        if (!email) {
-          return { succes: false, erreur: "validation", message: "Adresse e-mail requise pour valider le code." };
-        }
-        const verification = await verifierCodeEtOuvrirSession(email, codeOtp);
-        if (!verification.ok) {
-          return { succes: false, ...verification.echec };
-        }
-      } else {
-        if (codeOtp !== CODE_DE_DEMONSTRATION) {
-          return { succes: false, erreur: "code_invalide", raison: "faux" };
-        }
-        const email = contact?.email?.trim() || "visiteur@teranga-way.com";
-        const mockToken = `session-mock-${Buffer.from(email).toString("hex")}`;
-        await ouvrirSession(mockToken);
-      }
-    }
+  if (!sessionActive && !envoyeur) {
+    return { succes: false, erreur: "validation", message: "Adresse e-mail requise." };
   }
 
   try {
@@ -237,23 +174,22 @@ export async function creerDemandeTransportAction(
         bagages: entree.bagages ? Math.max(0, Number(entree.bagages)) : 0,
         vol: entree.vol?.trim() || undefined,
         message: entree.message ? entree.message.slice(0, 2000).trim() : undefined,
+        contact: envoyeur,
       },
       etatSimule,
     );
 
-    if (!sessionActive && apiMockActive()) {
-      const email = contact?.email?.trim() || "visiteur@teranga-way.com";
-      const mockToken = `session-mock-${Buffer.from(email).toString("hex")}`;
-      await ouvrirSession(mockToken);
-    }
+    if (!sessionActive) await ouvrirSessionDemo(envoyeur?.email);
 
     revalidatePath("/[locale]/mes-demandes", "page");
     revalidatePath("/[locale]/compte", "page");
 
     return { succes: true, demande };
   } catch (erreur) {
-    if (erreur instanceof CodeInvalide) {
-      return { succes: false, erreur: "code_invalide", raison: erreur.raison };
+    // Le formulaire sait dire « moins de deux heures » (§B.3), mais rien ne le
+    // lui disait : l'issue existait côté écran, pas côté action.
+    if (erreur instanceof DelaiTropCourt) {
+      return { succes: false, erreur: "delai_trop_court", message: erreur.message };
     }
     return {
       succes: false,

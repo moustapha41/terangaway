@@ -575,6 +575,74 @@ export class DepotComptesPrisma implements DepotComptes {
     return this.resumer(compte);
   }
 
+  /* ────────────────────── Demande envoyée sans compte ────────────────────── */
+
+  async visiteurDeContact(contact: {
+    email: string;
+    nom?: string;
+    telephone?: string;
+  }): Promise<CompteResume> {
+    const email = normaliserDestination(contact.email);
+    const nom = contact.nom?.trim().slice(0, 120) || undefined;
+    // Les chiffres seulement, comme partout ailleurs. Une saisie trop courte
+    // n'est pas un numéro : mieux vaut aucun que faux.
+    const chiffres = contact.telephone ? normaliserTelephone(contact.telephone) : "";
+    const telephone = chiffres.length >= 6 ? chiffres : undefined;
+
+    const selection = {
+      id: true,
+      email: true,
+      nom: true,
+      estVerifie: true,
+      motDePasseHash: true,
+    } as const;
+
+    // Ni `estVerifie`, ni `verifieLe` : une demande n'est pas une preuve que
+    // l'on relève cette boîte. Le compte créé ici reste un carnet d'adresses.
+    const compte = await this.prisma.account.upsert({
+      where: { email },
+      update: {},
+      create: {
+        email,
+        nom,
+        role: "VISITEUR",
+        typeCompte: "VISITEUR",
+        estVerifie: false,
+      },
+      select: selection,
+    });
+
+    if (nom) await this.renseignerNomSiVide(compte.id, nom);
+    if (telephone) await this.renseignerTelephoneSiVide(compte.id, telephone);
+
+    // Relu après coup : le résumé rendu doit porter le nom qui vient d'être
+    // posé, pas celui d'avant.
+    const relu = await this.prisma.account.findUnique({
+      where: { id: compte.id },
+      select: selection,
+    });
+    return this.resumer(relu ?? compte);
+  }
+
+  /**
+   * Pose le numéro de rappel s'il n'y en a pas déjà un.
+   *
+   * `telephone` est unique en base : deux visiteurs qui donnent le même numéro
+   * — un hôtel, un accompagnateur — ne doivent pas faire échouer la seconde
+   * demande. La collision est donc attendue et avalée : le numéro reste dans la
+   * demande, l'équipe l'a sous les yeux de toute façon.
+   */
+  private async renseignerTelephoneSiVide(compteId: string, telephone: string): Promise<void> {
+    try {
+      await this.prisma.account.updateMany({
+        where: { id: compteId, telephone: null },
+        data: { telephone },
+      });
+    } catch {
+      // Numéro déjà porté par un autre compte : on n'insiste pas.
+    }
+  }
+
   async verifierMotDePasseCompte(compteId: string, motDePasse: string): Promise<boolean> {
     const compte = await this.prisma.account.findUnique({
       where: { id: compteId },

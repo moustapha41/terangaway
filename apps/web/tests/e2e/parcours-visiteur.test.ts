@@ -13,9 +13,11 @@ import { describe, it, expect, vi, beforeEach, afterAll } from "vitest";
  * répondait 401, et le site affichait un écran muet.
  *
  * La fausse API applique les mêmes règles que la vraie, désormais :
- *   · aucune route privée sans `Authorization: Bearer <jeton émis>` ;
+ *   · aucune **lecture** privée sans `Authorization: Bearer <jeton émis>` ;
  *   · `visiteur-demo` et les identifiants de compte ne sont pas des jetons ;
- *   · chaque demande est rattachée au compte porteur du jeton.
+ *   · une demande part sans code : avec une session, elle rejoint le compte du
+ *     jeton ; sans session, elle rejoint le carnet d'adresses de l'adresse
+ *     saisie, et **aucune session ne s'ouvre pour autant**.
  *
  * Ce n'est pas un test navigateur : rien ici ne dit du rendu, de l'hydratation
  * ni des erreurs de console. Playwright reste à installer pour cela.
@@ -63,6 +65,9 @@ interface DemandeStockee {
 const COMPTE = { id: "cmp_rokhaya_001", email: "rokhaya.seck@exemple.sn", telephone: "+221770000001" };
 const CODE_ATTENDU = "481502";
 
+/** Ce que fait `visiteurDeContact` : un compte de contact par adresse. */
+const compteDeContact = (email: string) => `cmp_contact_${email.trim().toLowerCase()}`;
+
 /** Jetons émis par la fausse API, comme le fait `genererJetonSession()`. */
 const jetonsEmis = new Set<string>();
 const demandes: DemandeStockee[] = [];
@@ -92,6 +97,13 @@ function reponse(statut: number, corps: unknown) {
 
 const refus401 = reponse(401, {
   erreur: { code: "NON_AUTHENTIFIE", message: "Session invalide ou expirée." },
+});
+
+const refusContact = reponse(400, {
+  erreur: {
+    code: "CONTACT_REQUIS",
+    message: "Une adresse e-mail est nécessaire pour envoyer une demande.",
+  },
 });
 
 function fausseApi(url: string, init?: RequestInit): Response {
@@ -136,9 +148,11 @@ function fausseApi(url: string, init?: RequestInit): Response {
       });
 
     case "/demandes/logement": {
-      if (!compteId) return refus401;
+      // Une session d'abord ; à défaut, les coordonnées. Et rien du tout sinon.
+      const auteur = compteId ?? (corps.contact?.email ? compteDeContact(corps.contact.email) : undefined);
+      if (!auteur) return refusContact;
       const reference = `TW-L${(demandes.length + 1).toString().padStart(5, "0")}`;
-      demandes.push({ reference, compteId, genre: "logement", offreId: corps.logementId });
+      demandes.push({ reference, compteId: auteur, genre: "logement", offreId: corps.logementId });
       return reponse(201, {
         donnees: {
           id: `d-${reference}`,
@@ -154,9 +168,10 @@ function fausseApi(url: string, init?: RequestInit): Response {
     }
 
     case "/demandes/vehicule": {
-      if (!compteId) return refus401;
+      const auteur = compteId ?? (corps.contact?.email ? compteDeContact(corps.contact.email) : undefined);
+      if (!auteur) return refusContact;
       const reference = `TW-V${(demandes.length + 1).toString().padStart(5, "0")}`;
-      demandes.push({ reference, compteId, genre: "vehicule", offreId: corps.vehiculeId });
+      demandes.push({ reference, compteId: auteur, genre: "vehicule", offreId: corps.vehiculeId });
       return reponse(201, {
         donnees: {
           id: `d-${reference}`,
@@ -277,7 +292,7 @@ describe("Parcours de connexion", () => {
 describe("Parcours logement", () => {
   beforeEach(reinitialiser);
 
-  it("réserve avec un code, puis rattache la demande au bon compte", async () => {
+  it("réserve sans aucun code, sur les seules coordonnées saisies", async () => {
     const { creerDemandeLogementAction } = await import("../../src/features/demande/actions");
 
     const resultat = await creerDemandeLogementAction(
@@ -286,25 +301,24 @@ describe("Parcours logement", () => {
         debut: "2026-10-25",
         fin: "2026-11-01",
         personnes: 2,
-        code: CODE_ATTENDU,
       },
       "normal",
-      { email: COMPTE.email },
+      { email: "fatou@exemple.sn", nom: "Fatou Ndiaye", telephone: "+221 77 123 45 67" },
     );
 
     expect(resultat.succes).toBe(true);
 
-    // La demande est en base, rattachée au compte du visiteur — et non à un
-    // compte de démonstration partagé.
+    // La demande est en base, au nom de l'adresse saisie.
     expect(demandes).toHaveLength(1);
-    expect(demandes[0].compteId).toBe(COMPTE.id);
+    expect(demandes[0].compteId).toBe(compteDeContact("fatou@exemple.sn"));
     expect(demandes[0].offreId).toBe("l-002");
 
-    // Le jeton a bien été transmis à l'API sur la route de création : c'est le
-    // maillon qui manquait en production.
-    const creation = appels.find((a) => a.chemin === "/demandes/logement");
-    expect(creation?.porteur).toBeDefined();
-    expect(jetonsEmis.has(creation!.porteur!)).toBe(true);
+    // Aucun code n'a été demandé ni vérifié : c'est tout l'objet du changement.
+    expect(compteurOtp).toBe(0);
+    expect(appels.filter((a) => a.chemin === "/comptes/otp/verifier")).toHaveLength(0);
+
+    // Et rien ne s'est ouvert : envoyer une demande ne connecte pas.
+    expect(jetonCourant()).toBeUndefined();
   });
 
   it("une session déjà ouverte évite un nouveau code (§B.1)", async () => {
@@ -335,46 +349,52 @@ describe("Parcours logement", () => {
     expect(jetonCourant()).toBe(jetonAvant);
   });
 
-  it("sans session ni code, aucune demande n'est créée et l'échec est explicite", async () => {
+  it("sans session ni adresse, aucune demande n'est créée et l'échec est explicite", async () => {
     const { creerDemandeLogementAction } = await import("../../src/features/demande/actions");
 
     const resultat = await creerDemandeLogementAction(
       { logementId: "l-002", debut: "2026-10-25", fin: "2026-11-01", personnes: 2 },
       "normal",
-      { email: COMPTE.email },
     );
 
     expect(resultat.succes).toBe(false);
     if (!resultat.succes) {
       // Une issue nommée, que le formulaire sait afficher — pas un silence.
-      expect(resultat.erreur).toBe("code_invalide");
+      expect(resultat.erreur).toBe("validation");
     }
+    // Rien n'est même parti sur le réseau : l'adresse manque ici, pas là-bas.
     expect(demandes).toHaveLength(0);
+    expect(appels.filter((a) => a.chemin === "/demandes/logement")).toHaveLength(0);
   });
 
-  it("un cookie forgé ne crée aucune réservation", async () => {
+  it("un cookie forgé n'emprunte le compte de personne", async () => {
     const { creerDemandeLogementAction } = await import("../../src/features/demande/actions");
 
+    // Un cookie forgé ne vaut plus un refus sec : la demande part comme celle
+    // d'un invité. Ce qu'il ne fait pas, et c'est tout ce qui compte, c'est
+    // désigner le compte de quelqu'un d'autre — la demande est rattachée à
+    // l'adresse saisie, jamais au compte visé par le cookie.
     for (const forge of ["visiteur-demo", COMPTE.email, "a".repeat(40)]) {
       bocalCookies.set("teranga_visiteur", { value: forge });
 
       const resultat = await creerDemandeLogementAction(
         { logementId: "l-002", debut: "2026-10-25", fin: "2026-11-01", personnes: 2 },
         "normal",
-        { email: COMPTE.email },
+        { email: "fatou@exemple.sn" },
       );
 
-      expect(resultat.succes, `cookie « ${forge} »`).toBe(false);
+      expect(resultat.succes, `cookie « ${forge} »`).toBe(true);
     }
 
-    expect(demandes).toHaveLength(0);
+    expect(demandes.every((d) => d.compteId === compteDeContact("fatou@exemple.sn"))).toBe(true);
+    expect(demandes.some((d) => d.compteId === COMPTE.id)).toBe(false);
   });
 
   it("refuse des dates incohérentes avant tout appel réseau", async () => {
     const { creerDemandeLogementAction } = await import("../../src/features/demande/actions");
 
     const resultat = await creerDemandeLogementAction(
-      { logementId: "l-002", debut: "2026-11-01", fin: "2026-10-25", personnes: 2, code: CODE_ATTENDU },
+      { logementId: "l-002", debut: "2026-11-01", fin: "2026-10-25", personnes: 2 },
       "normal",
       { email: COMPTE.email },
     );
@@ -389,7 +409,7 @@ describe("Parcours logement", () => {
 describe("Parcours transport", () => {
   beforeEach(reinitialiser);
 
-  it("réserve un trajet et le rattache au bon compte", async () => {
+  it("réserve un trajet sans code, sur les coordonnées saisies", async () => {
     const { creerDemandeTransportAction } = await import("../../src/features/demande/actions");
 
     const resultat = await creerDemandeTransportAction(
@@ -401,19 +421,16 @@ describe("Parcours transport", () => {
         quand: new Date(Date.now() + 6 * 3600_000).toISOString(),
         passagers: 2,
         bagages: 2,
-        code: CODE_ATTENDU,
       },
       "normal",
-      { email: COMPTE.email },
+      { email: "fatou@exemple.sn", nom: "Fatou Ndiaye" },
     );
 
     expect(resultat.succes).toBe(true);
     expect(demandes).toHaveLength(1);
     expect(demandes[0].genre).toBe("vehicule");
-    expect(demandes[0].compteId).toBe(COMPTE.id);
-
-    const creation = appels.find((a) => a.chemin === "/demandes/vehicule");
-    expect(jetonsEmis.has(creation!.porteur!)).toBe(true);
+    expect(demandes[0].compteId).toBe(compteDeContact("fatou@exemple.sn"));
+    expect(compteurOtp).toBe(0);
   });
 
   it("enchaîne logement puis transport sur la même session, sans nouveau code", async () => {

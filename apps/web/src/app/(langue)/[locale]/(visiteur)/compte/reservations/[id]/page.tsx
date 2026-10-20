@@ -6,8 +6,9 @@ import { OngletsReservation } from "@/features/client/onglets-reservation";
 import { Lien } from "@/lib/i18n/lien";
 import { estLangue, type Langue } from "@/lib/i18n/langues";
 import { traducteurPour } from "@/lib/i18n/messages";
+import { titreLogement, titreOffre } from "@/lib/i18n/titre-logement";
 import { formaterDateComplete, nombreDeNuits } from "@/lib/dates";
-import { formaterPrix } from "@/lib/prix";
+import { formaterPrixVisiteur } from "@/lib/prix";
 import { logementParId, obtenirDemande } from "@/mocks/api";
 import { VignetteDemande } from "@/components/visiteur/vignette-demande";
 
@@ -34,7 +35,7 @@ export default async function DetailReservation({
   // lire son identifiant, sinon TypeScript ne peut pas le garantir.
   const offre = demande.offre;
   const logement =
-    offre.genre === "logement" ? await logementParId(offre.logementId) : undefined;
+    offre.genre === "logement" ? await logementParId(offre.logementId, langue) : undefined;
 
   const reserveLe = demande.frise[0]?.horodatage;
   const nuits = nombreDeNuits(new Date(demande.dates.debut), new Date(demande.dates.fin));
@@ -64,7 +65,7 @@ export default async function DetailReservation({
 
       <header className="mt-5 flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-titre-1 text-encre">{demande.offre.titre}</h1>
+          <h1 className="text-titre-1 text-encre">{titreOffre(demande.offre, t)}</h1>
           {logement && (
             <p className="mt-1 flex items-center gap-1.5 text-petit text-encre-douce">
               <Icone nom="repere" taille={16} />
@@ -119,7 +120,7 @@ export default async function DetailReservation({
                       />
                     </span>
                     <span className="min-w-0 flex-1">
-                      <span className="block text-titre-3 text-encre">{logement.titre}</span>
+                      <span className="block text-titre-3 text-encre">{titreLogement(logement, t)}</span>
                       <span className="block text-petit text-encre-douce">
                         {logement.quartier}, {logement.ville}
                       </span>
@@ -176,9 +177,9 @@ function Details({
           {t("resultats.voyageurs", { nombre: demande.personnes })}
         </Ligne>
         {parNuit !== undefined && (
-          <Ligne terme={t("client.prixParNuit")}>{formaterPrix(parNuit, langue)}</Ligne>
+          <Ligne terme={t("client.prixParNuit")}>{formaterPrixVisiteur(parNuit, langue)}</Ligne>
         )}
-        <Ligne terme={t("client.totalEstime")}>{formaterPrix(demande.prix.total, langue)}</Ligne>
+        <Ligne terme={t("client.totalEstime")}>{formaterPrixVisiteur(demande.prix.total, langue)}</Ligne>
         <Ligne terme={t("client.statut")}>
           <BadgeStatut statut={demande.statut} libelle={t(`statut.${demande.statut}`)} />
         </Ligne>

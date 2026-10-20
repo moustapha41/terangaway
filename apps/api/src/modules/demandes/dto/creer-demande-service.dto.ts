@@ -1,4 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
+import { Type } from "class-transformer";
 import { SERVICES_A_LA_DEMANDE, type ServiceALaDemande } from "@teranga/contracts";
 import {
   IsIn,
@@ -6,7 +7,10 @@ import {
   IsOptional,
   IsString,
   MaxLength,
+  ValidateNested,
 } from "class-validator";
+
+import { ContactDemandeDto } from "./contact-demande.dto";
 
 /**
  * Une demande de service sans catalogue.
@@ -34,8 +38,14 @@ export class CreerDemandeServiceDto {
   @MaxLength(2000)
   message?: string;
 
-  @ApiPropertyOptional({ description: "Code à usage unique, si la session n'est pas ouverte." })
+  @ApiPropertyOptional({
+    type: ContactDemandeDto,
+    description:
+      "Coordonnées du visiteur, quand aucune session n'est ouverte. Plus de code à saisir : " +
+      "l'adresse rattache la demande, elle ne vaut pas identité.",
+  })
   @IsOptional()
-  @IsString()
-  code?: string;
+  @ValidateNested()
+  @Type(() => ContactDemandeDto)
+  contact?: ContactDemandeDto;
 }

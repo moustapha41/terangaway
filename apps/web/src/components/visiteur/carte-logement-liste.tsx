@@ -6,9 +6,10 @@ import type { Logement } from "@teranga/contracts";
 import { Icone } from "@teranga/ui";
 import { Lien } from "@/lib/i18n/lien";
 import { useLangue, useT } from "@/lib/i18n/contexte";
-import { formaterPrix, prixAffiche } from "@/lib/prix";
+import { formaterPrixVisiteur, prixAffiche, sousTotalSejour } from "@/lib/prix";
 import { useFavoris } from "@/features/favoris/use-favoris";
 import { situation } from "@/lib/lieu";
+import { titreLogement } from "@/lib/i18n/titre-logement";
 
 /**
  * Carte de résultat, format liste — maquette du parcours logement, écran 02.
@@ -33,7 +34,7 @@ export function CarteLogementListe({
   const [photo, setPhoto] = useState(0);
 
   const favori = estFavori(logement.id);
-  const total = logement.prixParNuit * nuits;
+  const total = sousTotalSejour(logement, nuits);
   const lien = `/logements/${logement.slug}${parametres ? `?${parametres}` : ""}`;
 
   const decaler = (pas: number) =>
@@ -71,11 +72,11 @@ export function CarteLogementListe({
 
               <h3 className="mt-2 text-titre-3 text-encre">
                 <Lien href={lien} className="after:absolute after:inset-0 after:content-['']">
-                  {logement.titre}
+                  {titreLogement(logement, t)}
                 </Lien>
               </h3>
               <p className="mt-0.5 text-petit text-encre-douce">
-                {situation(logement)}
+                {situation(logement, t)}
               </p>
 
               {logement.note !== undefined && (
@@ -123,15 +124,20 @@ export function CarteLogementListe({
           </ul>
 
           <div className="mt-4 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-            <p className="text-prix text-encre chiffres-tabulaires">
-              {formaterPrix(prixAffiche(logement).montant, langue)}
-              <span className="ml-1 text-petit font-normal text-encre-douce">
-                {t(prixAffiche(logement).cleUnite)}
-              </span>
-            </p>
+            <div>
+              <p className="text-prix text-encre chiffres-tabulaires">
+                {formaterPrixVisiteur(prixAffiche(logement).montant, langue)}
+                <span className="ml-1 text-petit font-normal text-encre-douce">
+                  {t(prixAffiche(logement).cleUnite)}
+                </span>
+              </p>
+              <p className="mt-0.5 text-legende text-encre-douce chiffres-tabulaires">
+                {formaterPrixVisiteur(logement.prixParNuit, langue)} {t("commun.parNuit")}
+              </p>
+            </div>
             <p className="text-petit text-encre-douce chiffres-tabulaires">
               {t("resultats.totalNuits", {
-                prix: formaterPrix(total, langue),
+                prix: formaterPrixVisiteur(total, langue),
                 nuits: t("fiche.nuits", { nombre: nuits }),
               })}
             </p>

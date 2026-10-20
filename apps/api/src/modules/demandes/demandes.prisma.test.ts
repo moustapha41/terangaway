@@ -38,7 +38,7 @@ describe("Persistance PostgreSQL — Module Demandes & Prévention IDOR", () => 
     expect(creee.reference).toMatch(/^TW-\d{6}$/);
     expect(creee.statut).toBe("envoyee");
     expect(creee.coordonnees).toBeUndefined();
-    expect(creee.prix.total).toBe(600000); // 4 nuits * 150000
+    expect(creee.prix.total).toBe(620000); // 4 nuits * 155000
 
     // Vérification directe de la ligne en base PostgreSQL
     const enBase = await prisma.demand.findUnique({
@@ -46,7 +46,7 @@ describe("Persistance PostgreSQL — Module Demandes & Prévention IDOR", () => 
     });
     expect(enBase).toBeDefined();
     expect(enBase!.reference).toBe(creee.reference);
-    expect(enBase!.prixTotal).toBe(600000);
+    expect(enBase!.prixTotal).toBe(620000);
     expect(enBase!.coordonnees).toBeNull();
   });
 

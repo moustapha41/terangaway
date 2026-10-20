@@ -227,6 +227,29 @@ export class DepotComptesFixtures implements DepotComptes {
     throw new Error(`Compte inconnu : ${compteId}`);
   }
 
+  /* ────────────────────── Demande envoyée sans compte ────────────────────── */
+
+  async visiteurDeContact(contact: {
+    email: string;
+    nom?: string;
+    telephone?: string;
+  }): Promise<CompteResume> {
+    const email = normaliserDestination(contact.email);
+    const nom = contact.nom?.trim().slice(0, 120) || null;
+    const existant = this.comptes.get(email);
+
+    // Le compte reste non vérifié : une demande ne prouve pas l'adresse.
+    const compte = {
+      id: existant?.id ?? `cmp-${email}`,
+      email,
+      nom: existant?.nom ?? nom,
+      estVerifie: existant?.estVerifie ?? false,
+      motDePasseHash: existant?.motDePasseHash ?? null,
+    };
+    this.comptes.set(email, compte);
+    return resumerCompte(compte);
+  }
+
   async verifierMotDePasseCompte(compteId: string, motDePasse: string): Promise<boolean> {
     for (const compte of this.comptes.values()) {
       if (compte.id === compteId) {

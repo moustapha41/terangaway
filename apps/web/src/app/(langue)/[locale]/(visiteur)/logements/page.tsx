@@ -60,7 +60,9 @@ export default async function Resultats({
     // sélection « populaires » manque.
     let populaires: Logement[] = [];
     try {
-      populaires = (await chercherLogements({ ville: recherche.ville, tri: "note" })).elements.slice(0, 4);
+      populaires = (
+        await chercherLogements({ ville: recherche.ville, tri: "note" }, "normal", langue)
+      ).elements.slice(0, 4);
     } catch (erreur) {
       if (!(erreur instanceof ErreurServeur)) throw erreur;
       console.error("[logements] sélection populaire indisponible", erreur);
@@ -126,6 +128,7 @@ async function Contenu({
         tri: recherche.tri as "prix-croissant" | undefined,
       },
       (recherche.etat as EtatSimule) ?? "normal",
+      langue,
     );
   } catch (erreur) {
     if (!(erreur instanceof ErreurServeur)) throw erreur;

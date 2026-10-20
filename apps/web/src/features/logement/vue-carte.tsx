@@ -7,7 +7,8 @@ import { Icone } from "@teranga/ui";
 import { CarteTuiles } from "@/lib/carte/carte-tuiles";
 import { Lien } from "@/lib/i18n/lien";
 import { useLangue, useT } from "@/lib/i18n/contexte";
-import { formaterMontant, formaterPrix, prixAffiche } from "@/lib/prix";
+import { titreLogement } from "@/lib/i18n/titre-logement";
+import { formaterMontantVisiteur, formaterPrixVisiteur, prixAffiche } from "@/lib/prix";
 
 /**
  * Vue carte des résultats — maquette écran 07.
@@ -41,7 +42,7 @@ export function VueCarte({
           id: logement.id,
           latitude: logement.position!.latitude,
           longitude: logement.position!.longitude,
-          libelle: `${formaterMontant(Math.round(prixAffiche(logement).montant / 1000), langue)}K`,
+          libelle: `${formaterMontantVisiteur(Math.round(prixAffiche(logement).montant / 1000), langue)}K`,
           actif: logement.id === choisi,
           onClick: () => setChoisi((id) => (id === logement.id ? null : logement.id)),
         }))}
@@ -63,15 +64,18 @@ export function VueCarte({
             <div className="min-w-0 flex-1">
               <p className="truncate text-titre-3 text-encre">
                 <Lien href={`/logements/${actif.slug}${parametres ? `?${parametres}` : ""}`}>
-                  {actif.titre}
+                  {titreLogement(actif, t)}
                 </Lien>
               </p>
               <p className="mt-0.5 text-petit text-encre-douce">
                 {actif.quartier}, {actif.ville}
               </p>
               <p className="mt-1.5 text-petit font-semibold text-encre chiffres-tabulaires">
-                {formaterPrix(prixAffiche(actif).montant, langue)}
+                {formaterPrixVisiteur(prixAffiche(actif).montant, langue)}
                 <span className="ml-1 font-normal text-encre-douce">{t(prixAffiche(actif).cleUnite)}</span>
+              </p>
+              <p className="text-legende text-encre-douce chiffres-tabulaires">
+                {formaterPrixVisiteur(actif.prixParNuit, langue)} {t("commun.parNuit")}
               </p>
             </div>
 

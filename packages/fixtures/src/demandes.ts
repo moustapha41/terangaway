@@ -1,4 +1,4 @@
-import type { Demande, EtapeFrise, StatutDemande } from "@teranga/contracts";
+import { totalSejour, type Demande, type EtapeFrise, type StatutDemande } from "@teranga/contracts";
 import { LOGEMENTS } from "./logements";
 import { VEHICULES } from "./vehicules";
 
@@ -19,7 +19,7 @@ function prixDe(logementId: string, nuits: number) {
     prixParNuit: logement.prixParNuit,
     nuits,
     fraisFixes,
-    total: logement.prixParNuit * nuits + fraisFixes.reduce((s, f) => s + f.montant, 0),
+    total: totalSejour(logement, nuits, fraisFixes),
   };
 }
 

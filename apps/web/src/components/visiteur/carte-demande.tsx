@@ -5,8 +5,9 @@ import { Lien } from "@/lib/i18n/lien";
 import { traducteurPour } from "@/lib/i18n/messages";
 import type { Langue } from "@/lib/i18n/langues";
 import { dureeRestante, formaterPlage } from "@/lib/dates";
-import { formaterPrix } from "@/lib/prix";
+import { formaterPrixVisiteur } from "@/lib/prix";
 import { VignetteDemande } from "@/components/visiteur/vignette-demande";
+import { titreOffre } from "@/lib/i18n/titre-logement";
 
 /**
  * Carte de demande — une ligne de « Mes demandes » (§C.3) : vignette, titre,
@@ -34,7 +35,7 @@ export function CarteDemande({ demande, langue }: { demande: Demande; langue: La
           <BadgeStatut statut={demande.statut} libelle={t(`statut.${demande.statut}`)} />
 
           <span className="mt-2 block text-titre-3 text-encre">
-            {demande.offre.titre}
+            {titreOffre(demande.offre, t)}
           </span>
 
           <span className="mt-1 block text-petit text-encre-douce chiffres-tabulaires">
@@ -43,7 +44,7 @@ export function CarteDemande({ demande, langue }: { demande: Demande; langue: La
 
           <span className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1">
             <span className="text-petit font-semibold text-encre chiffres-tabulaires">
-              {formaterPrix(demande.prix.total, langue)}
+              {formaterPrixVisiteur(demande.prix.total, langue)}
             </span>
 
             {demande.expireLe && (

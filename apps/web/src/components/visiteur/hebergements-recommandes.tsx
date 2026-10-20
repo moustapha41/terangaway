@@ -2,10 +2,11 @@ import Image from "next/image";
 import { Lien } from "@/lib/i18n/lien";
 import { traducteurPour } from "@/lib/i18n/messages";
 import type { Langue } from "@/lib/i18n/langues";
-import { formaterPrix, prixAffiche } from "@/lib/prix";
+import { formaterPrixVisiteur, prixAffiche } from "@/lib/prix";
 import type { Equipement, Logement } from "@teranga/contracts";
 import { logementParId } from "@/mocks/api";
 import { situation } from "@/lib/lieu";
+import { titreLogement } from "@/lib/i18n/titre-logement";
 import {
   ArrowRight,
   BadgeCheck,
@@ -61,7 +62,9 @@ export async function HebergementsRecommandes({ langue }: { langue: Langue }) {
   // — la recherche, les services, les repères — continue de servir.
   let logements: NonNullable<Awaited<ReturnType<typeof logementParId>>>[] = [];
   try {
-    logements = (await Promise.all(MIS_EN_AVANT.map(logementParId))).filter(
+    logements = (
+      await Promise.all(MIS_EN_AVANT.map((id) => logementParId(id, langue)))
+    ).filter(
       (l): l is NonNullable<typeof l> => l !== null,
     );
   } catch (erreur) {
@@ -125,7 +128,7 @@ export async function HebergementsRecommandes({ langue }: { langue: Langue }) {
                 <div className="p-4">
                   <div className="flex items-start justify-between gap-2">
                     <h3 className="text-[16px] font-bold leading-snug text-nuit">
-                      {logement.titre}
+                      {titreLogement(logement, t)}
                     </h3>
                     {/* Aucune offre du catalogue n'est encore notée : la place
                         restait prise par une étoile suivie d'un « () » vide.
@@ -148,7 +151,7 @@ export async function HebergementsRecommandes({ langue }: { langue: Langue }) {
 
                   <p className="mt-2 flex items-center gap-1.5 text-[13.5px] text-gris">
                     <MapPin strokeWidth={1.8} className="h-3.5 w-3.5 shrink-0" />
-                    {situation(logement)}
+                    {situation(logement, t)}
                   </p>
 
                   <ul className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12.5px] text-gris">
@@ -178,11 +181,16 @@ export async function HebergementsRecommandes({ langue }: { langue: Langue }) {
 
                   <p className="mt-4 text-[17px] font-bold text-nuit">
                     <span className="chiffres-tabulaires">
-                      {formaterPrix(prixAffiche(logement).montant, langue)}
+                      {formaterPrixVisiteur(prixAffiche(logement).montant, langue)}
                     </span>
                     <span className="ml-1 text-[13.5px] font-normal text-gris">
                       {t(prixAffiche(logement).cleUnite)}
                     </span>
+                  </p>
+                  {/* La nuitée sous la semaine : le prix d'une annonce se compare
+                      sur la semaine, mais c'est la nuit que le visiteur connaît. */}
+                  <p className="mt-0.5 text-[12.5px] text-gris chiffres-tabulaires">
+                    {formaterPrixVisiteur(logement.prixParNuit, langue)} {t("commun.parNuit")}
                   </p>
                 </div>
               </Lien>

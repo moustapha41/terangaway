@@ -78,6 +78,15 @@ export interface Logement {
   sallesDeBain: number;
   prixParNuit: number;
   /**
+   * Tarif de la semaine annoncé par le propriétaire, quand il en annonce un.
+   *
+   * Plusieurs annonces portent un barème dégressif : sept nuits y coûtent moins
+   * que sept fois la nuitée. L'écran annonce la semaine (§C.4) ; sans ce champ
+   * il multiplierait par sept et afficherait un prix que le propriétaire n'a
+   * jamais demandé.
+   */
+  prixParSemaine?: number;
+  /**
    * Loyer mensuel annoncé par le propriétaire, quand il en annonce un.
    *
    * Certains appartements de Dakar ne se louent qu'au mois. Leur `prixParNuit`

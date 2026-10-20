@@ -8,7 +8,7 @@ import { CENTRES_ZONES } from "@/lib/carte/zones";
 import { CarteTuiles } from "@/lib/carte/carte-tuiles";
 import { useLangue, useT } from "@/lib/i18n/contexte";
 import { Lien } from "@/lib/i18n/lien";
-import { formaterMontant, formaterPrix } from "@/lib/prix";
+import { formaterMontantVisiteur, formaterPrixVisiteur } from "@/lib/prix";
 
 /**
  * Vue carte des transports — maquette transport, écran 3.
@@ -61,7 +61,7 @@ export function VueCarteTransport({
             id: zone.nom,
             latitude: zone.centre.latitude,
             longitude: zone.centre.longitude,
-            libelle: `${formaterMontant(Math.round(moins / 1000), langue)}K`,
+            libelle: `${formaterMontantVisiteur(Math.round(moins / 1000), langue)}K`,
             actif: zone.nom === zoneOuverte,
             onClick: () => setZoneOuverte((n) => (n === zone.nom ? null : zone.nom)),
           };
@@ -110,7 +110,7 @@ export function VueCarteTransport({
                     </span>
                   </span>
                   <span className="shrink-0 text-petit font-semibold text-encre chiffres-tabulaires">
-                    {formaterPrix(prixDe(v), langue)}
+                    {formaterPrixVisiteur(prixDe(v), langue)}
                   </span>
                 </Lien>
               </li>

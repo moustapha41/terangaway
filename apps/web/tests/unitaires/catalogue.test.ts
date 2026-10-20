@@ -16,6 +16,7 @@ import {
   ErreurServeur,
 } from "../../src/mocks/api";
 import { LOGEMENTS } from "../../src/mocks/fixtures/logements";
+import { prixSemaine } from "../../src/lib/prix";
 
 describe("Catalogue Logements & Transports — Disponibilité et Intégrité", () => {
   const envInitial = process.env.NEXT_PUBLIC_API_MOCK;
@@ -108,19 +109,22 @@ describe("Catalogue Logements & Transports — Disponibilité et Intégrité", (
       expect(l.equipements).toContain("piscine");
     }
 
-    // Tri prix croissant
+    // Tri prix croissant. L'ordre est celui du prix annoncé, à la semaine :
+    // trois propriétaires font une semaine moins chère que sept nuitées, et
+    // trier sur la nuitée classerait leur annonce ailleurs que là où le
+    // visiteur la lit.
     const triPrix = await chercherLogements({ tri: "prix-croissant" });
     for (let i = 0; i < triPrix.elements.length - 1; i++) {
-      expect(triPrix.elements[i].prixParNuit).toBeLessThanOrEqual(
-        triPrix.elements[i + 1].prixParNuit,
+      expect(prixSemaine(triPrix.elements[i])).toBeLessThanOrEqual(
+        prixSemaine(triPrix.elements[i + 1]),
       );
     }
 
     // Tri prix décroissant
     const triPrixDesc = await chercherLogements({ tri: "prix-decroissant" });
     for (let i = 0; i < triPrixDesc.elements.length - 1; i++) {
-      expect(triPrixDesc.elements[i].prixParNuit).toBeGreaterThanOrEqual(
-        triPrixDesc.elements[i + 1].prixParNuit,
+      expect(prixSemaine(triPrixDesc.elements[i])).toBeGreaterThanOrEqual(
+        prixSemaine(triPrixDesc.elements[i + 1]),
       );
     }
   });

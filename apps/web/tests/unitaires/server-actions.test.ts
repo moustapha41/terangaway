@@ -76,22 +76,36 @@ describe("Server Actions - Validation et création demande de logement", () => {
     }
   });
 
-  it("gère le cas d'un code OTP erroné", async () => {
+  it("refuse une demande sans compte et sans adresse où répondre", async () => {
+    // Il n'y a plus de code à saisir, mais il faut toujours savoir à qui
+    // répondre : une demande anonyme n'arriverait nulle part.
+    const res = await creerDemandeLogementAction({
+      logementId: "l-001",
+      debut: "2026-11-01",
+      fin: "2026-11-05",
+      personnes: 2,
+    });
+    expect(res.succes).toBe(false);
+    if (!res.succes) {
+      expect(res.erreur).toBe("validation");
+      expect(res.message).toBe("Adresse e-mail requise.");
+    }
+  });
+
+  it("envoie la demande sans aucun code, sur les seules coordonnées saisies", async () => {
     const res = await creerDemandeLogementAction(
       {
         logementId: "l-001",
         debut: "2026-11-01",
         fin: "2026-11-05",
         personnes: 2,
-        code: "999999",
+        message: "Arrivée prévue vers 14h",
       },
-      "code-faux",
+      "normal",
+      { email: "visiteur@example.com", nom: "Rokhaya Seck", telephone: "+221 77 000 00 00" },
     );
-    expect(res.succes).toBe(false);
-    if (!res.succes) {
-      expect(res.erreur).toBe("code_invalide");
-      expect(res.raison).toBe("faux");
-    }
+    expect(res.succes).toBe(true);
+    if (res.succes) expect(res.demande.reference).toMatch(/^TW-/);
   });
 
   it("gère le cas d'un logement indisponible avec alternatives", async () => {
@@ -103,6 +117,7 @@ describe("Server Actions - Validation et création demande de logement", () => {
         personnes: 2,
       },
       "pris",
+      { email: "visiteur@example.com" },
     );
     expect(res.succes).toBe(false);
     if (!res.succes) {
@@ -120,7 +135,6 @@ describe("Server Actions - Validation et création demande de logement", () => {
         fin: "2026-11-05",
         personnes: 2,
         message: "Arrivée prévue vers 14h",
-        code: "123456",
       },
       "normal",
       { email: "visiteur@example.com" },
@@ -217,7 +231,7 @@ describe("Server Actions - Validation et création demande de transport", () => 
         bagages: 2,
       },
       "normal",
-      { telephone: "+221770000000" },
+      { email: "visiteur@example.com", telephone: "+221770000000" },
     );
     expect(res.succes).toBe(true);
     if (res.succes) {

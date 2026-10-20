@@ -20,8 +20,11 @@ import {
   apiObtenirDemande,
   apiOuvrirJeton,
   apiRepondreAvecJeton,
+  type ContactDemande,
 } from "@/lib/api/ecriture";
 import { apiMockActive, ErreurApi } from "@/lib/api/http";
+import { prixSemaine, totalSejour } from "@/lib/prix";
+import { traduireLogement } from "@teranga/fixtures/traduire";
 import type { FacettesVehicules, Lieu } from "@/lib/api/lecture";
 import { LOGEMENTS } from "./fixtures/logements";
 import { avisDe } from "./fixtures/avis";
@@ -68,16 +71,16 @@ function trier(logements: Logement[], tri: CriteresLogement["tri"]): Logement[] 
   const copie = [...logements];
   switch (tri) {
     case "prix-croissant":
-      return copie.sort((a, b) => a.prixParNuit - b.prixParNuit);
+      return copie.sort((a, b) => prixSemaine(a) - prixSemaine(b));
     case "prix-decroissant":
-      return copie.sort((a, b) => b.prixParNuit - a.prixParNuit);
+      return copie.sort((a, b) => prixSemaine(b) - prixSemaine(a));
     case "capacite":
       return copie.sort((a, b) => b.capacite - a.capacite);
     case "note":
       return copie.sort((a, b) => (b.note ?? 0) - (a.note ?? 0));
     default:
       // Pertinence : les mieux notés d'abord, à prix comparable.
-      return copie.sort((a, b) => (b.note ?? 0) - (a.note ?? 0) || a.prixParNuit - b.prixParNuit);
+      return copie.sort((a, b) => (b.note ?? 0) - (a.note ?? 0) || prixSemaine(a) - prixSemaine(b));
   }
 }
 
@@ -92,7 +95,7 @@ function calculerFacettes(logements: Logement[]): Facettes {
   const compter = <T extends string>(valeurs: T[]) =>
     valeurs.reduce<Record<string, number>>((acc, v) => ({ ...acc, [v]: (acc[v] ?? 0) + 1 }), {});
 
-  const prix = logements.map((l) => l.prixParNuit);
+  const prix = logements.map(prixSemaine);
 
   return {
     total: logements.length,
@@ -110,6 +113,8 @@ function calculerFacettes(logements: Logement[]): Facettes {
 export async function chercherLogements(
   criteres: Partial<CriteresLogement>,
   etat: EtatSimule = "normal",
+  /** La langue de la page : les descriptions et les textes alternatifs suivent. */
+  langue = "fr",
 ): Promise<ResultatsLogements> {
   if (etat === "erreur") throw new ErreurServeur();
   if (etat === "lent") await attendre(3000);
@@ -135,22 +140,24 @@ export async function chercherLogements(
   if (criteres.equipements?.length) {
     trouves = trouves.filter((l) => criteres.equipements!.every((e) => l.equipements.includes(e)));
   }
-  if (criteres.prixMin) trouves = trouves.filter((l) => l.prixParNuit >= criteres.prixMin!);
-  if (criteres.prixMax) trouves = trouves.filter((l) => l.prixParNuit <= criteres.prixMax!);
+  // Les bornes sont celles de l'écran, donc des prix à la semaine.
+  if (criteres.prixMin) trouves = trouves.filter((l) => prixSemaine(l) >= criteres.prixMin!);
+  if (criteres.prixMax) trouves = trouves.filter((l) => prixSemaine(l) <= criteres.prixMax!);
 
-  const elements = trier(trouves, criteres.tri);
+  const elements = trier(trouves, criteres.tri).map((l) => traduireLogement(l, langue));
   return { elements, total: elements.length, page: 1, parPage: 12, facettes };
 }
 
-export async function obtenirLogement(slug: string): Promise<Logement | null> {
+export async function obtenirLogement(slug: string, langue = "fr"): Promise<Logement | null> {
   if (!slug) return null;
   if (apiMockActive()) await attendre(80);
-  return LOGEMENTS.find((l) => l.slug === slug) ?? null;
+  const trouve = LOGEMENTS.find((l) => l.slug === slug);
+  return trouve ? traduireLogement(trouve, langue) : null;
 }
 
 /* ───────────────────────── Demande ───────────────────────── */
 
-export type EtatEnvoi = "normal" | "pris" | "code-faux" | "code-expire";
+export type EtatEnvoi = "normal" | "pris";
 
 /** Le logement vient d'être pris pendant que le visiteur remplissait sa demande (§B.8). */
 export class LogementPris extends Error {
@@ -174,7 +181,8 @@ export interface EntreeDemande {
   personnes: number;
   heureArrivee?: string;
   message?: string;
-  code?: string;
+  /** Qui envoie, quand aucun compte n'est ouvert. */
+  contact?: ContactDemande;
 }
 
 /**
@@ -197,10 +205,16 @@ export interface EntreeDemandeTransport {
   /** Numéro de vol, quand la prise en charge est à l'aéroport. */
   vol?: string;
   message?: string;
-  code?: string;
+  /** Qui envoie, quand aucun compte n'est ouvert. */
+  contact?: ContactDemande;
 }
 
-/** Le code de démonstration. Aucun vrai SMS n'est envoyé. */
+/**
+ * Le code de démonstration de la connexion et de l'inscription.
+ *
+ * L'envoi d'une demande ne demande plus de code : il ne reste donc qu'aux deux
+ * parcours où l'on prouve vraiment qui l'on est.
+ */
 export const CODE_DE_DEMONSTRATION = "123456";
 
 /**
@@ -214,23 +228,10 @@ export async function envoyerDemande(
   etat: EtatEnvoi = "normal",
 ): Promise<Demande> {
   if (!apiMockActive() && etat === "normal") {
-    try {
-      return await apiCreerDemandeLogement(entree);
-    } catch (e) {
-      if (e instanceof ErreurApi && e.code === "CODE_INVALIDE") throw new CodeInvalide("faux");
-      if (e instanceof ErreurApi && e.code === "CODE_EXPIRE") throw new CodeInvalide("expire");
-      throw e;
-    }
+    return apiCreerDemandeLogement(entree);
   }
 
   await attendre(600);
-
-  if (etat === "code-faux") throw new CodeInvalide("faux");
-  if (etat === "code-expire") throw new CodeInvalide("expire");
-
-  if (entree.code && entree.code !== CODE_DE_DEMONSTRATION) {
-    throw new CodeInvalide("faux");
-  }
 
   const logement = LOGEMENTS.find((l) => l.id === entree.logementId);
   if (!logement) throw new Error("Logement inconnu.");
@@ -250,7 +251,7 @@ export async function envoyerDemande(
   );
   const fraisFixes = logement.fraisFixes ?? [];
   const total =
-    logement.prixParNuit * nuits + fraisFixes.reduce((somme, f) => somme + f.montant, 0);
+    totalSejour(logement, nuits, fraisFixes);
 
   const maintenant = new Date().toISOString();
 
@@ -290,20 +291,12 @@ export async function envoyerDemandeTransport(
     try {
       return await apiCreerDemandeVehicule(entree);
     } catch (e) {
-      if (e instanceof ErreurApi && e.code === "CODE_INVALIDE") throw new CodeInvalide("faux");
-      if (e instanceof ErreurApi && e.code === "CODE_EXPIRE") throw new CodeInvalide("expire");
       if (e instanceof ErreurApi && e.code === "DELAI_TROP_COURT") throw new DelaiTropCourt();
       throw e;
     }
   }
 
   await attendre(600);
-
-  if (etat === "code-faux") throw new CodeInvalide("faux");
-  if (etat === "code-expire") throw new CodeInvalide("expire");
-  if (entree.code && entree.code !== CODE_DE_DEMONSTRATION) {
-    throw new CodeInvalide("faux");
-  }
 
   const vehicule = VEHICULES.find((v) => v.id === entree.vehiculeId);
   if (!vehicule) throw new Error("Véhicule inconnu.");
@@ -344,7 +337,8 @@ export interface EntreeDemandeService {
   /** La saisie, champ par champ, telle que le service la déclare. */
   details: Record<string, string>;
   message?: string;
-  code?: string;
+  /** Qui envoie, quand aucun compte n'est ouvert. */
+  contact?: ContactDemande;
 }
 
 /**
@@ -363,18 +357,10 @@ export async function envoyerDemandeService(
   etat: EtatEnvoi = "normal",
 ): Promise<Demande> {
   if (!apiMockActive() && etat === "normal") {
-    try {
-      return await apiCreerDemandeService(entree);
-    } catch (e) {
-      if (e instanceof ErreurApi && e.code === "CODE_INVALIDE") throw new CodeInvalide("faux");
-      throw e;
-    }
+    return apiCreerDemandeService(entree);
   }
 
   await attendre(600);
-  if (etat === "code-faux") throw new CodeInvalide("faux");
-  if (etat === "code-expire") throw new CodeInvalide("expire");
-  if (entree.code && entree.code !== CODE_DE_DEMONSTRATION) throw new CodeInvalide("faux");
 
   const maintenant = new Date().toISOString();
   const quand = entree.details.date ?? maintenant.slice(0, 10);
@@ -692,10 +678,11 @@ export async function facettesVehicules(
  * — et non le slug public. Rien à voir avec `obtenirLogement`, qui part du
  * slug visible dans l'URL.
  */
-export async function logementParId(id: string): Promise<Logement | null> {
+export async function logementParId(id: string, langue = "fr"): Promise<Logement | null> {
   if (!id) return null;
   if (apiMockActive()) await attendre(60);
-  return LOGEMENTS.find((l) => l.id === id) ?? null;
+  const trouve = LOGEMENTS.find((l) => l.id === id);
+  return trouve ? traduireLogement(trouve, langue) : null;
 }
 
 export async function vehiculeParId(id: string): Promise<Vehicule | null> {

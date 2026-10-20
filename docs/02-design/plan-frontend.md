@@ -13,7 +13,7 @@ je demande, je suis ma demande, je confirme*. Cinq règles le gouvernent, et cha
 
 | Règle | Conséquence concrète dans le code |
 |---|---|
-| Le compte arrive le plus tard possible | Aucune route sous `(visiteur)` n'est protégée sauf `compte/` et `mes-demandes/`. Le code OTP n'apparaît qu'à l'envoi de la demande. |
+| Le compte arrive le plus tard possible | Aucune route sous `(visiteur)` n'est protégée sauf `compte/` et `mes-demandes/`. Une demande part sans compte et sans code : les coordonnées saisies suffisent (`features/demande/coordonnees.ts`). Le code OTP ne reste qu'à la connexion et à l'inscription, là où l'on prouve vraiment qui l'on est. |
 | Un seul parcours pour les deux services | `features/demande/` est partagé ; seule l'étape de recherche diffère entre logement et transport. |
 | Rien n'est perdu | La saisie survit à la création du compte, au retour arrière et à la coupure réseau → brouillon persistant dans `lib/hors-ligne/`. |
 | Jamais d'impasse | Tout état vide, refusé ou expiré propose une suite. Aucun cul-de-sac n'est acceptable en revue. |

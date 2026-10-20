@@ -16,6 +16,21 @@
         ]
       }
     },
+    "/sante/posture": {
+      "get": {
+        "operationId": "ControleurSante_posture",
+        "summary": "Configuration de sécurité effective (sans aucun secret)",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "sante"
+        ]
+      }
+    },
     "/logements": {
       "get": {
         "operationId": "ControleurLogements_chercher",
@@ -561,10 +576,50 @@
         ]
       }
     },
+    "/comptes/session": {
+      "get": {
+        "operationId": "ControleurComptes_obtenirSession",
+        "summary": "Obtenir les informations du visiteur connecté",
+        "parameters": [
+          {
+            "name": "x-visiteur-id",
+            "required": false,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "authorization",
+            "required": false,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cookie",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "comptes"
+        ]
+      }
+    },
     "/comptes/otp/envoyer": {
       "post": {
         "operationId": "ControleurComptes_envoyer",
-        "summary": "Envoyer un code OTP au visiteur (simulé)",
+        "summary": "Envoyer un code OTP au visiteur (par e-mail)",
         "parameters": [],
         "requestBody": {
           "required": true,
@@ -611,6 +666,134 @@
         ]
       }
     },
+    "/comptes/inscription": {
+      "post": {
+        "operationId": "ControleurComptes_inscription",
+        "summary": "Ouvrir une inscription en attente et envoyer un code à l'adresse",
+        "description": "Aucune session n'est ouverte ici : le compte reste non vérifié jusqu'à `POST /comptes/inscription/verifier`. Renvoie 409 si un compte est déjà inscrit.",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InscriptionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "comptes"
+        ]
+      }
+    },
+    "/comptes/inscription/verifier": {
+      "post": {
+        "operationId": "ControleurComptes_verifierInscription",
+        "summary": "Vérifier le code d'inscription, activer le compte et ouvrir la session",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifierInscriptionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "comptes"
+        ]
+      }
+    },
+    "/comptes/inscription/renvoyer": {
+      "post": {
+        "operationId": "ControleurComptes_renvoyerInscription",
+        "summary": "Renvoyer le code d'inscription (sous limitation de débit)",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RenvoyerCodeInscriptionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "comptes"
+        ]
+      }
+    },
+    "/comptes/connexion": {
+      "post": {
+        "operationId": "ControleurComptes_connexion",
+        "summary": "Connexion d'un compte par adresse e-mail et mot de passe",
+        "description": "Les comptes antérieurs, sans mot de passe, continuent de passer par `/comptes/otp/envoyer` puis `/comptes/otp/verifier`. Renvoie 403 `COMPTE_NON_VERIFIE` quand le mot de passe est bon mais l'adresse non confirmée.",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConnexionMotDePasseDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "comptes"
+        ]
+      }
+    },
+    "/comptes/oauth/google": {
+      "post": {
+        "operationId": "ControleurComptes_oauthGoogle",
+        "summary": "Ouvre une session pour une adresse vérifiée par Google",
+        "description": "Appelée par le site, jamais par un navigateur. Le site a déjà échangé le code d'autorisation, vérifié l'`id_token` (destinataire, émetteur, échéance, `nonce`) et constaté que Google confirme l'adresse ; l'API reçoit le résultat de cette vérification.\n\n**Cette route croit l'adresse qu'on lui donne.** Elle n'est donc pas publiée : le service `api` n'expose son port que sur le réseau interne de la pile. Renseignez `SECRET_OAUTH_INTERNE` des deux côtés pour y ajouter une seconde barrière — l'en-tête `x-oauth-interne` est alors exigé, et une requête sans lui reçoit 401.",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OAuthGoogleDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "401": {
+            "description": "`IDENTIFIANTS_INVALIDES` — adresse mal formée ou secret absent"
+          }
+        },
+        "tags": [
+          "comptes"
+        ]
+      }
+    },
     "/comptes/prestataire/connexion": {
       "post": {
         "operationId": "ControleurComptes_prestataire",
@@ -636,6 +819,46 @@
         ]
       }
     },
+    "/comptes/deconnexion": {
+      "post": {
+        "operationId": "ControleurComptes_deconnecter",
+        "summary": "Révoquer la session active et effacer les cookies",
+        "parameters": [
+          {
+            "name": "x-visiteur-id",
+            "required": false,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "authorization",
+            "required": false,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cookie",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "comptes"
+        ]
+      }
+    },
     "/demandes/logement": {
       "post": {
         "operationId": "ControleurDemandes_creerLogement",
@@ -644,6 +867,22 @@
           {
             "name": "x-visiteur-id",
             "required": false,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "authorization",
+            "required": false,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cookie",
+            "required": true,
             "in": "header",
             "schema": {
               "type": "string"
@@ -682,6 +921,22 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "authorization",
+            "required": false,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cookie",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
@@ -690,6 +945,57 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/CreerDemandeVehiculeDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "demandes"
+        ]
+      }
+    },
+    "/demandes/service": {
+      "post": {
+        "operationId": "ControleurDemandes_creerService",
+        "summary": "Envoyer une demande de service sans catalogue",
+        "description": "Aucun prix n'est figé : le total vaut zéro tant que l'équipe n'a pas chiffré depuis le backoffice.",
+        "parameters": [
+          {
+            "name": "x-visiteur-id",
+            "required": false,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "authorization",
+            "required": false,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cookie",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreerDemandeServiceDto"
               }
             }
           }
@@ -774,6 +1080,22 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "authorization",
+            "required": false,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cookie",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -789,7 +1111,7 @@
     "/visiteurs/moi/demandes/{id}": {
       "get": {
         "operationId": "ControleurVisiteurs_obtenir",
-        "summary": "Détail d'une demande du visiteur",
+        "summary": "Détail d'une demande du visiteur (avec contrôle de propriété)",
         "parameters": [
           {
             "name": "id",
@@ -803,6 +1125,22 @@
           {
             "name": "x-visiteur-id",
             "required": false,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "authorization",
+            "required": false,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cookie",
+            "required": true,
             "in": "header",
             "schema": {
               "type": "string"
@@ -822,7 +1160,7 @@
     "/visiteurs/moi/demandes/{id}/confirmer": {
       "post": {
         "operationId": "ControleurVisiteurs_confirmer",
-        "summary": "Confirmer une demande acceptée",
+        "summary": "Confirmer une demande acceptée (avec contrôle de propriété)",
         "parameters": [
           {
             "name": "id",
@@ -836,6 +1174,22 @@
           {
             "name": "x-visiteur-id",
             "required": false,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "authorization",
+            "required": false,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cookie",
+            "required": true,
             "in": "header",
             "schema": {
               "type": "string"
@@ -855,7 +1209,7 @@
     "/visiteurs/moi/demandes/{id}/annuler": {
       "post": {
         "operationId": "ControleurVisiteurs_annuler",
-        "summary": "Annuler une demande en cours",
+        "summary": "Annuler une demande en cours (avec contrôle de propriété)",
         "parameters": [
           {
             "name": "id",
@@ -873,6 +1227,22 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "authorization",
+            "required": false,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cookie",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -882,6 +1252,255 @@
         },
         "tags": [
           "visiteurs"
+        ]
+      }
+    },
+    "/administration/moi": {
+      "get": {
+        "operationId": "ControleurAdministration_moi",
+        "summary": "Le compte d'équipe derrière la session, ou 401/403",
+        "parameters": [
+          {
+            "name": "authorization",
+            "required": false,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cookie",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "administration"
+        ]
+      }
+    },
+    "/administration/tableau-de-bord": {
+      "get": {
+        "operationId": "ControleurAdministration_tableauDeBord",
+        "summary": "Les compteurs de la journée",
+        "parameters": [
+          {
+            "name": "authorization",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cookie",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "administration"
+        ]
+      }
+    },
+    "/administration/demandes": {
+      "get": {
+        "operationId": "ControleurAdministration_lister",
+        "summary": "Les demandes reçues, filtrées et paginées",
+        "parameters": [
+          {
+            "name": "authorization",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cookie",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "administration"
+        ]
+      }
+    },
+    "/administration/demandes/export": {
+      "get": {
+        "operationId": "ControleurAdministration_exporter",
+        "summary": "Les mêmes demandes, en CSV",
+        "parameters": [
+          {
+            "name": "authorization",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cookie",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "administration"
+        ]
+      }
+    },
+    "/administration/prestataires": {
+      "get": {
+        "operationId": "ControleurAdministration_prestataires",
+        "summary": "Les comptes partenaires, pour l'assignation",
+        "parameters": [
+          {
+            "name": "authorization",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cookie",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "administration"
+        ]
+      }
+    },
+    "/administration/demandes/{id}": {
+      "get": {
+        "operationId": "ControleurAdministration_obtenir",
+        "summary": "Une demande, avec tout ce qui va avec",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "authorization",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cookie",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "administration"
+        ]
+      },
+      "patch": {
+        "operationId": "ControleurAdministration_mettreAJour",
+        "summary": "Traiter une demande",
+        "description": "Statut, motif de refus, prestataire assigné, proposition chiffrée et note interne. Le statut suit la table des transitions, acteur « equipe ».",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "authorization",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cookie",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MettreAJourDemandeDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "administration"
         ]
       }
     }
@@ -899,30 +1518,138 @@
       "EnvoyerOtpDto": {
         "type": "object",
         "properties": {
+          "identifiant": {
+            "type": "string",
+            "example": "visiteur@example.com",
+            "description": "Adresse e-mail ou téléphone"
+          },
+          "email": {
+            "type": "string",
+            "example": "visiteur@example.com"
+          },
           "telephone": {
             "type": "string",
             "example": "+221 77 000 00 00"
           }
-        },
-        "required": [
-          "telephone"
-        ]
+        }
       },
       "VerifierOtpDto": {
         "type": "object",
         "properties": {
+          "identifiant": {
+            "type": "string",
+            "example": "visiteur@example.com",
+            "description": "Adresse e-mail ou téléphone"
+          },
+          "email": {
+            "type": "string",
+            "example": "visiteur@example.com"
+          },
           "telephone": {
             "type": "string",
             "example": "+221 77 000 00 00"
           },
           "code": {
             "type": "string",
-            "example": "123456"
+            "example": "123456",
+            "description": "Code à 6 chiffres reçu"
           }
         },
         "required": [
-          "telephone",
           "code"
+        ]
+      },
+      "InscriptionDto": {
+        "type": "object",
+        "properties": {
+          "nom": {
+            "type": "string",
+            "example": "Rokhaya Seck"
+          },
+          "email": {
+            "type": "string",
+            "example": "rokhaya.seck@exemple.sn"
+          },
+          "motDePasse": {
+            "type": "string",
+            "example": "un mot de passe assez long",
+            "description": "Dix caractères au minimum. Jamais journalisé, jamais renvoyé."
+          }
+        },
+        "required": [
+          "nom",
+          "email",
+          "motDePasse"
+        ]
+      },
+      "VerifierInscriptionDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "example": "rokhaya.seck@exemple.sn"
+          },
+          "code": {
+            "type": "string",
+            "example": "481502",
+            "description": "Code à six chiffres reçu par e-mail"
+          }
+        },
+        "required": [
+          "email",
+          "code"
+        ]
+      },
+      "RenvoyerCodeInscriptionDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "example": "rokhaya.seck@exemple.sn"
+          }
+        },
+        "required": [
+          "email"
+        ]
+      },
+      "ConnexionMotDePasseDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "example": "rokhaya.seck@exemple.sn"
+          },
+          "motDePasse": {
+            "type": "string",
+            "example": "un mot de passe assez long"
+          }
+        },
+        "required": [
+          "email",
+          "motDePasse"
+        ]
+      },
+      "OAuthGoogleDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "example": "rokhaya.seck@gmail.com",
+            "description": "Adresse confirmée par Google."
+          },
+          "nom": {
+            "type": "string",
+            "example": "Rokhaya Seck",
+            "description": "Nom affiché du compte Google."
+          },
+          "sub": {
+            "type": "string",
+            "example": "117240…",
+            "description": "Identifiant Google stable de la personne. Journalisé, jamais affiché."
+          }
+        },
+        "required": [
+          "email"
         ]
       },
       "ConnexionPrestataireDto": {
@@ -940,6 +1667,26 @@
         "required": [
           "telephone",
           "code"
+        ]
+      },
+      "ContactDemandeDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "example": "visiteur@exemple.com"
+          },
+          "nom": {
+            "type": "string",
+            "example": "Rokhaya Seck"
+          },
+          "telephone": {
+            "type": "string",
+            "example": "+221 77 000 00 00"
+          }
+        },
+        "required": [
+          "email"
         ]
       },
       "CreerDemandeLogementDto": {
@@ -968,10 +1715,13 @@
           "message": {
             "type": "string"
           },
-          "code": {
-            "type": "string",
-            "description": "Code OTP à six chiffres. Obligatoire tant qu'aucune session n'est active.",
-            "example": "123456"
+          "contact": {
+            "description": "Coordonnées du visiteur, quand aucune session n'est ouverte. Plus de code à saisir : l'adresse rattache la demande, elle ne vaut pas identité.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ContactDemandeDto"
+              }
+            ]
           }
         },
         "required": [
@@ -1023,9 +1773,13 @@
           "message": {
             "type": "string"
           },
-          "code": {
-            "type": "string",
-            "example": "123456"
+          "contact": {
+            "description": "Coordonnées du visiteur, quand aucune session n'est ouverte. Plus de code à saisir : l'adresse rattache la demande, elle ne vaut pas identité.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ContactDemandeDto"
+              }
+            ]
           }
         },
         "required": [
@@ -1035,6 +1789,44 @@
           "quand",
           "passagers",
           "bagages"
+        ]
+      },
+      "CreerDemandeServiceDto": {
+        "type": "object",
+        "properties": {
+          "service": {
+            "type": "string",
+            "enum": [
+              "guides",
+              "restauration",
+              "assistance",
+              "internet"
+            ]
+          },
+          "details": {
+            "type": "object",
+            "description": "La saisie du visiteur, champ par champ.",
+            "example": {
+              "date": "2026-11-02",
+              "personnes": "4",
+              "besoin": "accueil-aeroport"
+            }
+          },
+          "message": {
+            "type": "string"
+          },
+          "contact": {
+            "description": "Coordonnées du visiteur, quand aucune session n'est ouverte. Plus de code à saisir : l'adresse rattache la demande, elle ne vaut pas identité.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ContactDemandeDto"
+              }
+            ]
+          }
+        },
+        "required": [
+          "service",
+          "details"
         ]
       },
       "RepondreDto": {
@@ -1061,6 +1853,45 @@
         "required": [
           "reponse"
         ]
+      },
+      "MettreAJourDemandeDto": {
+        "type": "object",
+        "properties": {
+          "statut": {
+            "type": "string",
+            "enum": [
+              "envoyee",
+              "acceptee",
+              "confirmee",
+              "terminee",
+              "refusee",
+              "expiree",
+              "annulee"
+            ]
+          },
+          "motifRefus": {
+            "type": "string",
+            "enum": [
+              "plus-disponible",
+              "dates-impossibles",
+              "capacite",
+              "autre"
+            ]
+          },
+          "prestataireId": {
+            "type": "object",
+            "nullable": true
+          },
+          "noteInterne": {
+            "type": "string",
+            "maxLength": 4000
+          },
+          "prixPropose": {
+            "type": "object",
+            "nullable": true,
+            "description": "En francs CFA."
+          }
+        }
       }
     }
   }

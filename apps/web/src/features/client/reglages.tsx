@@ -3,7 +3,7 @@
 import { Carte, Icone } from "@teranga/ui";
 import { LANGUES, NOMS_LANGUE } from "@/lib/i18n/langues";
 import { useLangue, useT } from "@/lib/i18n/contexte";
-import { usePreferences, type Devise } from "@/features/preferences/use-preferences";
+import { usePreferences } from "@/features/preferences/use-preferences";
 import { SelecteurLangue } from "@/components/layout/selecteur-langue";
 
 /**
@@ -14,8 +14,6 @@ import { SelecteurLangue } from "@/components/layout/selecteur-langue";
  * enregistrées mais pas encore envoyées — l'écran le dit, plutôt que de laisser
  * croire à un abonnement qui n'existe pas.
  */
-const DEVISES: Devise[] = ["aucune", "EUR", "USD"];
-
 export function Reglages() {
   const t = useT();
   const langue = useLangue();
@@ -31,21 +29,8 @@ export function Reglages() {
           </span>
         </Rangee>
 
-        <Rangee icone="prix" libelle={t("client.devise")}>
-          <select
-            value={preferences.devise}
-            onChange={(e) => modifier({ devise: e.target.value as Devise })}
-            className="min-h-[var(--size-touch)] rounded-control border border-contour-champ bg-surface px-3 text-[16px] text-encre"
-          >
-            {DEVISES.map((devise) => (
-              <option key={devise} value={devise}>
-                {devise === "aucune" ? t("client.deviseAucune") : `${devise} · FCFA`}
-              </option>
-            ))}
-          </select>
-        </Rangee>
       </Carte>
-      <p className="-mt-3 text-legende text-encre-douce">{t("client.deviseTexte")}</p>
+      <p className="-mt-3 text-legende text-encre-douce">{t("client.monnaieTexte")}</p>
 
       <Carte className="divide-y divide-contour">
         <Rangee icone="alerte" libelle={t("client.notificationsPush")}>

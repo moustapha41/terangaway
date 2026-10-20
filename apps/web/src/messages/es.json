@@ -4,6 +4,7 @@
     "baseline": "Alojamientos y transportes verificados en Senegal",
     "verifie": "Verificado",
     "parNuit": "/ noche",
+    "parSemaine": "/ semana",
     "parMois": "/ mes",
     "visiteFilmee": "Visita en vídeo",
     "enSavoirPlus": "Saber más",
@@ -649,6 +650,7 @@
     "typeLogement": "Tipo de alojamiento",
     "tous": "Todos",
     "prixParNuit": "Precio por noche (FCFA)",
+    "prixParSemaine": "Precio por semana ({devise})",
     "prixMin": "Precio mínimo",
     "prixMax": "Precio máximo",
     "localisation": "Ubicación",
@@ -747,6 +749,7 @@
       "other": "{nombre} noches mínimo"
     },
     "detailNuits": "{prix} × {nuits}",
+    "detailSejour": "Alojamiento, {nuits}",
     "nuits": {
       "one": "{nombre} noche",
       "other": "{nombre} noches"
@@ -789,6 +792,7 @@
   },
   "demande": {
     "titre": "Su solicitud",
+    "illustrationAlt": "Atletas de los Juegos en la corniche de Dakar al atardecer, con el Monumento al Renacimiento Africano y el estadio al fondo",
     "recapitulatif": "Resumen",
     "dates": "Fechas",
     "personnes": "Viajeros",
@@ -800,13 +804,7 @@
     "prixFige": "Este precio queda fijado al enviar su solicitud.",
     "envoyer": "Enviar la solicitud",
     "envoiEnCours": "Enviando",
-    "codeTitre": "Confirme su número",
-    "codeTexte": "Hemos enviado un código de seis cifras. Introdúzcalo para enviar su solicitud.",
     "codeLibelle": "Código de seis cifras",
-    "codeFaux": "Este código no coincide. Compruebe las seis cifras.",
-    "codeExpire": "Este código ha caducado. Pida uno nuevo.",
-    "codeRenvoyer": "Reenviar el código",
-    "codeRenvoyerDans": "Reenviar el código en {secondes} s",
     "codeDemo": "Demostración: el código es {code}.",
     "fermer": "Cerrar",
     "prisTitre": "Este alojamiento acaba de reservarse",
@@ -837,11 +835,7 @@
     "telephoneRequis": "Indique un número de teléfono.",
     "echecTitre": "No se pudo enviar su solicitud",
     "echecTexte": "No se guardó nada y sus datos se conservan. Vuelva a intentarlo en un momento.",
-    "echecSession": "No se pudo abrir su sesión. Vuelva a verificar el código.",
-    "echecTentatives": "Demasiados intentos con este código. Solicite un nuevo código de verificación.",
     "echecReessayer": "Reintentar",
-    "codeNonEnvoye": "No se pudo enviar el código a esta dirección. Compruebe el correo electrónico e inténtelo de nuevo.",
-    "codeEnvoye": "Código enviado. Es válido durante diez minutos.",
     "plutotUnCompte": "¿Prefiere una cuenta?",
     "creerUnCompte": "Crear una cuenta"
   },
@@ -1565,16 +1559,13 @@
     "profilModifierTexte": "Para cambiar su correo o su número, llame a asistencia: un cambio reabre la verificación.",
     "parametresTitre": "Ajustes",
     "langue": "Idioma",
-    "devise": "Moneda",
-    "deviseAucune": "Sin conversión",
-    "deviseTexte": "Los precios siguen en FCFA. La conversión se muestra debajo, a título indicativo.",
+    "monnaieTexte": "Los precios se muestran en la moneda del idioma elegido: euro en francés y español, dólar en inglés. La estancia se paga in situ, en francos CFA.",
     "notificationsPush": "Notificaciones push",
     "notificationsEmail": "Notificaciones por correo",
     "notificationsTexte": "El envío real llegará con el servidor; su elección ya está guardada en este dispositivo.",
     "confidentialite": "Privacidad",
     "conditions": "Condiciones de uso",
     "enregistreLocalement": "Guardado en este dispositivo",
-    "environ": "unos {montant}",
     "messagesTitre": "Mensajes",
     "messagesVideTitre": "La mensajería llegará pronto",
     "messagesVideTexte": "Mientras tanto, su mensaje al socio va con su solicitud, y nuestro equipo responde por teléfono todos los días."
@@ -1996,5 +1987,37 @@
       "capacite": "Capacidad insuficiente",
       "autre": "Otro"
     }
+  },
+  "titreLogement": {
+    "l-001": "Villa con piscina en Gandiagal",
+    "l-002": "Villa nueva de dos plantas en Ngaparou",
+    "l-003": "Villa contemporánea en Saly Vélingara",
+    "l-004": "Villa en la residencia Les Orangers",
+    "l-005": "Villa de dos habitaciones en la residencia Mangrove",
+    "l-006": "Villa de tres habitaciones en la residencia Mangrove",
+    "l-007": "Villa de una planta con gran piscina en Saly",
+    "l-008": "Villa de tres habitaciones con piscina en Saly",
+    "l-009": "Villa de cinco habitaciones en Somone",
+    "l-010": "Villa de diseño con piscina en Saly",
+    "l-011": "Estudio con acceso a la piscina",
+    "l-012": "Villa de cuatro habitaciones en Saly",
+    "l-013": "Estudio amueblado en Almadies",
+    "l-014": "Apartamento de dos habitaciones",
+    "l-015": "Estudio amueblado",
+    "l-016": "Estudio en la tercera planta",
+    "l-017": "Villa con piscina y barbacoa en Guéréo",
+    "l-018": "Villa de dos habitaciones cerca de la Academia Diambars",
+    "l-019": "Villa de tres habitaciones con gran piscina en Nguérigne",
+    "l-020": "Villa a orillas de la laguna de Somone",
+    "l-021": "Villa de cuatro habitaciones en el centro de Saly",
+    "l-022": "Apartamento amueblado con suelos de mármol",
+    "l-023": "Apartamento amueblado de dos habitaciones",
+    "l-024": "Apartamento amueblado de alquiler mensual"
+  },
+  "quartier": {
+    "centre": "Centro",
+    "bordDeLagune": "Orilla de la laguna",
+    "residenceMangrove": "Residencia Mangrove",
+    "citeMakiyouFaye": "Barrio Makiyou Faye"
   }
 }

@@ -325,6 +325,53 @@ export class ServiceComptes {
   }
 
   /**
+   * L'identité à inscrire au dos d'une demande : une session, ou des coordonnées.
+   *
+   * Envoyer une demande n'ouvre aucun accès — c'est un message déposé chez un
+   * propriétaire, sans paiement et sans réservation ferme. Exiger un code à six
+   * chiffres pour cela faisait abandonner le parcours à l'endroit même où il
+   * devait aboutir : le visiteur avait choisi, rempli, et devait aller chercher
+   * un code dans sa boîte.
+   *
+   * Deux chemins, dans cet ordre :
+   *   une session vivante — la demande rejoint le compte, comme avant ;
+   *   une adresse saisie — la demande rejoint le carnet d'adresses de cette
+   *   adresse, sans qu'aucune session ne s'ouvre.
+   *
+   * Le second chemin n'accorde rien : il ne distribue pas de jeton, et ne rend
+   * donc jamais lisible ce qu'une autre personne a déjà demandé. Lire ses
+   * demandes continue de passer par `exigerVisiteur`, c'est-à-dire par une
+   * vraie connexion. Un jeton présenté mais mort — un cookie expiré, un cookie
+   * forgé — ne fait pas échouer l'envoi : on retombe sur les coordonnées, et la
+   * demande part en invité.
+   */
+  async visiteurPourDemande(
+    jeton?: string,
+    contact?: { email?: string; nom?: string; telephone?: string },
+  ): Promise<string> {
+    if (jeton) {
+      const identite = await this.exigerVisiteur(jeton).catch(() => null);
+      if (identite) return identite;
+    }
+
+    const email = contact?.email?.trim();
+    if (email) {
+      const compte = await this.depot.visiteurDeContact({
+        email,
+        nom: contact?.nom,
+        telephone: contact?.telephone,
+      });
+      return compte.id;
+    }
+
+    throw new ErreurMetier(
+      "CONTACT_REQUIS",
+      "Une adresse e-mail est nécessaire pour envoyer une demande.",
+      HttpStatus.BAD_REQUEST,
+    );
+  }
+
+  /**
    * Résout un administrateur depuis un jeton de session, ou refuse.
    *
    * Deux refus distincts, et c'est volontaire : pas de session vivante, c'est

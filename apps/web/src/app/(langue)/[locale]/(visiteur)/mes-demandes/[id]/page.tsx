@@ -9,9 +9,10 @@ import { estLangue, type Langue } from "@/lib/i18n/langues";
 import { traducteurPour } from "@/lib/i18n/messages";
 import type { Traducteur } from "@/lib/i18n/traducteur";
 import { formaterDateComplete, formaterHeure } from "@/lib/dates";
-import { formaterPrix } from "@/lib/prix";
+import { formaterPrixVisiteur } from "@/lib/prix";
 import { obtenirDemande } from "@/mocks/api";
 import { visiteurConnecte } from "@/features/compte/session";
+import { titreOffre } from "@/lib/i18n/titre-logement";
 
 /**
  * Écran 6 · Détail d'une demande (§C.7).
@@ -61,7 +62,7 @@ export default async function DetailDemande({
 
         <header className="mt-4">
           <BadgeStatut statut={demande.statut} libelle={t(`statut.${demande.statut}`)} />
-          <h1 className="mt-3 text-titre-1 text-encre">{demande.offre.titre}</h1>
+          <h1 className="mt-3 text-titre-1 text-encre">{titreOffre(demande.offre, t)}</h1>
           <p className="mt-1 text-petit text-encre-douce chiffres-tabulaires">
             {t("detailDemande.titre", { reference: demande.reference })}
           </p>
@@ -156,6 +157,11 @@ function Recapitulatif({
 }) {
   const prix = demande.prix;
   const detaille = "nuits" in prix;
+  // L'hébergement seul : le total figé à l'envoi, moins les frais annoncés avec lui.
+  const sousTotalFige =
+    "nuits" in prix
+      ? prix.total - prix.fraisFixes.reduce((somme, f) => somme + f.montant, 0)
+      : prix.total;
 
   return (
     <Carte className="p-5">
@@ -171,26 +177,34 @@ function Recapitulatif({
           <Ligne terme={t("demande.heureArrivee")}>{demande.heureArrivee}</Ligne>
         )}
         {detaille && (
+          /* Le sous-total vient du prix figé à l'envoi, moins les frais : il
+             peut être inférieur à la nuitée multipliée par les nuits, quand le
+             tarif semaine du propriétaire s'est appliqué. Dans ce cas la ligne
+             ne promet pas une multiplication. */
           <Ligne
-            terme={t("fiche.detailNuits", {
-              prix: formaterPrix(prix.prixParNuit, langue),
-              nuits: t("fiche.nuits", { nombre: prix.nuits }),
-            })}
+            terme={
+              sousTotalFige === prix.prixParNuit * prix.nuits
+                ? t("fiche.detailNuits", {
+                    prix: formaterPrixVisiteur(prix.prixParNuit, langue),
+                    nuits: t("fiche.nuits", { nombre: prix.nuits }),
+                  })
+                : t("fiche.detailSejour", { nuits: t("fiche.nuits", { nombre: prix.nuits }) })
+            }
           >
-            {formaterPrix(prix.prixParNuit * prix.nuits, langue)}
+            {formaterPrixVisiteur(sousTotalFige, langue)}
           </Ligne>
         )}
         {detaille &&
           prix.fraisFixes.map((frais) => (
             <Ligne key={frais.libelle} terme={frais.libelle}>
-              {formaterPrix(frais.montant, langue)}
+              {formaterPrixVisiteur(frais.montant, langue)}
             </Ligne>
           ))}
       </dl>
 
       <p className="mt-4 flex items-baseline justify-between border-t border-contour pt-4 text-prix text-encre chiffres-tabulaires">
         <span className="text-corps font-normal text-encre-douce">{t("fiche.total")}</span>
-        {formaterPrix(prix.total, langue)}
+        {formaterPrixVisiteur(prix.total, langue)}
       </p>
       <p className="mt-2 text-legende text-encre-douce">{t("resultats.paiementSurPlace")}</p>
     </Carte>

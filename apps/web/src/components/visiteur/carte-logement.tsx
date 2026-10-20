@@ -4,8 +4,9 @@ import { BadgeVerifie, Carte, Icone, Squelette } from "@teranga/ui";
 import { Lien } from "@/lib/i18n/lien";
 import { traducteurPour } from "@/lib/i18n/messages";
 import type { Langue } from "@/lib/i18n/langues";
-import { formaterPrix, prixAffiche } from "@/lib/prix";
+import { formaterPrixVisiteur, prixAffiche } from "@/lib/prix";
 import { situation } from "@/lib/lieu";
+import { titreLogement } from "@/lib/i18n/titre-logement";
 
 /**
  * Carte logement — dossier de conception §C.3 : photo 4:3, badge vérifié, titre,
@@ -58,11 +59,11 @@ export function CarteLogement({
           <p className="text-legende uppercase tracking-wider text-encre-douce">
             {t(`typeLogement.${logement.type}`)}
           </p>
-          <h3 className="mt-1 text-titre-3 text-encre">{logement.titre}</h3>
+          <h3 className="mt-1 text-titre-3 text-encre">{titreLogement(logement, t)}</h3>
 
           <p className="mt-2 flex items-center gap-1.5 text-petit text-encre-douce">
             <Icone nom="repere" taille={16} className="shrink-0" />
-            {situation(logement)}
+            {situation(logement, t)}
           </p>
 
           {logement.note !== undefined ? (
@@ -88,10 +89,13 @@ export function CarteLogement({
 
           {/* « Un prix n'apparaît jamais sans son unité » (§C.4). */}
           <p className="mt-4 text-prix text-encre chiffres-tabulaires">
-            {formaterPrix(prixAffiche(logement).montant, langue)}
+            {formaterPrixVisiteur(prixAffiche(logement).montant, langue)}
             <span className="ml-1 text-petit font-normal text-encre-douce">
               {t(prixAffiche(logement).cleUnite)}
             </span>
+          </p>
+          <p className="mt-0.5 text-legende text-encre-douce chiffres-tabulaires">
+            {formaterPrixVisiteur(logement.prixParNuit, langue)} {t("commun.parNuit")}
           </p>
         </div>
       </Lien>

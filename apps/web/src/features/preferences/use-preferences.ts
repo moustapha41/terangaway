@@ -2,21 +2,17 @@
 
 import { useCallback, useEffect, useState } from "react";
 
-export type Devise = "aucune" | "EUR" | "USD";
-
 export interface Preferences {
-  devise: Devise;
   notificationsPush: boolean;
   notificationsEmail: boolean;
 }
 
 const DEFAUTS: Preferences = {
-  devise: "aucune",
   notificationsPush: true,
   notificationsEmail: true,
 };
 
-const CLE = "teranga_preferences";
+const CLE = "teranga_preferences_2";
 
 /**
  * Préférences du visiteur, dans le navigateur.

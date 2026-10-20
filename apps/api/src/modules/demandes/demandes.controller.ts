@@ -28,7 +28,7 @@ export class ControleurDemandes {
     @Headers("cookie") cookieHeader?: string,
   ) {
     const jeton = extraireJetonRequete(visiteurHeader, authHeader, cookieHeader);
-    const visiteurId = await this.comptes.exigerVisiteur(jeton, corps.code);
+    const visiteurId = await this.comptes.visiteurPourDemande(jeton, corps.contact);
     const demande = await this.demandes.creerLogement({
       logementId: corps.logementId,
       debut: corps.debut,
@@ -52,7 +52,7 @@ export class ControleurDemandes {
     @Headers("cookie") cookieHeader?: string,
   ) {
     const jeton = extraireJetonRequete(visiteurHeader, authHeader, cookieHeader);
-    const visiteurId = await this.comptes.exigerVisiteur(jeton, corps.code);
+    const visiteurId = await this.comptes.visiteurPourDemande(jeton, corps.contact);
 
     // Deux heures minimum pour un trajet (§B.3).
     if (corps.prestation === "trajet") {
@@ -95,7 +95,7 @@ export class ControleurDemandes {
     @Headers("cookie") cookieHeader?: string,
   ) {
     const jeton = extraireJetonRequete(visiteurHeader, authHeader, cookieHeader);
-    const visiteurId = await this.comptes.exigerVisiteur(jeton, corps.code);
+    const visiteurId = await this.comptes.visiteurPourDemande(jeton, corps.contact);
 
     // Les détails arrivent du formulaire : on les ramène à des chaînes, et on
     // écarte les champs vides plutôt que de les écrire dans la base.

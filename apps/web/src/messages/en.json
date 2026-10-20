@@ -4,6 +4,7 @@
     "baseline": "Verified stays and transport in Senegal",
     "verifie": "Verified",
     "parNuit": "/ night",
+    "parSemaine": "/ week",
     "parMois": "/ month",
     "visiteFilmee": "Video tour",
     "enSavoirPlus": "Find out more",
@@ -649,6 +650,7 @@
     "typeLogement": "Type of place",
     "tous": "All",
     "prixParNuit": "Price per night (FCFA)",
+    "prixParSemaine": "Price per week ({devise})",
     "prixMin": "Lowest price",
     "prixMax": "Highest price",
     "localisation": "Location",
@@ -747,6 +749,7 @@
       "other": "{nombre} nights minimum"
     },
     "detailNuits": "{prix} × {nuits}",
+    "detailSejour": "Accommodation, {nuits}",
     "nuits": {
       "one": "{nombre} night",
       "other": "{nombre} nights"
@@ -789,6 +792,7 @@
   },
   "demande": {
     "titre": "Your request",
+    "illustrationAlt": "Games athletes on the Dakar corniche at sunset, with the African Renaissance Monument and the stadium behind them",
     "recapitulatif": "Summary",
     "dates": "Dates",
     "personnes": "Travellers",
@@ -800,13 +804,7 @@
     "prixFige": "This price is fixed when you send your request.",
     "envoyer": "Send the request",
     "envoiEnCours": "Sending",
-    "codeTitre": "Confirm your number",
-    "codeTexte": "We have sent a six-digit code. Enter it to send your request.",
     "codeLibelle": "Six-digit code",
-    "codeFaux": "This code does not match. Check the six digits.",
-    "codeExpire": "This code has expired. Ask for a new one.",
-    "codeRenvoyer": "Send the code again",
-    "codeRenvoyerDans": "Send the code again in {secondes} s",
     "codeDemo": "Demonstration: the code is {code}.",
     "fermer": "Close",
     "prisTitre": "This place has just been booked",
@@ -837,11 +835,7 @@
     "telephoneRequis": "Enter a phone number.",
     "echecTitre": "Your request could not be sent",
     "echecTexte": "Nothing was saved and your entries are kept. Please try again in a moment.",
-    "echecSession": "Your session could not be opened. Please verify your code again.",
-    "echecTentatives": "Too many attempts with this code. Please request a new verification code.",
     "echecReessayer": "Try again",
-    "codeNonEnvoye": "The code could not be sent to this address. Check the email address, then try again.",
-    "codeEnvoye": "Code sent. It is valid for ten minutes.",
     "plutotUnCompte": "Would you rather have an account?",
     "creerUnCompte": "Create an account"
   },
@@ -1565,16 +1559,13 @@
     "profilModifierTexte": "To change your email or your number, call support: a change reopens the check.",
     "parametresTitre": "Settings",
     "langue": "Language",
-    "devise": "Currency",
-    "deviseAucune": "No conversion",
-    "deviseTexte": "Prices stay in FCFA. The conversion is shown underneath, as a guide.",
+    "monnaieTexte": "Prices are shown in the currency of the chosen language: euro in French and Spanish, dollar in English. The stay itself is paid on site, in CFA francs.",
     "notificationsPush": "Push notifications",
     "notificationsEmail": "Email notifications",
     "notificationsTexte": "Real sending comes with the server; your choice is already saved on this device.",
     "confidentialite": "Privacy",
     "conditions": "Terms of use",
     "enregistreLocalement": "Saved on this device",
-    "environ": "about {montant}",
     "messagesTitre": "Messages",
     "messagesVideTitre": "Messaging is coming soon",
     "messagesVideTexte": "In the meantime, your message to the partner goes with your request, and our team answers by phone every day."
@@ -1996,5 +1987,37 @@
       "capacite": "Not enough room",
       "autre": "Other"
     }
+  },
+  "titreLogement": {
+    "l-001": "Villa with pool in Gandiagal",
+    "l-002": "New two-storey villa in Ngaparou",
+    "l-003": "Contemporary villa in Saly Vélingara",
+    "l-004": "Villa in the Les Orangers residence",
+    "l-005": "Two-bedroom villa in the Mangrove residence",
+    "l-006": "Three-bedroom villa in the Mangrove residence",
+    "l-007": "Single-storey villa with large pool in Saly",
+    "l-008": "Three-bedroom villa with pool in Saly",
+    "l-009": "Five-bedroom villa in Somone",
+    "l-010": "Architect-designed villa with pool in Saly",
+    "l-011": "Studio with pool access",
+    "l-012": "Four-bedroom villa in Saly",
+    "l-013": "Furnished studio in Almadies",
+    "l-014": "Two-bedroom apartment",
+    "l-015": "Furnished studio",
+    "l-016": "Third-floor studio",
+    "l-017": "Villa with pool and barbecue in Guéréo",
+    "l-018": "Two-bedroom villa near the Diambars Academy",
+    "l-019": "Three-bedroom villa with large pool in Nguérigne",
+    "l-020": "Villa on the Somone lagoon",
+    "l-021": "Four-bedroom villa in central Saly",
+    "l-022": "Furnished apartment with marble floors",
+    "l-023": "Furnished two-bedroom apartment",
+    "l-024": "Furnished apartment, monthly rental"
+  },
+  "quartier": {
+    "centre": "Town centre",
+    "bordDeLagune": "Lagoon side",
+    "residenceMangrove": "Mangrove residence",
+    "citeMakiyouFaye": "Makiyou Faye estate"
   }
 }

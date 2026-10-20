@@ -1,6 +1,6 @@
 import { HttpStatus, Inject, Injectable } from "@nestjs/common";
 import type { Demand } from "@prisma/client";
-import type { Demande } from "@teranga/contracts";
+import { totalSejour, type Demande } from "@teranga/contracts";
 
 import { randomBytes } from "node:crypto";
 import { PrismaService } from "../../base-de-donnees/prisma.service";
@@ -72,7 +72,7 @@ export class DepotDemandesPrisma implements DepotDemandes {
 
     const fraisFixes = logement.fraisFixes ?? [];
     const total =
-      logement.prixParNuit * nuits + fraisFixes.reduce((s, f) => s + f.montant, 0);
+      totalSejour(logement, nuits, fraisFixes);
     const maintenant = new Date().toISOString();
 
     // Assure l'existence du compte demandeur

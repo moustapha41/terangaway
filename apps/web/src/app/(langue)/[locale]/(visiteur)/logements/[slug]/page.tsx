@@ -10,6 +10,7 @@ import { OngletsFiche } from "@/features/logement/onglets-fiche";
 import { Lien } from "@/lib/i18n/lien";
 import { estLangue, type Langue } from "@/lib/i18n/langues";
 import { traducteurPour } from "@/lib/i18n/messages";
+import { titreLogement } from "@/lib/i18n/titre-logement";
 import { SEJOUR_DEFAUT } from "@/lib/dates/sejour";
 import { avisLogement, obtenirLogement } from "@/mocks/api";
 
@@ -35,7 +36,7 @@ export default async function FicheLogement({
   const recherche = await searchParams;
   const t = traducteurPour(langue);
 
-  const logement = await obtenirLogement(slug);
+  const logement = await obtenirLogement(slug, langue);
   if (!logement) notFound();
 
   const debut = recherche.debut ?? SEJOUR_DEFAUT.debut;
@@ -60,7 +61,7 @@ export default async function FicheLogement({
             {t("resultats.filLogement")}
           </Lien>
           <span className="mx-2">›</span>
-          <span className="text-encre">{logement.titre}</span>
+          <span className="text-encre">{titreLogement(logement, t)}</span>
         </nav>
 
         {/* Quand les « photos » ne sont que des trames de la visite, c'est la
@@ -75,7 +76,7 @@ export default async function FicheLogement({
           <div className="min-w-0 space-y-8">
             <header>
               <div className="flex flex-wrap items-center justify-between gap-3">
-                <h1 className="text-titre-1 text-encre">{logement.titre}</h1>
+                <h1 className="text-titre-1 text-encre">{titreLogement(logement, t)}</h1>
                 {logement.note !== undefined && (
                   <p className="flex items-center gap-1.5 text-corps text-encre">
                     <Etoile />
