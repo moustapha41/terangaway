@@ -10,6 +10,7 @@ import type {
   EntreeCreationLogement,
   EntreeCreationService,
   EntreeCreationVehicule,
+  JetonReponse,
 } from "./demandes.depot";
 import { expireConfirmationPour } from "./machine-a-etats/delais";
 import {
@@ -78,6 +79,17 @@ export class ServiceDemandes {
 
   creerService(entree: EntreeCreationService): Promise<Demande> {
     return this.depot.creerService(entree);
+  }
+
+  /**
+   * Le jeton par lequel on répond à une demande sans se connecter.
+   *
+   * `null` quand la demande n'a pas de prestataire, ou quand le dépôt ne sait
+   * pas en émettre — le dépôt en mémoire, par exemple. L'appelant doit savoir
+   * s'en passer : un e-mail sans lien reste un e-mail qui prévient.
+   */
+  emettreJetonReponse(demandeId: string): Promise<JetonReponse | null> {
+    return this.depot.emettreJetonReponse?.(demandeId) ?? Promise.resolve(null);
   }
 
   /**

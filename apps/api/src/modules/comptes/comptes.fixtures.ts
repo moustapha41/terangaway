@@ -226,6 +226,11 @@ export class DepotComptesFixtures implements DepotComptes {
     throw new Error(`Compte inconnu : ${compteId}`);
   }
 
+  /** En mémoire, il n'y a pas de table des rôles : la configuration fait foi. */
+  async adressesEquipe(): Promise<string[]> {
+    return [...config.adminEmails];
+  }
+
   /* ────────────────────── Demande envoyée sans compte ────────────────────── */
 
   async visiteurDeContact(contact: {

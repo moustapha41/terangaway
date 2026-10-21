@@ -158,6 +158,14 @@ model Demand {
   frise               Json
 
   expireLe            DateTime?
+
+  /// Quand l'équipe a été relancée sur cette demande, si elle l'a été.
+  ///
+  /// Le veilleur signale une demande qui approche de son échéance sans
+  /// réponse. Cette colonne est ce qui l'empêche de la signaler toutes les
+  /// cinq minutes : une alerte répétée se filtre, et une alerte filtrée ne
+  /// prévient plus personne.
+  relanceeLe          DateTime?
   motifRefus          String?
 
   creeLe              DateTime        @default(now())

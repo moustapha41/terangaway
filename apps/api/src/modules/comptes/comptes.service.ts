@@ -340,6 +340,23 @@ export class ServiceComptes {
   }
 
   /**
+   * À qui signaler qu'une demande vient d'arriver.
+   *
+   * Deux sources réunies, parce qu'aucune ne suffit seule : les comptes qui
+   * portent le rôle d'administrateur en base — la vérité sur Postgres — et les
+   * adresses d'`ADMIN_EMAILS`, qui sont tout ce qu'il y a sans base. Les
+   * confondre ferait taire l'alerte le jour où l'une des deux est vide, et une
+   * alerte qui se tait est pire que pas d'alerte du tout : on compte dessus.
+   */
+  async adressesEquipe(): Promise<string[]> {
+    const enBase = await this.depot.adressesEquipe?.().catch(() => []);
+    const toutes = [...(enBase ?? []), ...config.adminEmails]
+      .map((adresse) => adresse.trim().toLowerCase())
+      .filter((adresse) => EMAIL_VALIDE.test(adresse));
+    return [...new Set(toutes)];
+  }
+
+  /**
    * L'identité à inscrire au dos d'une demande : une session, ou des coordonnées.
    *
    * Envoyer une demande n'ouvre aucun accès — c'est un message déposé chez un

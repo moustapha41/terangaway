@@ -593,6 +593,14 @@ export class DepotComptesPrisma implements DepotComptes {
     return this.resumer(compte);
   }
 
+  async adressesEquipe(): Promise<string[]> {
+    const comptes = await this.prisma.account.findMany({
+      where: { role: "ADMINISTRATEUR", email: { not: null } },
+      select: { email: true },
+    });
+    return comptes.map((c) => c.email!).filter(Boolean);
+  }
+
   /* ────────────────────── Demande envoyée sans compte ────────────────────── */
 
   async visiteurDeContact(contact: {

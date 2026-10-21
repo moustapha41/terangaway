@@ -106,4 +106,53 @@ describe("Persistance PostgreSQL — Module Demandes & Prévention IDOR", () => 
       service.annulerPourVisiteur(demande.id, visiteurUsurpateur),
     ).rejects.toThrow(ErreurMetier);
   });
+
+  it("émet le jeton de réponse une fois, en clair, et garde l'empreinte", async () => {
+    const demande = await service.creerLogement({
+      logementId: "l-001",
+      debut: "2026-11-24",
+      fin: "2026-11-27",
+      personnes: 2,
+      visiteurId: "visiteur-jeton",
+    });
+
+    // La création ne fabrique plus de jeton : il ne servait à personne.
+    expect(await prisma.providerResponseToken.count({ where: { demandeId: demande.id } })).toBe(0);
+
+    const emis = await depot.emettreJetonReponse(demande.id);
+    expect(emis?.jeton).toMatch(/^twp_[0-9a-f]{64}$/);
+    expect(emis?.prestataire.id).toBeTruthy();
+
+    // En base, l'empreinte seulement — jamais la valeur qui ouvre l'écran.
+    const enBase = await prisma.providerResponseToken.findFirst({
+      where: { demandeId: demande.id },
+    });
+    expect(enBase).not.toBeNull();
+    expect(enBase!.tokenHash).not.toBe(emis!.jeton);
+    expect(new Date(enBase!.expiresAt).getTime()).toBeGreaterThan(Date.now());
+  });
+
+  it("ne propose à la relance que les demandes en souffrance, et une seule fois", async () => {
+    const demande = await service.creerLogement({
+      logementId: "l-001",
+      debut: "2026-11-28",
+      fin: "2026-12-01",
+      personnes: 2,
+      visiteurId: "visiteur-relance",
+    });
+
+    // Seuil dans le futur : la demande est en souffrance quoi qu'il arrive.
+    const seuils = { logement: new Date(Date.now() + 60_000) };
+    const premier = await depot.aRelancer(seuils, 50);
+    expect(premier.map((d) => d.id)).toContain(demande.id);
+
+    await depot.marquerRelancees([demande.id]);
+
+    const second = await depot.aRelancer(seuils, 50);
+    expect(second.map((d) => d.id)).not.toContain(demande.id);
+
+    // Un genre absent de la table des seuils n'est jamais relancé.
+    const autreGenre = await depot.aRelancer({ taxi: new Date(Date.now() + 60_000) }, 50);
+    expect(autreGenre.map((d) => d.id)).not.toContain(demande.id);
+  });
 });

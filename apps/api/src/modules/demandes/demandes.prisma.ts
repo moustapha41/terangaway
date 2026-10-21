@@ -23,6 +23,8 @@ import type {
   EntreeCreationLogement,
   EntreeCreationService,
   EntreeCreationVehicule,
+  DemandeARelancer,
+  JetonReponse,
 } from "./demandes.depot";
 import { expireLePour } from "./machine-a-etats/delais";
 
@@ -124,19 +126,89 @@ export class DepotDemandesPrisma implements DepotDemandes {
       },
     });
 
-    if (prestataireId) {
-      const rawToken = genererJetonPartenaire();
-      await this.prisma.providerResponseToken.create({
-        data: {
-          demandeId: created.id,
-          prestataireId,
-          tokenHash: hacherJetonDirect(rawToken),
-          expiresAt: new Date(Date.now() + 120 * 60_000), // 2 h
-        },
-      });
-    }
+    // Le jeton de réponse n'est plus fabriqué ici : il l'était, puis jeté —
+    // seule l'empreinte restait, et la valeur en clair n'allait nulle part.
+    // Il s'émet maintenant par `emettreJetonReponse`, au moment où l'on sait
+    // à qui l'envoyer.
 
     return demandToDemande(created);
+  }
+
+  async aExpirer(maintenant: Date, limite: number): Promise<string[]> {
+    const rows = await this.prisma.demand.findMany({
+      where: {
+        statut: { in: ["envoyee", "acceptee"] },
+        expireLe: { not: null, lt: maintenant },
+      },
+      orderBy: { expireLe: "asc" },
+      take: limite,
+      select: { id: true },
+    });
+    return rows.map((row) => row.id);
+  }
+
+  async aRelancer(seuils: Record<string, Date>, limite: number): Promise<DemandeARelancer[]> {
+    const parGenre = Object.entries(seuils).map(([genre, avant]) => ({
+      genre: genre as Demand["genre"],
+      creeLe: { lte: avant },
+    }));
+    if (parGenre.length === 0) return [];
+
+    const rows = await this.prisma.demand.findMany({
+      where: { statut: "envoyee", relanceeLe: null, OR: parGenre },
+      orderBy: { creeLe: "asc" },
+      take: limite,
+      select: { id: true, reference: true, genre: true, offreTitre: true, creeLe: true, expireLe: true },
+    });
+
+    return rows.map((row) => ({
+      id: row.id,
+      reference: row.reference,
+      genre: row.genre,
+      titre: row.offreTitre,
+      creeLe: row.creeLe.toISOString(),
+      expireLe: row.expireLe?.toISOString(),
+    }));
+  }
+
+  async marquerRelancees(ids: readonly string[]): Promise<void> {
+    if (ids.length === 0) return;
+    await this.prisma.demand.updateMany({
+      where: { id: { in: [...ids] } },
+      data: { relanceeLe: new Date() },
+    });
+  }
+
+  async emettreJetonReponse(demandeId: string): Promise<JetonReponse | null> {
+    const demande = await this.prisma.demand.findUnique({
+      where: { id: demandeId },
+      select: { prestataireId: true, prestataire: { select: { id: true, nom: true, email: true } } },
+    });
+    if (!demande?.prestataireId || !demande.prestataire) return null;
+
+    const jeton = genererJetonPartenaire();
+    // Deux heures, comme le délai de réponse : un jeton qui survivrait à
+    // l'échéance laisserait accepter une demande déjà expirée.
+    const expireLe = new Date(Date.now() + 120 * 60_000);
+
+    await this.prisma.providerResponseToken.create({
+      data: {
+        demandeId,
+        prestataireId: demande.prestataireId,
+        tokenHash: hacherJetonDirect(jeton),
+        expiresAt: expireLe,
+      },
+    });
+
+    return {
+      jeton,
+      expireLe: expireLe.toISOString(),
+      prestataire: {
+        id: demande.prestataire.id,
+        nom: demande.prestataire.nom ?? undefined,
+        email: demande.prestataire.email ?? undefined,
+      },
+    };
   }
 
   async creerVehicule(entree: EntreeCreationVehicule): Promise<Demande> {

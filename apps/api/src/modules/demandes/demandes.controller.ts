@@ -4,6 +4,7 @@ import type { Demande } from "@teranga/contracts";
 
 import { ServiceEmail } from "../../commun/email/email.service";
 import { ErreurMetier } from "../../commun/erreurs";
+import { config } from "../../config/configuration";
 import { extraireJetonRequete } from "../../commun/securite/hachage";
 import { ServiceComptes, type VisiteurDeDemande } from "../comptes/comptes.service";
 import { CreerDemandeLogementDto } from "./dto/creer-demande-logement.dto";
@@ -41,7 +42,7 @@ export class ControleurDemandes {
       message: corps.message,
       visiteurId: visiteur.compteId,
     });
-    await this.confirmerParEmail(visiteur, demande);
+    await this.previenir(visiteur, demande, corps.contact);
     return { donnees: demande };
   }
 
@@ -81,7 +82,7 @@ export class ControleurDemandes {
       message: corps.message,
       visiteurId: visiteur.compteId,
     });
-    await this.confirmerParEmail(visiteur, demande);
+    await this.previenir(visiteur, demande, corps.contact);
     return { donnees: demande };
   }
 
@@ -116,8 +117,58 @@ export class ControleurDemandes {
       message: corps.message,
       visiteurId: visiteur.compteId,
     });
-    await this.confirmerParEmail(visiteur, demande);
+    await this.previenir(visiteur, demande, corps.contact);
     return { donnees: demande };
+  }
+
+  /**
+   * Les deux écrits qui suivent une demande : l'accusé au visiteur, l'alerte à
+   * l'équipe.
+   *
+   * Ils partent ensemble et aucun des deux ne peut faire échouer la demande :
+   * elle est enregistrée, et un e-mail qui ne part pas ne doit pas effacer cela
+   * de l'écran du visiteur. Les deux services avalent leurs erreurs et les
+   * journalisent — c'est leur contrat, pas une négligence d'ici.
+   *
+   * En parallèle, parce qu'ils ne dépendent pas l'un de l'autre et que le
+   * visiteur attend devant son écran pendant ce temps.
+   */
+  private async previenir(
+    visiteur: VisiteurDeDemande,
+    demande: Demande,
+    contact?: { nom?: string; email?: string; telephone?: string },
+  ): Promise<void> {
+    // Le jeton d'abord : c'est lui qui décide à qui va le pouvoir de répondre,
+    // et donc ce que contiendra chacun des deux e-mails.
+    const equipe = await this.comptes.adressesEquipe();
+    const reponse = await this.demandes.emettreJetonReponse(demande.id).catch(() => null);
+    const lienReponse = reponse ? lienDeReponse(reponse.jeton) : undefined;
+
+    // L'équipe garde toujours le lien : c'est elle qui répond des vingt-quatre
+    // annonces collectées, et la laisser sans moyen de décider serait revenir
+    // au point de départ. Le propriétaire reçoit le sien **en plus**, quand il
+    // a une adresse à lui. Le jeton ne sert qu'une fois : le premier qui
+    // tranche a tranché, et c'est bien ainsi — une demande n'a qu'une réponse.
+    const adresseProprietaire = reponse?.prestataire.email?.trim().toLowerCase();
+    const proprietaireDistinct =
+      adresseProprietaire !== undefined && !equipe.includes(adresseProprietaire);
+
+    await Promise.all([
+      this.confirmerParEmail(visiteur, demande),
+      this.alerterEquipe(visiteur, demande, equipe, contact, { lienReponse }),
+      proprietaireDistinct && lienReponse
+        ? this.email.envoyerDemandeAuPartenaire(adresseProprietaire, {
+            reference: demande.reference,
+            titre: demande.offre.titre,
+            sejour: periode(demande),
+            personnes: demande.personnes,
+            total: demande.prix.total > 0 ? formaterFrancs(demande.prix.total) : undefined,
+            message: demande.message,
+            repondreAvant: demande.expireLe ? echeance(demande.expireLe) : undefined,
+            lienReponse,
+          })
+        : Promise.resolve(),
+    ]);
   }
 
   /**
@@ -125,9 +176,7 @@ export class ControleurDemandes {
    * si le compte vient de naître.
    *
    * C'est le seul moment où le mot de passe engendré existe en clair, et il ne
-   * va qu'à l'adresse saisie. L'envoi ne peut pas faire échouer la demande :
-   * elle est enregistrée, le propriétaire l'a, et un e-mail qui ne part pas ne
-   * doit pas effacer cela de l'écran du visiteur.
+   * va qu'à l'adresse saisie.
    */
   private async confirmerParEmail(visiteur: VisiteurDeDemande, demande: Demande): Promise<void> {
     if (!visiteur.email) return;
@@ -140,6 +189,68 @@ export class ControleurDemandes {
       identifiants: visiteur.identifiants,
     });
   }
+
+  /**
+   * Signale la demande à l'équipe.
+   *
+   * Sans cela, une demande attendait qu'on pense à ouvrir le backoffice, et
+   * les deux heures de réponse de l'hôte s'écoulaient en silence.
+   *
+   * Le mot de passe provisoire, lui, ne figure nulle part ici : il ne va qu'à
+   * l'adresse du visiteur, jamais dans une boîte interne.
+   */
+  private async alerterEquipe(
+    visiteur: VisiteurDeDemande,
+    demande: Demande,
+    destinataires: readonly string[],
+    contact?: { nom?: string; email?: string; telephone?: string },
+    liens: { lienReponse?: string } = {},
+  ): Promise<void> {
+    await this.email.alerterEquipe(destinataires, {
+      reference: demande.reference,
+      genre: demande.offre.genre === "service" ? demande.offre.service : demande.offre.genre,
+      titre: demande.offre.titre,
+      sejour: periode(demande),
+      personnes: demande.personnes,
+      total: demande.prix.total > 0 ? formaterFrancs(demande.prix.total) : undefined,
+      message: demande.message,
+      repondreAvant: demande.expireLe ? echeance(demande.expireLe) : undefined,
+      contact: {
+        nom: contact?.nom?.trim() || undefined,
+        email: visiteur.email,
+        telephone: contact?.telephone?.trim() || undefined,
+      },
+      lien: `${config.appUrl.replace(/\/$/, "")}/fr/admin/demandes/${demande.id}`,
+      lienReponse: liens.lienReponse,
+    });
+  }
+}
+
+/** L'écran de réponse du partenaire, hors langue et sans connexion. */
+function lienDeReponse(jeton: string): string {
+  return `${config.appUrl.replace(/\/$/, "")}/reponse/${jeton}`;
+}
+
+/**
+ * « aujourd'hui à 22 h 36 » — l'heure de Dakar, qui est celle de l'équipe.
+ *
+ * Le serveur peut tourner ailleurs ; l'échéance, elle, se lit à Dakar. Donner
+ * l'heure du conteneur ferait courir après une demande déjà expirée.
+ */
+function echeance(iso: string): string {
+  const quand = new Date(iso);
+  const options: Intl.DateTimeFormatOptions = {
+    timeZone: "Africa/Dakar",
+    hour: "2-digit",
+    minute: "2-digit",
+  };
+  const heure = quand.toLocaleTimeString("fr-FR", options);
+  const jour = quand.toLocaleDateString("fr-FR", {
+    timeZone: "Africa/Dakar",
+    day: "numeric",
+    month: "long",
+  });
+  return `${jour} à ${heure}`;
 }
 
 /** « 1 novembre 2026 → 8 novembre 2026 », ou le seul jour d'un trajet. */

@@ -124,6 +124,19 @@ export interface DepotComptes {
   /** Compare un mot de passe à l'empreinte du compte, sans la faire sortir du dépôt. */
   verifierMotDePasseCompte(compteId: string, motDePasse: string): Promise<boolean>;
 
+  /* ──────────────────────────── L'équipe ──────────────────────────── */
+
+  /**
+   * Les adresses des comptes qui portent le rôle d'administrateur.
+   *
+   * C'est à elles qu'une demande nouvelle est signalée. On les lit en base
+   * plutôt que dans une variable d'environnement : `ADMIN_EMAILS` ne sert
+   * qu'au dépôt en mémoire, et sur Postgres c'est le rôle du compte qui fait
+   * foi. Une alerte adressée à une variable oubliée ne serait signalée à
+   * personne — et c'est précisément ce qu'on cherche à éviter ici.
+   */
+  adressesEquipe?(): Promise<string[]>;
+
   /* ────────────────────── Demande envoyée sans compte ────────────────────── */
 
   /**
