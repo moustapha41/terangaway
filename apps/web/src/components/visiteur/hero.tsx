@@ -29,6 +29,11 @@ export function Hero({ langue }: { langue: Langue }) {
    * même. Sur la photo qui porte le LCP, en 3G, cela se paie comptant. Avec
    * `<picture>`, le navigateur choisit **avant** de télécharger, et chaque
    * source garde les tailles et les formats optimisés par Next.
+   *
+   * 768 px est le seul point de rupture de ce bloc : la photo, les voiles, le
+   * logo et la typographie basculent ensemble. Les faire changer à deux
+   * endroits différents laisserait, entre les deux, le titre du bureau sur la
+   * photo du téléphone.
    */
   const commun = { alt: t("hero.alt"), fill: true, priority: true, sizes: "100vw" } as const;
   const bureau = getImageProps({ ...commun, src: "/images/hero-sans-logo.png" }).props;
@@ -57,14 +62,21 @@ export function Hero({ langue }: { langue: Langue }) {
 
         {/* Marque olympique, posée par-dessus la photo. Elle est décorative ici —
             le titre de la page porte déjà « JOJ Dakar 2026 » — d'où alt="".
-            Masquée sous 768 px : la photo mobile la porte déjà, incrustée. */}
+
+            Masquée sous 768 px, et c'est ce qui règle le chevauchement du titre
+            sans rien superposer : hero-mobile.png porte **déjà** le logo,
+            incrusté dans son coin supérieur droit, loin du texte. Le poser une
+            seconde fois par-dessus l'afficherait en double.
+
+            `z-10` la garde au-dessus des voiles quel que soit leur ordre dans
+            le document. */}
         <Image
           src="/images/logo-joji.png"
           alt=""
           width={413}
           height={211}
           priority
-          className="pointer-events-none absolute right-[6%] top-[9.5%] hidden w-[clamp(120px,18.1%,261px)] select-none md:block"
+          className="pointer-events-none absolute right-[6%] top-[9.5%] z-10 hidden w-[clamp(120px,18.1%,261px)] select-none md:block"
           style={{ height: "auto" }}
         />
 
@@ -90,12 +102,15 @@ export function Hero({ langue }: { langue: Langue }) {
           }}
         />
 
-        <div className="relative mx-auto flex h-full w-[92%] max-w-[1260px] flex-col justify-center pb-[64px] pt-4 sm:w-[87.5%] md:pb-[72px]">
-          <p className="text-[13px] font-medium uppercase tracking-[0.22em] text-white/85 sm:text-[15px]">
+        <div className="relative z-10 mx-auto flex h-full w-[87.5%] max-w-[1260px] flex-col justify-center pb-[58px] pt-3 md:pb-[72px] md:pt-4">
+          <p className="text-[13px] font-medium uppercase tracking-[0.18em] text-white/85 md:text-[15px] md:tracking-[0.22em]">
             {t("hero.surtitre")}
           </p>
 
-          <h1 className="mt-2 text-[clamp(28px,4.2vw,58px)] font-bold leading-[1.15] tracking-[-0.02em] text-white sm:mt-3">
+          {/* `max-w-[640px]` cadre les trois lignes sur téléphone ; la limite
+              est levée au-delà de 768 px, où le cadrage du bureau et ses 58 px
+              reprennent la main. */}
+          <h1 className="mt-2 max-w-[640px] text-[clamp(24px,6.6vw,34px)] font-bold leading-[1.18] tracking-[-0.02em] text-white md:mt-3 md:max-w-none md:text-[clamp(36px,4.2vw,58px)] md:leading-[1.15]">
             {t("hero.titre")}
             <br />
             {t("hero.titreSuite")}
@@ -103,11 +118,11 @@ export function Hero({ langue }: { langue: Langue }) {
             <span className="text-jaune-vif">{t("hero.titreLieu")}</span>
           </h1>
 
-          <p className="mt-3 max-w-[520px] text-[clamp(14px,1.45vw,20px)] leading-[1.45] text-white/90 sm:mt-4">
+          <p className="mt-2.5 max-w-[520px] text-[15px] leading-[1.45] text-white/95 md:mt-4 md:text-[clamp(16px,1.45vw,20px)]">
             {t("hero.sousTitre")}
           </p>
 
-          <span className="mt-4 block h-[4px] w-[48px] rounded-full bg-jaune-vif sm:mt-5" />
+          <span className="mt-3.5 block h-[4px] w-[40px] rounded-full bg-jaune-vif md:mt-5 md:w-[48px]" />
         </div>
       </div>
 
