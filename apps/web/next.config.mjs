@@ -50,9 +50,24 @@ const nextConfig = {
        *
        * La liste est figée à la construction, comme tout ce que lit ce
        * fichier. Un domaine de plus demande une reconstruction de l'image.
+       *
+       * `||` et non `??` : `??` ne se replie que sur `undefined`, et la
+       * variable arrive **définie mais vide** depuis Docker —
+       * `ORIGINES_ACTIONS: ${ORIGINES_ACTIONS:-}` dans docker-compose, puis
+       * `ENV ORIGINES_ACTIONS=$ORIGINES_ACTIONS` dans le Dockerfile. La liste
+       * ci-dessous était donc silencieusement remplacée par une liste vide en
+       * production, et Next refusait toute Server Action dès le moindre écart
+       * entre `origin` et l'hôte vu derrière le mandataire : envoyer une
+       * demande renvoyait « Invalid Server Actions request » et rien n'était
+       * écrit.
+       *
+       * Les domaines retenus sont ceux de la configuration réelle : défauts de
+       * `ORIGINES_AUTORISEES` et `APP_URL` dans docker-compose pour la
+       * production, port 3000 pour `next dev`, port 3100 pour la pile Docker
+       * locale.
        */
       allowedOrigins: (
-        process.env.ORIGINES_ACTIONS ??
+        process.env.ORIGINES_ACTIONS ||
         "teranga-way.com,www.teranga-way.com,localhost:3000,localhost:3100"
       )
         .split(",")

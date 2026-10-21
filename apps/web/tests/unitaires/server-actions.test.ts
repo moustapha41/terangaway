@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, beforeAll, afterAll } from "vitest";
 
 const mockCookieJar = new Map<string, any>();
 
@@ -28,6 +28,30 @@ import {
 } from "../../src/features/demande/actions";
 import { creerDemandeServiceAction } from "../../src/features/services/actions";
 import { estJetonSessionValide } from "../../src/features/compte/cookie";
+
+/**
+ * Ce fichier éprouve la validation et l'enchaînement des Server Actions, pas
+ * l'API : il réclame donc les fixtures explicitement.
+ *
+ * Le dire est nécessaire depuis que `apiMockActive()` refuse par défaut. Ces
+ * tests passaient auparavant parce que l'absence de variable ouvrait les
+ * fixtures d'elle-même — la même lecture qui, sur un poste de développement et
+ * dans une image construite sans l'argument de construction, faisait
+ * disparaître les demandes. Un test qui dépend d'un défaut implicite ne voit
+ * pas ce défaut changer.
+ *
+ * Le parcours contre la vraie API, lui, est couvert par `tests/e2e`, qui monte
+ * une fausse API sur `fetch` et traverse toute la chaîne jusqu'à la requête.
+ */
+const envInitial = process.env.NEXT_PUBLIC_API_MOCK;
+
+beforeAll(() => {
+  process.env.NEXT_PUBLIC_API_MOCK = "true";
+});
+
+afterAll(() => {
+  process.env.NEXT_PUBLIC_API_MOCK = envInitial;
+});
 
 describe("Server Actions - Validation et création demande de logement", () => {
   beforeEach(() => {

@@ -1,8 +1,8 @@
 /**
  * Client HTTP minimal vers l'API Nest.
  *
- * Utilisé dès qu'un domaine d'écriture bascule hors mock
- * (`NEXT_PUBLIC_API_MOCK=false`).
+ * Utilisé pour tout domaine d'écriture, sauf si les fixtures sont réclamées
+ * par `NEXT_PUBLIC_API_MOCK=true` (voir `apiMockActive`).
  */
 
 export class ErreurApi extends Error {
@@ -16,8 +16,26 @@ export class ErreurApi extends Error {
   }
 }
 
+/**
+ * Les données simulées répondent-elles à la place de l'API ?
+ *
+ * **Refus par défaut** : il faut réclamer les fixtures par
+ * `NEXT_PUBLIC_API_MOCK=true`, et rien d'autre ne les ouvre. La lecture
+ * précédente — « actif sauf si la valeur vaut exactement `false` » — faisait
+ * de l'absence de variable un mode mock, et une variable absente est le cas
+ * le plus courant : aucun `apps/web/.env` sur un poste de développement, une
+ * image construite sans l'argument de construction. Le parcours paraissait
+ * alors normal de bout en bout — la demande partait, la confirmation
+ * s'affichait avec une référence — mais rien n'était écrit en base et « Mes
+ * réservations » montrait le catalogue de démonstration. Une variable absente
+ * doit fermer la porte, pas l'ouvrir : c'est la même règle que
+ * `config.autoriserComptesDemo` côté API.
+ *
+ * `NEXT_PUBLIC_*` est figé à la construction : la valeur est donc la même
+ * côté serveur et côté navigateur, sans aller-retour.
+ */
 export function apiMockActive(): boolean {
-  return process.env.NEXT_PUBLIC_API_MOCK !== "false";
+  return process.env.NEXT_PUBLIC_API_MOCK === "true";
 }
 
 function baseUrl(): string {
