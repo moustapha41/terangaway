@@ -14,7 +14,8 @@ import type { Traducteur } from "@/lib/i18n/traducteur";
 import { formaterPlage, nombreDeNuits } from "@/lib/dates";
 import { SEJOUR_DEFAUT } from "@/lib/dates/sejour";
 import type { Logement } from "@teranga/contracts";
-import { chercherLogements, ErreurServeur, type EtatSimule } from "@/mocks/api";
+import { chercherLogements, ErreurServeur, logementParId, type EtatSimule } from "@/mocks/api";
+import { MIS_EN_AVANT } from "@/lib/vitrine";
 
 /**
  * Écran 2 · Résultats logement — maquette du parcours logement, écrans 02 et 07.
@@ -58,11 +59,16 @@ export default async function Resultats({
     // L'accueil du parcours doit s'afficher même si le catalogue est
     // indisponible : la recherche et les repères restent utiles, seule la
     // sélection « populaires » manque.
+    //
+    // La même vitrine que la page d'accueil, et non les quatre mieux notés :
+    // le visiteur qui cliquait « voir tous les logements » tombait sur quatre
+    // autres maisons que celles qu'il venait de regarder, sans que rien
+    // n'explique le changement.
     let populaires: Logement[] = [];
     try {
-      populaires = (
-        await chercherLogements({ ville: recherche.ville, tri: "note" }, "normal", langue)
-      ).elements.slice(0, 4);
+      populaires = (await Promise.all(MIS_EN_AVANT.map((id) => logementParId(id, langue)))).filter(
+        (logement): logement is Logement => logement !== null,
+      );
     } catch (erreur) {
       if (!(erreur instanceof ErreurServeur)) throw erreur;
       console.error("[logements] sélection populaire indisponible", erreur);

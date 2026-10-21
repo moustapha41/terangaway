@@ -1,5 +1,6 @@
 import Image from "next/image";
 import { Lien } from "@/lib/i18n/lien";
+import { MIS_EN_AVANT } from "@/lib/vitrine";
 import { traducteurPour } from "@/lib/i18n/messages";
 import type { Langue } from "@/lib/i18n/langues";
 import { formaterPrixVisiteur, prixAffiche } from "@/lib/prix";
@@ -30,14 +31,10 @@ import {
  *
  * En lisant la source, la carte ne peut plus mentir ni mener nulle part.
  *
- * La sélection est choisie, pas prise dans l'ordre du catalogue : ces quatre-là
- * ont les photos qui tiennent le mieux la vignette, et elles couvrent les
- * quatre budgets et les quatre formats que la plateforme propose — une villa
- * familiale à Saly, une villa à grande piscine à Nguérigne, un studio à
- * 25 000 F, une villa de cinq chambres à Somone. Changer la vitrine, c'est
- * changer cette ligne.
+ * La sélection elle-même vit dans `lib/vitrine` : l'accueil du parcours
+ * logement montre la même, et deux listes à tenir d'accord auraient fini par
+ * diverger — elles avaient déjà commencé.
  */
-const MIS_EN_AVANT = ["l-012", "l-019", "l-016", "l-009"];
 
 const ICONE_EQUIPEMENT: Partial<Record<Equipement, typeof Wifi>> = {
   piscine: Waves,
