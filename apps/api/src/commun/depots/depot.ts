@@ -20,3 +20,5 @@ export const DEPOT_JETONS = Symbol("DepotJetons");
 export const DEPOT_PARTENAIRES = Symbol("DepotPartenaires");
 export const DEPOT_COMPTES = Symbol("DepotComptes");
 export const DEPOT_LIEUX = Symbol("DepotLieux");
+export const DEPOT_ACOMPTES = Symbol("DepotAcomptes");
+export const DEPOT_COORDONNEES = Symbol("DepotCoordonnees");

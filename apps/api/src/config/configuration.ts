@@ -5,6 +5,10 @@
  * lu via `process.env` de façon désordonnée ailleurs dans le code : une valeur
  * obligatoire manquante fait échouer immédiatement le démarrage.
  */
+import type { BeneficiaireAcompte } from "@teranga/contracts";
+
+import { pourcentageValide } from "../modules/acomptes/calcul";
+
 function requis(nom: string, defaut?: string, env: NodeJS.ProcessEnv = process.env): string {
   const brute = env[nom];
   const estRenseigne = brute !== undefined && brute.trim() !== "";
@@ -13,6 +17,128 @@ function requis(nom: string, defaut?: string, env: NodeJS.ProcessEnv = process.e
     throw new Error(`Variable d'environnement manquante : ${nom}`);
   }
   return valeur;
+}
+
+/** Une variable facultative : rendue nettoyée, ou `undefined` si vide. */
+function optionnel(nom: string, env: NodeJS.ProcessEnv): string | undefined {
+  const brute = env[nom];
+  if (brute === undefined) return undefined;
+  const valeur = brute.trim();
+  return valeur === "" ? undefined : valeur;
+}
+
+/** L'état de la configuration bancaire, tel qu'on peut le dire sans rien livrer. */
+export type EtatCoordonneesBancaires = "absent" | "incomplet" | "defini";
+
+export interface ConfigAcompte {
+  /**
+   * L'acompte peut-il être réclamé ?
+   *
+   * **Faux par défaut, et il faut trois clés pour l'ouvrir** : le verrou
+   * explicite `ACOMPTE_ACTIF`, un taux exploitable, et des coordonnées
+   * bancaires complètes. Chacune a son propre responsable — la revue juridique
+   * pour le verrou, le produit pour le taux, la trésorerie pour le compte — et
+   * aucune ne peut être satisfaite par accident.
+   *
+   * C'est la règle que tout ce dépôt applique déjà ailleurs : une variable
+   * absente ferme la porte, elle ne l'ouvre pas. Ici elle garde de l'argent.
+   */
+  actif: boolean;
+  /** Le taux retenu, en pourcents entiers. `undefined` = non configuré. */
+  pourcentage: number | undefined;
+  etatCoordonnees: EtatCoordonneesBancaires;
+  /**
+   * Le compte bénéficiaire, **seulement s'il est complet**.
+   *
+   * Des coordonnées à moitié renseignées ne sont pas exposées du tout : un
+   * e-mail portant un IBAN sans BIC, ou un BIC sans titulaire, est un virement
+   * qui n'arrivera pas — et un visiteur qui croit avoir payé.
+   */
+  beneficiaire: BeneficiaireAcompte | undefined;
+}
+
+/**
+ * La configuration de l'acompte par virement, fermée par défaut.
+ *
+ * Elle ne lève **que** si quelqu'un a explicitement réclamé l'acompte
+ * (`ACOMPTE_ACTIF=true`) sans fournir de quoi le réclamer. Dans ce cas-là, le
+ * silence serait le pire des choix : on découvrirait des semaines plus tard
+ * que personne n'a jamais reçu d'instructions de virement. À l'inverse, une
+ * variable simplement absente ne doit pas empêcher l'API de démarrer : tout le
+ * reste du produit fonctionne sans acompte, comme aujourd'hui.
+ */
+function chargerAcompte(env: NodeJS.ProcessEnv): ConfigAcompte {
+  const reclame = (env.ACOMPTE_ACTIF ?? "").trim().toLowerCase() === "true";
+
+  const brutPourcentage = optionnel("ACOMPTE_POURCENTAGE", env);
+  const pourcentage = brutPourcentage === undefined ? undefined : Number(brutPourcentage);
+  const tauxExploitable = pourcentageValide(pourcentage);
+
+  // Le **délai** n'est pas ici, et c'est délibéré : il dépend du genre de la
+  // demande — douze heures pour un logement, trois pour une location — et il
+  // vit dans `DELAIS_ACOMPTE_HEURES`, avec l'éligibilité qu'il détermine. Une
+  // variable unique `ACOMPTE_DELAI_HEURES` existait : elle imposait silencieusement
+  // les douze heures du logement à la location. Elle est retirée plutôt que
+  // conservée à côté, pour qu'elle ne puisse pas les réintroduire.
+
+  // L'IBAN est normalisé — sans espaces, en majuscules — parce qu'il sera
+  // recopié par un visiteur dans un formulaire de virement, et que « SN12 3456 »
+  // et « sn123456 » doivent désigner le même compte.
+  const titulaire = optionnel("ACOMPTE_BANQUE_TITULAIRE", env);
+  const banque = optionnel("ACOMPTE_BANQUE_NOM", env);
+  const iban = optionnel("ACOMPTE_BANQUE_IBAN", env)?.replace(/\s+/g, "").toUpperCase();
+  const bic = optionnel("ACOMPTE_BANQUE_BIC", env)?.replace(/\s+/g, "").toUpperCase();
+
+  const champs = [titulaire, banque, iban, bic];
+  const renseignes = champs.filter((valeur) => valeur !== undefined).length;
+
+  // Contrôle de **forme** seulement : la plage 15–34 caractères alphanumériques
+  // est celle de la norme ISO 13616, toutes zones confondues. La clé de
+  // contrôle n'est délibérément pas vérifiée — se tromper sur elle rejetterait
+  // un compte valide, ce qui est plus grave que de laisser passer une coquille
+  // que le premier virement d'essai révélera.
+  const ibanDeForme = iban !== undefined && /^[A-Z0-9]{15,34}$/.test(iban);
+
+  const etatCoordonnees: EtatCoordonneesBancaires =
+    renseignes === 0 ? "absent" : renseignes === champs.length && ibanDeForme ? "defini" : "incomplet";
+
+  const actif = reclame && tauxExploitable && etatCoordonnees === "defini";
+
+  if (reclame && !actif) {
+    const manques: string[] = [];
+    if (!tauxExploitable) {
+      manques.push(
+        brutPourcentage === undefined
+          ? "ACOMPTE_POURCENTAGE est absente"
+          : `ACOMPTE_POURCENTAGE vaut « ${brutPourcentage} », or le taux doit être un entier de 1 à 100`,
+      );
+    }
+    if (etatCoordonnees === "absent") {
+      manques.push(
+        "aucune coordonnée bancaire n'est renseignée (ACOMPTE_BANQUE_TITULAIRE, " +
+          "ACOMPTE_BANQUE_NOM, ACOMPTE_BANQUE_IBAN, ACOMPTE_BANQUE_BIC)",
+      );
+    } else if (etatCoordonnees === "incomplet") {
+      manques.push(
+        iban !== undefined && !ibanDeForme
+          ? "ACOMPTE_BANQUE_IBAN n'a pas la forme d'un IBAN (15 à 34 caractères alphanumériques)"
+          : "les coordonnées bancaires sont incomplètes : les quatre champs sont requis",
+      );
+    }
+    throw new Error(
+      `ACOMPTE_ACTIF=true mais l'acompte ne peut pas être réclamé : ${manques.join(" ; ")}.`,
+    );
+  }
+
+  return {
+    actif,
+    pourcentage: tauxExploitable ? pourcentage : undefined,
+    etatCoordonnees,
+    beneficiaire:
+      etatCoordonnees === "defini"
+        ? { titulaire: titulaire!, banque: banque!, iban: iban!, bic: bic! }
+        : undefined,
+  };
 }
 
 export function chargerConfiguration(env: NodeJS.ProcessEnv = process.env) {
@@ -119,6 +245,15 @@ export function chargerConfiguration(env: NodeJS.ProcessEnv = process.env) {
       .split(",")
       .map((s) => s.trim().toLowerCase())
       .filter(Boolean),
+    /**
+     * L'acompte par virement bancaire. Fermé par défaut.
+     *
+     * Les règles qu'il porte sont **provisoires** : la collecte réelle d'un
+     * acompte attend une validation juridique, et c'est `ACOMPTE_ACTIF` qui
+     * tient cette porte. Tant qu'elle n'est pas posée à `true`, aucun montant
+     * ne peut être réclamé à personne, même si le reste est renseigné.
+     */
+    acompte: chargerAcompte(env),
     /** Clé secrète dédiée pour HMAC-SHA-256 des codes OTP (clé active) */
     otpSecret: secretsOtp[0],
     /** Liste ordonnée de toutes les clés autorisées pour vérification (rotation) */

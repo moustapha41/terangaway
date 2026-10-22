@@ -11,8 +11,44 @@ import {
 import { genererRelanceEquipe, type LigneRelance } from "./modeles/relance-equipe.modele";
 import { genererEmailDemande, type DetailsDemande } from "./modeles/demande.modele";
 import { genererEmailOtp } from "./modeles/otp.modele";
+import {
+  genererEmailInstructionsAcompte,
+  type InstructionsAcompte,
+} from "./modeles/acompte.modele";
 
 export const RESEND_CLIENT = "RESEND_CLIENT";
+
+/**
+ * Les refus de Resend qui méritent une nouvelle tentative : la surcharge et la
+ * panne passagère. Une adresse invalide ou une clé révoquée échoueront aussi
+ * la troisième fois — les réessayer ne ferait que retarder l'alerte.
+ */
+const ERREURS_PASSAGERES = new Set([
+  "rate_limit_exceeded",
+  "internal_server_error",
+  "application_error",
+  "concurrent_idempotent_requests",
+]);
+
+export interface ResultatEnvoiAcompte {
+  envoye: boolean;
+  tentatives: number;
+  /** Ce qui a fait échouer la dernière tentative. Jamais une coordonnée. */
+  erreur?: string;
+}
+
+export interface OptionsEnvoi {
+  /**
+   * Rejouée avec chaque tentative : si la première est partie mais que sa
+   * réponse s'est perdue, Resend reconnaît la suivante et n'envoie pas deux
+   * fois. Un visiteur qui reçoit deux demandes de virement peut virer deux fois.
+   */
+  cleIdempotence: string;
+  /** Pauses entre tentatives, en millisecondes. Leur nombre + 1 = tentatives. */
+  pauses?: readonly number[];
+}
+
+const PAUSES_PAR_DEFAUT = [500, 2_000] as const;
 
 @Injectable()
 export class ServiceEmail {
@@ -242,6 +278,82 @@ export class ServiceEmail {
       this.logger.error(`Relance non partie (${references}) : ${message}`);
       return { envoye: false };
     }
+  }
+
+  /**
+   * Envoie les instructions de virement d'un acompte.
+   *
+   * **Ne lève jamais** : la demande est acceptée quand on arrive ici, et un
+   * e-mail qui échoue ne doit pas la défaire. Mais l'échec est **rendu** à
+   * l'appelant, pas seulement journalisé : c'est lui qui décide de ne pas
+   * poser le marqueur d'envoi, pour qu'un renvoi reste possible.
+   *
+   * Plusieurs tentatives pour les seules pannes passagères, toutes avec la même
+   * clé d'idempotence.
+   */
+  async envoyerInstructionsAcompte(
+    email: string,
+    details: InstructionsAcompte,
+    options: OptionsEnvoi,
+  ): Promise<ResultatEnvoiAcompte> {
+    const destinataire = email.trim().toLowerCase();
+
+    if (!this.resend) {
+      this.logger.error(
+        `[Sans Resend] Instructions d'acompte de ${details.reference} non envoyées à ${destinataire}.`,
+      );
+      return { envoye: false, tentatives: 0, erreur: "resend_non_configure" };
+    }
+
+    const modele = genererEmailInstructionsAcompte(details);
+    const pauses = options.pauses ?? PAUSES_PAR_DEFAUT;
+    let derniere = "erreur_inconnue";
+    let tentatives = 0;
+
+    for (let tentative = 1; tentative <= pauses.length + 1; tentative++) {
+      tentatives = tentative;
+      let passagere: boolean;
+      try {
+        const reponse = await this.resend.emails.send(
+          {
+            from: config.emailFrom,
+            to: destinataire,
+            subject: modele.sujet,
+            html: modele.html,
+            text: modele.texte,
+          },
+          { idempotencyKey: options.cleIdempotence },
+        );
+
+        if (!reponse.error) {
+          this.logger.log(
+            `Instructions d'acompte de ${details.reference} envoyées à ${destinataire} ` +
+              `(id: ${reponse.data?.id}, tentative ${tentative})`,
+          );
+          return { envoye: true, tentatives: tentative };
+        }
+
+        derniere = `${reponse.error.name}: ${reponse.error.message}`;
+        passagere = ERREURS_PASSAGERES.has(reponse.error.name);
+      } catch (erreur) {
+        // Une exception est une panne réseau ou du client : on ne sait pas si
+        // le message est parti, et c'est justement le cas que la clé
+        // d'idempotence rend sûr à rejouer.
+        derniere = (erreur as Error)?.message ?? "erreur_inconnue";
+        passagere = true;
+      }
+
+      this.logger.warn(
+        `Instructions d'acompte de ${details.reference}, tentative ${tentative} échouée : ${derniere}`,
+      );
+      if (!passagere || tentative > pauses.length) break;
+      await new Promise((reprendre) => setTimeout(reprendre, pauses[tentative - 1]));
+    }
+
+    this.logger.error(
+      `Instructions d'acompte de ${details.reference} non parties vers ${destinataire} : ${derniere}`,
+    );
+    return { envoye: false, tentatives, erreur: derniere };
   }
 
   /**

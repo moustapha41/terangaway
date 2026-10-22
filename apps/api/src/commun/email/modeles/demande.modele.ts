@@ -30,6 +30,20 @@ export interface DetailsDemande {
   urlSite: string;
   /** Présents une seule fois : à la création du compte. */
   identifiants?: IdentifiantsDemande;
+  /**
+   * Présent quand cette demande donnera lieu à un acompte si elle est
+   * acceptée : acompte ouvert, genre éligible, prix connu.
+   *
+   * Absent, l'e-mail garde l'ancienne promesse — rien avant la prestation —
+   * parce qu'elle reste vraie : pour un taxi, un trajet, un service, ou tant
+   * que l'acompte est fermé.
+   */
+  acompte?: AnnonceAcompte;
+}
+
+export interface AnnonceAcompte {
+  pourcentage: number;
+  delaiHeures: number;
 }
 
 export interface ContenuEmail {
@@ -72,8 +86,17 @@ export function genererEmailDemande(details: DetailsDemande): ContenuEmail {
     ...(details.sejour ? [`Séjour : ${details.sejour}`] : []),
     ...(details.total ? [`Total annoncé : ${details.total}`] : []),
     "",
-    "Rien n'est payé, rien n'est bloqué : le paiement se fait sur place, auprès du",
-    "propriétaire, et jamais avant la prestation.",
+    ...(details.acompte
+      ? [
+          "Rien n'est payé pour l'instant. Si le propriétaire accepte, un acompte de",
+          `${details.acompte.pourcentage} % du total vous sera demandé par virement bancaire, à régler sous`,
+          `${details.acompte.delaiHeures} heures : les instructions vous arriveront par e-mail. Votre acompte`,
+          "n'est considéré comme reçu qu'après vérification de notre compte par notre équipe.",
+        ]
+      : [
+          "Rien n'est payé, rien n'est bloqué : le paiement se fait sur place, auprès du",
+          "propriétaire, et jamais avant la prestation.",
+        ]),
   ];
 
   if (details.identifiants) {
@@ -127,6 +150,21 @@ export function genererEmailDemande(details: DetailsDemande): ContenuEmail {
         le demandera.
       </p>`
     : "";
+
+  // Jamais « payé » ni « reçu » ici : à l'envoi d'une demande, rien ne l'est,
+  // et un virement ne le sera qu'une fois vu sur le compte par l'équipe.
+  const blocPaiement = details.acompte
+    ? `
+          💳 <strong>Rien n'est payé pour l'instant.</strong> Si le propriétaire accepte, un
+          acompte de ${details.acompte.pourcentage}&nbsp;% du total vous sera demandé par virement
+          bancaire, à régler sous ${details.acompte.delaiHeures}&nbsp;heures&nbsp;: les instructions
+          vous arriveront par e-mail. Votre acompte n'est considéré comme reçu qu'après
+          vérification de notre compte par notre équipe.
+        `
+    : `
+          💳 <strong>Aucun paiement :</strong> rien n'est bloqué ni prélevé. Le règlement
+          se fait sur place, auprès du propriétaire, et jamais avant la prestation.
+        `;
 
   const html = `<!DOCTYPE html>
 <html lang="fr">
@@ -293,10 +331,7 @@ export function genererEmailDemande(details: DetailsDemande): ContenuEmail {
         }
       </div>
       <div class="notice">
-        <p class="notice-text">
-          💳 <strong>Aucun paiement :</strong> rien n'est bloqué ni prélevé. Le règlement
-          se fait sur place, auprès du propriétaire, et jamais avant la prestation.
-        </p>
+        <p class="notice-text">${blocPaiement}</p>
       </div>${blocIdentifiants}
     </div>
     <div class="footer">

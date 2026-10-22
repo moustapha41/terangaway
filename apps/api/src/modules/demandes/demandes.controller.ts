@@ -1,11 +1,12 @@
 import { Body, Controller, Headers, Post } from "@nestjs/common";
 import { ApiHeader, ApiOperation, ApiTags } from "@nestjs/swagger";
-import type { Demande } from "@teranga/contracts";
+import type { Demande, GenreDemande } from "@teranga/contracts";
 
 import { ServiceEmail } from "../../commun/email/email.service";
 import { ErreurMetier } from "../../commun/erreurs";
 import { config } from "../../config/configuration";
 import { extraireJetonRequete } from "../../commun/securite/hachage";
+import { delaiAcompteHeures } from "../acomptes/calcul";
 import { ServiceComptes, type VisiteurDeDemande } from "../comptes/comptes.service";
 import { CreerDemandeLogementDto } from "./dto/creer-demande-logement.dto";
 import { CreerDemandeServiceDto } from "./dto/creer-demande-service.dto";
@@ -42,7 +43,7 @@ export class ControleurDemandes {
       message: corps.message,
       visiteurId: visiteur.compteId,
     });
-    await this.previenir(visiteur, demande, corps.contact);
+    await this.previenir(visiteur, demande, corps.contact, "logement");
     return { donnees: demande };
   }
 
@@ -82,7 +83,7 @@ export class ControleurDemandes {
       message: corps.message,
       visiteurId: visiteur.compteId,
     });
-    await this.previenir(visiteur, demande, corps.contact);
+    await this.previenir(visiteur, demande, corps.contact, genreDeVehicule(corps.prestation));
     return { donnees: demande };
   }
 
@@ -117,7 +118,7 @@ export class ControleurDemandes {
       message: corps.message,
       visiteurId: visiteur.compteId,
     });
-    await this.previenir(visiteur, demande, corps.contact);
+    await this.previenir(visiteur, demande, corps.contact, "service");
     return { donnees: demande };
   }
 
@@ -136,7 +137,8 @@ export class ControleurDemandes {
   private async previenir(
     visiteur: VisiteurDeDemande,
     demande: Demande,
-    contact?: { nom?: string; email?: string; telephone?: string },
+    contact: { nom?: string; email?: string; telephone?: string } | undefined,
+    genre: GenreDemande,
   ): Promise<void> {
     // Le jeton d'abord : c'est lui qui décide à qui va le pouvoir de répondre,
     // et donc ce que contiendra chacun des deux e-mails.
@@ -154,7 +156,7 @@ export class ControleurDemandes {
       adresseProprietaire !== undefined && !equipe.includes(adresseProprietaire);
 
     await Promise.all([
-      this.confirmerParEmail(visiteur, demande),
+      this.confirmerParEmail(visiteur, demande, genre),
       this.alerterEquipe(visiteur, demande, equipe, contact, { lienReponse }),
       proprietaireDistinct && lienReponse
         ? this.email.envoyerDemandeAuPartenaire(adresseProprietaire, {
@@ -178,8 +180,25 @@ export class ControleurDemandes {
    * C'est le seul moment où le mot de passe engendré existe en clair, et il ne
    * va qu'à l'adresse saisie.
    */
-  private async confirmerParEmail(visiteur: VisiteurDeDemande, demande: Demande): Promise<void> {
+  private async confirmerParEmail(
+    visiteur: VisiteurDeDemande,
+    demande: Demande,
+    genre: GenreDemande,
+  ): Promise<void> {
     if (!visiteur.email) return;
+
+    // L'acompte n'est annoncé que s'il sera réellement demandé à
+    // l'acceptation : verrou ouvert, genre éligible, prix connu.
+    //
+    // Le délai est celui **du genre**, lu dans la même table que l'éligibilité.
+    // Un délai unique annonçait douze heures à une location qui n'en a que
+    // trois : l'e-mail promettait alors un délai que le dossier ne donnerait pas.
+    const { actif, pourcentage } = config.acompte;
+    const delaiHeures = delaiAcompteHeures(genre);
+    const annonceAcompte =
+      actif && pourcentage !== undefined && delaiHeures !== undefined && demande.prix.total > 0
+        ? { pourcentage, delaiHeures }
+        : undefined;
 
     await this.email.envoyerConfirmationDemande(visiteur.email, {
       reference: demande.reference,
@@ -187,6 +206,7 @@ export class ControleurDemandes {
       sejour: periode(demande),
       total: demande.prix.total > 0 ? formaterFrancs(demande.prix.total) : undefined,
       identifiants: visiteur.identifiants,
+      acompte: annonceAcompte,
     });
   }
 
@@ -224,6 +244,11 @@ export class ControleurDemandes {
       lienReponse: liens.lienReponse,
     });
   }
+}
+
+/** Le genre que le dépôt écrira en base pour cette prestation. */
+function genreDeVehicule(prestation: "trajet" | "journee" | "taxi"): GenreDemande {
+  return prestation === "journee" ? "location" : prestation;
 }
 
 /** L'écran de réponse du partenaire, hors langue et sans connexion. */
