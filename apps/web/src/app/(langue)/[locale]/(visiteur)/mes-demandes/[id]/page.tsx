@@ -1,9 +1,10 @@
 import { notFound, redirect } from "next/navigation";
-import type { CoordonneesLogement, Demande, StatutDemande } from "@teranga/contracts";
+import type { Demande, StatutDemande } from "@teranga/contracts";
 import { STATUTS_TERMINAUX } from "@teranga/contracts";
 import { BadgeStatut, Bandeau, Bouton, Carte, FriseStatut, Icone, type EtapeFrise } from "@teranga/ui";
 import { EnTeteSession } from "@/components/layout/en-tete-session";
 import { annuler, confirmer } from "@/features/demande/actions";
+import { vueCoordonnees, type VueCoordonnees } from "@/features/demande/coordonnees-affichage";
 import { Lien } from "@/lib/i18n/lien";
 import { estLangue, type Langue } from "@/lib/i18n/langues";
 import { traducteurPour } from "@/lib/i18n/messages";
@@ -86,14 +87,9 @@ export default async function DetailDemande({
           <Recapitulatif demande={demande} langue={langue} t={t} />
         </section>
 
-        {/* Après confirmation seulement. Ailleurs, ces champs n'existent même pas. */}
-        {demande.coordonnees ? (
-          <Coordonnees coordonnees={demande.coordonnees as CoordonneesLogement} t={t} />
-        ) : (
-          <div className="mt-6">
-            <Bandeau variante="information">{t("fiche.adresseMasquee")}</Bandeau>
-          </div>
-        )}
+        {/* L'API ne les rend qu'après confirmation, et seulement si l'équipe
+            les a saisies : chaque cas a son texte, aucun ne promet à tort. */}
+        <Coordonnees vue={vueCoordonnees(demande)} t={t} />
 
         <Actions demande={demande} t={t} />
       </div>
@@ -211,22 +207,51 @@ function Recapitulatif({
   );
 }
 
-function Coordonnees({ coordonnees, t }: { coordonnees: CoordonneesLogement; t: Traducteur }) {
+function Coordonnees({ vue, t }: { vue: VueCoordonnees; t: Traducteur }) {
+  if (vue.type === "aucune") return null;
+  if (vue.type === "apres_confirmation" || vue.type === "en_preparation") {
+    return (
+      <div className="mt-6">
+        <Bandeau variante="information">
+          {vue.type === "en_preparation"
+            ? t("detailDemande.coordonneesEnPreparation")
+            : t("fiche.adresseMasquee")}
+        </Bandeau>
+      </div>
+    );
+  }
+
   return (
     <section className="mt-8">
-      <h2 className="mb-3 text-titre-2 text-encre">{t("detailDemande.coordonnees")}</h2>
+      <h2 className="mb-3 text-titre-2 text-encre">
+        {vue.type === "vehicule" ? t("detailDemande.priseEnCharge") : t("detailDemande.coordonnees")}
+      </h2>
       <Carte className="space-y-4 p-5">
-        <Detail icone="repere" terme={t("detailDemande.adresse")}>
-          {coordonnees.adresseExacte}
-        </Detail>
-        <Detail icone="telephone" terme={t("detailDemande.telephone")}>
-          <a href={`tel:${coordonnees.telephone.replace(/\s/g, "")}`} className="underline underline-offset-2">
-            {coordonnees.telephone}
+        {vue.type === "logement" ? (
+          <Detail icone="repere" terme={t("detailDemande.adresse")}>
+            {vue.adresse}
+          </Detail>
+        ) : (
+          <Detail icone="information" terme={t("detailDemande.immatriculation")}>
+            {vue.immatriculation}
+          </Detail>
+        )}
+        <Detail
+          icone="telephone"
+          terme={vue.type === "vehicule" ? t("detailDemande.telephoneChauffeur") : t("detailDemande.telephone")}
+        >
+          <a href={vue.lienTelephone} className="underline underline-offset-2">
+            {vue.telephone}
           </a>
         </Detail>
-        {coordonnees.consignesArrivee && (
+        {vue.type === "logement" && vue.consignes && (
           <Detail icone="information" terme={t("detailDemande.consignes")}>
-            {coordonnees.consignesArrivee}
+            {vue.consignes}
+          </Detail>
+        )}
+        {vue.type === "vehicule" && vue.lieuDeRendezVous && (
+          <Detail icone="repere" terme={t("detailDemande.rendezVous")}>
+            {vue.lieuDeRendezVous}
           </Detail>
         )}
       </Carte>

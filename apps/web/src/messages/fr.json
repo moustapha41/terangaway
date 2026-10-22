@@ -866,6 +866,11 @@
     "adresse": "Adresse",
     "telephone": "Téléphone",
     "consignes": "À l'arrivée",
+    "coordonneesEnPreparation": "Votre demande est confirmée. L'équipe Teranga Way vérifie l'adresse et les coordonnées, et vous les transmet dès qu'elles sont prêtes.",
+    "priseEnCharge": "Votre prise en charge",
+    "immatriculation": "Immatriculation",
+    "telephoneChauffeur": "Chauffeur",
+    "rendezVous": "Rendez-vous",
     "confirmer": "Confirmer ma demande",
     "annuler": "Annuler ma demande",
     "refaire": "Refaire une demande",
@@ -1988,6 +1993,43 @@
       "dates-impossibles": "Dates impossibles",
       "capacite": "Capacité insuffisante",
       "autre": "Autre"
+    },
+    "coordonnees": {
+      "titre": "Coordonnées de la réservation",
+      "sousTitre": "Saisies par l'équipe, vérifiées par une autre personne avant d'être montrées au visiteur.",
+      "etat": {
+        "absentes": "Non saisies",
+        "saisies": "Saisies — en attente de vérification",
+        "verifiees": "Vérifiées"
+      },
+      "visibles": "Visibles par le visiteur",
+      "nonVisibles": "Pas visibles par le visiteur",
+      "saisiesPar": "Saisies par {nom} le {date}",
+      "verifieesPar": "Vérifiées par {nom} le {date}",
+      "nonPrevues": "Aucune coordonnée n'est prévue pour un service à la demande.",
+      "nonSaisissables": "Les coordonnées se saisissent et se vérifient quand la demande est acceptée ou confirmée — pas après la fin de la prestation, ni après une annulation, une expiration ou un refus.",
+      "champ": {
+        "adresseExacte": "Adresse exacte",
+        "telephone": "Téléphone",
+        "consignesArrivee": "Consignes d'arrivée",
+        "immatriculation": "Immatriculation",
+        "telephoneChauffeur": "Téléphone du chauffeur",
+        "lieuDeRendezVous": "Lieu de rendez-vous"
+      },
+      "avertissementRessaisie": "Enregistrer de nouvelles coordonnées annule la vérification : une autre personne devra les vérifier à nouveau.",
+      "enregistrer": "Enregistrer les coordonnées",
+      "verifier": "J'ai vérifié ces coordonnées",
+      "attenteAutre": "En attente de vérification par une autre personne de l'équipe : celle qui a saisi ne peut pas vérifier.",
+      "enregistrees": "Coordonnées enregistrées. Une autre personne doit maintenant les vérifier.",
+      "verificationEnregistree": "Vérification enregistrée.",
+      "erreurQuatreYeux": "Vous avez saisi ces coordonnées : une autre personne de l'équipe doit les vérifier.",
+      "erreurConflit": "La demande ou ses coordonnées ont changé entre-temps. Rechargez la page avant de recommencer.",
+      "erreurStatut": "Le statut de la demande ne permet pas cette opération.",
+      "erreurDejaVerifiees": "Ces coordonnées sont déjà vérifiées.",
+      "erreurARessaisir": "Ces coordonnées doivent être ressaisies avant d'être vérifiées.",
+      "erreurMigration": "Cette fonction attend la mise à jour de la base de données qui enregistre qui saisit et qui vérifie.",
+      "erreurSession": "Votre session ne permet pas cette opération. Reconnectez-vous.",
+      "erreurServeur": "Le serveur n'a pas répondu. Réessayez dans un instant."
     }
   },
   "titreLogement": {

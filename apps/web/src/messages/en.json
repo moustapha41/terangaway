@@ -866,6 +866,11 @@
     "adresse": "Address",
     "telephone": "Phone",
     "consignes": "On arrival",
+    "coordonneesEnPreparation": "Your request is confirmed. The Teranga Way team is checking the address and contact details, and will send them to you as soon as they are ready.",
+    "priseEnCharge": "Your pick-up",
+    "immatriculation": "Registration",
+    "telephoneChauffeur": "Driver",
+    "rendezVous": "Meeting point",
     "confirmer": "Confirm my request",
     "annuler": "Cancel my request",
     "refaire": "Make the request again",
@@ -1988,6 +1993,43 @@
       "dates-impossibles": "Dates not possible",
       "capacite": "Not enough room",
       "autre": "Other"
+    },
+    "coordonnees": {
+      "titre": "Booking contact details",
+      "sousTitre": "Entered by the team and checked by another person before the visitor can see them.",
+      "etat": {
+        "absentes": "Not entered",
+        "saisies": "Entered — awaiting check",
+        "verifiees": "Checked"
+      },
+      "visibles": "Visible to the visitor",
+      "nonVisibles": "Not visible to the visitor",
+      "saisiesPar": "Entered by {nom} on {date}",
+      "verifieesPar": "Checked by {nom} on {date}",
+      "nonPrevues": "No contact details are planned for an on-demand service.",
+      "nonSaisissables": "Contact details can be entered and checked while the request is accepted or confirmed — not once the service is over, nor after a cancellation, expiry or refusal.",
+      "champ": {
+        "adresseExacte": "Exact address",
+        "telephone": "Phone",
+        "consignesArrivee": "Arrival instructions",
+        "immatriculation": "Registration",
+        "telephoneChauffeur": "Driver's phone",
+        "lieuDeRendezVous": "Meeting point"
+      },
+      "avertissementRessaisie": "Saving new contact details cancels the check: another person will have to check them again.",
+      "enregistrer": "Save contact details",
+      "verifier": "I have checked these details",
+      "attenteAutre": "Awaiting a check by another team member: the person who entered them cannot check them.",
+      "enregistrees": "Contact details saved. Another person must now check them.",
+      "verificationEnregistree": "Check recorded.",
+      "erreurQuatreYeux": "You entered these details: another team member must check them.",
+      "erreurConflit": "The request or its details changed in the meantime. Reload the page before trying again.",
+      "erreurStatut": "The request's status does not allow this operation.",
+      "erreurDejaVerifiees": "These details have already been checked.",
+      "erreurARessaisir": "These details must be entered again before they can be checked.",
+      "erreurMigration": "This feature is waiting for the database update that records who enters and who checks.",
+      "erreurSession": "Your session does not allow this operation. Please sign in again.",
+      "erreurServeur": "The server did not respond. Try again in a moment."
     }
   },
   "titreLogement": {

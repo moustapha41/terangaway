@@ -866,6 +866,11 @@
     "adresse": "Dirección",
     "telephone": "Teléfono",
     "consignes": "A la llegada",
+    "coordonneesEnPreparation": "Su solicitud está confirmada. El equipo de Teranga Way está verificando la dirección y los datos de contacto, y se los enviará en cuanto estén listos.",
+    "priseEnCharge": "Su recogida",
+    "immatriculation": "Matrícula",
+    "telephoneChauffeur": "Conductor",
+    "rendezVous": "Punto de encuentro",
     "confirmer": "Confirmar mi solicitud",
     "annuler": "Anular mi solicitud",
     "refaire": "Volver a solicitar",
@@ -1988,6 +1993,43 @@
       "dates-impossibles": "Fechas imposibles",
       "capacite": "Capacidad insuficiente",
       "autre": "Otro"
+    },
+    "coordonnees": {
+      "titre": "Datos de contacto de la reserva",
+      "sousTitre": "Introducidos por el equipo y verificados por otra persona antes de mostrarse al visitante.",
+      "etat": {
+        "absentes": "Sin introducir",
+        "saisies": "Introducidos — pendientes de verificación",
+        "verifiees": "Verificados"
+      },
+      "visibles": "Visibles para el visitante",
+      "nonVisibles": "No visibles para el visitante",
+      "saisiesPar": "Introducidos por {nom} el {date}",
+      "verifieesPar": "Verificados por {nom} el {date}",
+      "nonPrevues": "No hay datos de contacto previstos para un servicio a la carta.",
+      "nonSaisissables": "Los datos de contacto se introducen y verifican mientras la solicitud está aceptada o confirmada — no después de terminada la prestación, ni tras una cancelación, caducidad o rechazo.",
+      "champ": {
+        "adresseExacte": "Dirección exacta",
+        "telephone": "Teléfono",
+        "consignesArrivee": "Instrucciones de llegada",
+        "immatriculation": "Matrícula",
+        "telephoneChauffeur": "Teléfono del conductor",
+        "lieuDeRendezVous": "Punto de encuentro"
+      },
+      "avertissementRessaisie": "Guardar nuevos datos anula la verificación: otra persona tendrá que verificarlos de nuevo.",
+      "enregistrer": "Guardar los datos de contacto",
+      "verifier": "He verificado estos datos",
+      "attenteAutre": "Pendiente de verificación por otra persona del equipo: quien los introdujo no puede verificarlos.",
+      "enregistrees": "Datos guardados. Otra persona debe verificarlos ahora.",
+      "verificationEnregistree": "Verificación registrada.",
+      "erreurQuatreYeux": "Usted introdujo estos datos: otra persona del equipo debe verificarlos.",
+      "erreurConflit": "La solicitud o sus datos han cambiado mientras tanto. Recargue la página antes de volver a intentarlo.",
+      "erreurStatut": "El estado de la solicitud no permite esta operación.",
+      "erreurDejaVerifiees": "Estos datos ya están verificados.",
+      "erreurARessaisir": "Estos datos deben volver a introducirse antes de verificarse.",
+      "erreurMigration": "Esta función espera la actualización de la base de datos que registra quién introduce y quién verifica.",
+      "erreurSession": "Su sesión no permite esta operación. Vuelva a iniciar sesión.",
+      "erreurServeur": "El servidor no ha respondido. Inténtelo de nuevo en un momento."
     }
   },
   "titreLogement": {

@@ -9,10 +9,12 @@
 import type {
   CompteAdministrateur,
   ContactAdmin,
+  CoordonneesAdmin,
   DemandeAdmin,
   FiltresDemandesAdmin,
   MiseAJourDemandeAdmin,
   PageDemandesAdmin,
+  SaisieCoordonneesAdmin,
   TableauDeBordAdmin,
 } from "@teranga/contracts";
 
@@ -76,4 +78,39 @@ export function apiAdminTraiter(
     corps: maj,
     headers: entetes(jeton),
   });
+}
+
+/**
+ * Les coordonnées d'une réservation : la seule lecture qui les rend à l'équipe,
+ * avec qui les a saisies et vérifiées. Jamais mises en cache (`no-store` côté
+ * API comme côté `appelerApi`).
+ */
+export function apiAdminCoordonnees(jeton: string, id: string): Promise<CoordonneesAdmin> {
+  return appelerApi<CoordonneesAdmin>(`/administration/demandes/${encodeURIComponent(id)}/coordonnees`, {
+    headers: entetes(jeton),
+  });
+}
+
+export function apiAdminSaisirCoordonnees(
+  jeton: string,
+  id: string,
+  saisie: SaisieCoordonneesAdmin,
+): Promise<CoordonneesAdmin> {
+  return appelerApi<CoordonneesAdmin>(`/administration/demandes/${encodeURIComponent(id)}/coordonnees`, {
+    method: "PUT",
+    corps: saisie,
+    headers: entetes(jeton),
+  });
+}
+
+/** `saisieLe` : la version relue. Une saisie plus récente fait refuser la vérification. */
+export function apiAdminVerifierCoordonnees(
+  jeton: string,
+  id: string,
+  saisieLe: string,
+): Promise<CoordonneesAdmin> {
+  return appelerApi<CoordonneesAdmin>(
+    `/administration/demandes/${encodeURIComponent(id)}/coordonnees/verification`,
+    { method: "POST", corps: { saisieLe }, headers: entetes(jeton) },
+  );
 }

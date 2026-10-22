@@ -2,8 +2,13 @@
 
 import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
-import type { MiseAJourDemandeAdmin } from "@teranga/contracts";
-import { apiAdminMoi, apiAdminTraiter } from "@/lib/api/administration";
+import type { CoordonneesAdmin, MiseAJourDemandeAdmin, SaisieCoordonneesAdmin } from "@teranga/contracts";
+import {
+  apiAdminMoi,
+  apiAdminSaisirCoordonnees,
+  apiAdminTraiter,
+  apiAdminVerifierCoordonnees,
+} from "@/lib/api/administration";
 import { apiEnvoyerOtp, apiVerifierOtp } from "@/lib/api/ecriture";
 import { ErreurApi } from "@/lib/api/http";
 import { COOKIE_ADMIN, DUREE_SESSION_ADMIN_SECONDES } from "./cookie";
@@ -135,4 +140,48 @@ export async function traiterDemandeAction(
   revalidatePath("/admin/demandes");
   revalidatePath("/admin");
   return { succes: true };
+}
+
+export type ResultatCoordonnees =
+  | { succes: true; coordonnees: CoordonneesAdmin }
+  | { succes: false; code: string; message: string };
+
+/**
+ * Le refus d'une opération sur les coordonnées, remonté avec son **code** :
+ * l'écran choisit son texte sur le code — quatre yeux, conflit, statut —
+ * plutôt que d'afficher un message serveur dans la mauvaise langue. Les
+ * messages de l'API ne citent jamais une coordonnée.
+ */
+function refusCoordonnees(erreur: unknown): ResultatCoordonnees {
+  if (erreur instanceof ErreurApi) return { succes: false, code: erreur.code, message: erreur.message };
+  return { succes: false, code: "INJOIGNABLE", message: "Le serveur n'a pas répondu." };
+}
+
+export async function saisirCoordonneesAction(
+  id: string,
+  saisie: SaisieCoordonneesAdmin,
+): Promise<ResultatCoordonnees> {
+  const jeton = (await cookies()).get(COOKIE_ADMIN)?.value;
+  if (!jeton) return { succes: false, code: "NON_AUTHENTIFIE", message: "Session expirée." };
+
+  try {
+    const coordonnees = await apiAdminSaisirCoordonnees(jeton, id, saisie);
+    revalidatePath(`/admin/demandes/${id}`);
+    return { succes: true, coordonnees };
+  } catch (erreur) {
+    return refusCoordonnees(erreur);
+  }
+}
+
+export async function verifierCoordonneesAction(id: string, saisieLe: string): Promise<ResultatCoordonnees> {
+  const jeton = (await cookies()).get(COOKIE_ADMIN)?.value;
+  if (!jeton) return { succes: false, code: "NON_AUTHENTIFIE", message: "Session expirée." };
+
+  try {
+    const coordonnees = await apiAdminVerifierCoordonnees(jeton, id, saisieLe);
+    revalidatePath(`/admin/demandes/${id}`);
+    return { succes: true, coordonnees };
+  } catch (erreur) {
+    return refusCoordonnees(erreur);
+  }
 }

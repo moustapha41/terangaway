@@ -20,13 +20,14 @@ import {
   AlertCircle,
   ExternalLink,
 } from "lucide-react";
-import type { DemandeAdmin, StatutDemande } from "@teranga/contracts";
+import type { CoordonneesAdmin, DemandeAdmin, StatutDemande } from "@teranga/contracts";
 import { ErreurApi } from "@/lib/api/http";
 import { formaterDateHeure, formaterJour } from "@/features/admin/format";
 import { ServeurInjoignable } from "@/features/admin/serveur-injoignable";
 import { jetonAdmin, urlConnexionAdmin } from "@/features/admin/session";
 import { TraitementDemande } from "@/features/admin/traitement-demande";
-import { apiAdminDemande, apiAdminPrestataires } from "@/lib/api/administration";
+import { CoordonneesDemande } from "@/features/admin/coordonnees-demande";
+import { apiAdminCoordonnees, apiAdminDemande, apiAdminPrestataires } from "@/lib/api/administration";
 import { estLangue, type Langue } from "@/lib/i18n/langues";
 import { traducteurPour } from "@/lib/i18n/messages";
 import type { Traducteur } from "@/lib/i18n/traducteur";
@@ -60,6 +61,19 @@ export default async function FicheDemandeAdmin({
       redirect(urlConnexionAdmin(langue));
     }
     return <ServeurInjoignable langue={langue} />;
+  }
+
+  // Lues à part : leur échec — migration en attente, session, réseau — ne
+  // doit pas faire tomber la fiche, seulement leur encart.
+  let coordonnees: CoordonneesAdmin | undefined;
+  let erreurCoordonnees: { code: string; message: string } | undefined;
+  try {
+    coordonnees = await apiAdminCoordonnees(jeton, id);
+  } catch (erreur) {
+    erreurCoordonnees =
+      erreur instanceof ErreurApi
+        ? { code: erreur.code, message: erreur.message }
+        : { code: "INJOIGNABLE", message: "" };
   }
 
   const retourLien = avecLangue(langue, "/admin/demandes");
@@ -408,6 +422,13 @@ export default async function FicheDemandeAdmin({
               )}
             </div>
           </div>
+
+          {/* Coordonnées : saisie, puis vérification par une autre personne */}
+          <CoordonneesDemande
+            demandeId={demande.id}
+            initiales={coordonnees}
+            erreurChargement={erreurCoordonnees}
+          />
 
           {/* Console de Traitement */}
           <TraitementDemande demande={demande} prestataires={prestataires} />

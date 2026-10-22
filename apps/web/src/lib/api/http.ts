@@ -49,7 +49,7 @@ function baseUrl(): string {
 export async function appelerApi<T>(
   chemin: string,
   options: {
-    method?: "GET" | "POST" | "PATCH";
+    method?: "GET" | "POST" | "PATCH" | "PUT";
     corps?: unknown;
     headers?: Record<string, string>;
   } = {},
