@@ -9,6 +9,7 @@ export type {
 } from "./logement";
 export type { Chauffeur, Vehicule, CoordonneesVehicule } from "./vehicule";
 export type { EtapeFrise, Demande } from "./demande";
+export type { Acompte, BeneficiaireAcompte, EvenementAcompte } from "./acompte";
 export {
   GENRES_DEMANDE,
   type GenreDemande,

@@ -31,6 +31,37 @@ enum StatutDemandeDb {
   annulee
 }
 
+/// Les états d'un acompte par virement. Miroir de `STATUTS_ACOMPTE` dans
+/// `@teranga/contracts` — un cycle **parallèle** à `StatutDemandeDb`, jamais
+/// mêlé à lui.
+enum StatutAcompteDb {
+  en_attente
+  partiel
+  paye
+  expire
+  annule
+  a_rembourser
+  rembourse
+}
+
+/// Ce qu'une ligne du journal d'acompte raconte. Miroir de
+/// `TYPES_EVENEMENT_ACOMPTE` dans `@teranga/contracts`.
+enum TypeEvenementAcompteDb {
+  preparation
+  instructions_envoyees
+  rappel_envoye
+  preuve_declaree
+  verification
+  reception_confirmee
+  doublon_signale
+  anomalie_signalee
+  expiration_prononcee
+  annulation
+  remboursement_decide
+  remboursement_effectue
+  envoi_echoue
+}
+
 enum GenreOffreDb {
   logement
   trajet
@@ -75,6 +106,7 @@ model Account {
   demandes       Demand[]                @relation("DemandesVisiteur")
   demandesRecues Demand[]                @relation("DemandesPrestataire")
   jetonsReponse  ProviderResponseToken[]
+  evenementsAcompte DepositPaymentEvent[]
 
   @@index([role])
   @@map("accounts")
@@ -172,6 +204,7 @@ model Demand {
   misAJourLe          DateTime        @updatedAt
 
   jetonsReponse       ProviderResponseToken[]
+  acompte             DepositPayment?
 
   @@index([visiteurId, statut])
   @@index([prestataireId, statut])
@@ -200,4 +233,83 @@ model ProviderResponseToken {
   @@index([prestataireId])
   @@index([tokenHash])
   @@map("provider_response_tokens")
+}
+
+/// L'acompte attendu sur une demande, par virement bancaire manuel.
+///
+/// Un dossier par demande, au plus : l'unicité de `demandeId` **est** la
+/// garantie d'idempotence de la préparation. Deux préparations concurrentes
+/// se heurtent à la contrainte, la seconde relit le dossier de la première.
+///
+/// Le motif de virement n'est pas copié ici : c'est `Demand.reference`, déjà
+/// unique. Le dupliquer laisserait deux références diverger.
+///
+/// Aucune coordonnée bancaire n'est stockée ici, jamais : elles viennent de la
+/// configuration, source unique. Une copie par dossier interdirait d'en
+/// changer et multiplierait les cibles de fraude.
+model DepositPayment {
+  id        String @id @default(cuid())
+  demandeId String @unique
+  /// `Restrict` et non `Cascade` : une demande qui porte un dossier d'argent
+  /// ne s'efface pas en silence, son journal avec elle.
+  demande   Demand @relation(fields: [demandeId], references: [id], onDelete: Restrict)
+
+  statut StatutAcompteDb @default(en_attente)
+
+  /// Figé à la préparation : un taux changé plus tard ne réécrit pas ce
+  /// qu'on a demandé à quelqu'un.
+  pourcentageApplique Int
+  /// `Demand.prixTotal` au moment du calcul, en FCFA entiers.
+  montantTotal        Int
+  /// Ce qu'on demande, en FCFA entiers. C'est lui qui fait foi.
+  montantAttendu      Int
+  /// Cumul des réceptions confirmées. Tenu dans la même transaction que
+  /// l'événement `reception_confirmee` qui l'explique.
+  montantRecu         Int @default(0)
+
+  /// L'échéance propre de l'acompte — distincte de `Demand.expireLe`.
+  echeanceLe             DateTime
+  /// Marqueurs d'idempotence des envois, patron `Demand.relanceeLe`.
+  instructionsEnvoyeesLe DateTime?
+  rappeleLe              DateTime?
+
+  creeLe     DateTime @default(now())
+  misAJourLe DateTime @updatedAt
+
+  evenements DepositPaymentEvent[]
+
+  // La veille : les dossiers d'un statut dont l'échéance est passée.
+  @@index([statut, echeanceLe])
+  // Le backoffice : par statut, du plus récent au plus ancien.
+  @@index([statut, creeLe])
+  @@map("deposit_payments")
+}
+
+/// Le journal d'un acompte. **Append-only** : on n'y modifie ni n'y efface
+/// rien — une nouvelle étape est une nouvelle ligne. Un déclencheur refuse
+/// tout `UPDATE` (voir la migration `acomptes_persistance`).
+///
+/// Qui a confirmé, quand, avec quelle référence bancaire : c'est ici, ligne
+/// par ligne, et non dans des colonnes du dossier qu'un second versement
+/// écraserait.
+model DepositPaymentEvent {
+  id                   String                 @id @default(cuid())
+  acompteId            String
+  acompte              DepositPayment         @relation(fields: [acompteId], references: [id], onDelete: Restrict)
+  type                 TypeEvenementAcompteDb
+  /// Le statut avant et après l'événement, quand il en change un.
+  statutAvant          StatutAcompteDb?
+  statutApres          StatutAcompteDb?
+  /// En FCFA entiers : montant reçu, déclaré, en doublon, à rembourser.
+  montant              Int?
+  /// `null` = le système. Une réception, elle, a toujours un acteur humain.
+  acteurId             String?
+  acteur               Account?               @relation(fields: [acteurId], references: [id], onDelete: Restrict)
+  /// La référence relevée sur le relevé bancaire, quand elle est lisible.
+  referenceTransaction String?
+  commentaire          String?
+  creeLe               DateTime               @default(now())
+
+  @@index([acompteId, creeLe])
+  @@map("deposit_payment_events")
 }
