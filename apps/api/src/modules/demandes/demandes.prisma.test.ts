@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { PrismaService } from "../../base-de-donnees/prisma.service";
+import { creerPrismaDeTest } from "../../base-de-donnees/base-de-test.test-utils";
 import { ErreurMetier } from "../../commun/erreurs";
 import { DepotLogementsFixtures } from "../offres/logements/logements.fixtures";
 import { DepotVehiculesFixtures } from "../offres/vehicules/vehicules.fixtures";
@@ -13,7 +14,7 @@ describe("Persistance PostgreSQL — Module Demandes & Prévention IDOR", () => 
   let depot: DepotDemandesPrisma;
 
   beforeAll(async () => {
-    prisma = new PrismaService();
+    prisma = creerPrismaDeTest();
     await prisma.$connect();
     const depotLogements = new DepotLogementsFixtures();
     const depotVehicules = new DepotVehiculesFixtures();

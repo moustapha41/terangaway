@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { PrismaService } from "../../base-de-donnees/prisma.service";
+import { creerPrismaDeTest } from "../../base-de-donnees/base-de-test.test-utils";
 import { ErreurMetier } from "../../commun/erreurs";
 import { hacherJetonDirect } from "../../commun/securite/hachage";
 import { DepotDemandesPrisma } from "../demandes/demandes.prisma";
@@ -16,7 +17,7 @@ describe("Persistance PostgreSQL — Module Réponses Partenaires & Usage Unique
   let prisma: PrismaService;
 
   beforeAll(async () => {
-    prisma = new PrismaService();
+    prisma = creerPrismaDeTest();
     await prisma.$connect();
     const depotJetons = new DepotJetonsPrisma(prisma);
     const depotLogements = new DepotLogementsFixtures();

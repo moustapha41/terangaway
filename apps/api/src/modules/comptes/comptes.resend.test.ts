@@ -3,6 +3,7 @@ import type { Request } from "express";
 import type { Resend } from "resend";
 
 import { PrismaService } from "../../base-de-donnees/prisma.service";
+import { creerPrismaDeTest } from "../../base-de-donnees/base-de-test.test-utils";
 import { ServiceEmail } from "../../commun/email/email.service";
 import { ErreurMetier } from "../../commun/erreurs";
 import { extraireIpClientSecurisee } from "../../commun/securite/adresse-ip";
@@ -29,7 +30,7 @@ describe("Module Comptes — Intégration Resend & Sécurité OTP", () => {
     `10.${Math.floor(Math.random() * 250)}.${Math.floor(Math.random() * 250)}.${Math.floor(Math.random() * 250)}`;
 
   beforeAll(async () => {
-    prisma = new PrismaService();
+    prisma = creerPrismaDeTest();
     await prisma.$connect();
     depot = new DepotComptesPrisma(prisma);
 

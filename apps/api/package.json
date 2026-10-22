@@ -8,6 +8,7 @@
     "start": "node --import tsx dist/main.js",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "test:integration": "vitest run --config vitest.integration.config.ts",
     "openapi": "nest build && node --import tsx dist/exporter-openapi.js",
     "verifier:depots": "node scripts/verifier-depots.mjs",
     "prisma:generate": "prisma generate",

@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { PrismaService } from "../../base-de-donnees/prisma.service";
+import { creerPrismaDeTest } from "../../base-de-donnees/base-de-test.test-utils";
 import { ErreurMetier } from "../../commun/erreurs";
 import { chargerConfiguration } from "../../config/configuration";
 import { avecPosture, enProduction } from "../../commun/securite/posture.test-utils";
@@ -77,7 +78,7 @@ describe("Posture de sécurité — aucune identité sans jeton de session", () 
   const genererTel = () => `77${Math.floor(1000000 + Math.random() * 9000000)}`;
 
   beforeAll(async () => {
-    prisma = new PrismaService();
+    prisma = creerPrismaDeTest();
     await prisma.$connect();
     depot = new DepotComptesPrisma(prisma);
     service = new ServiceComptes(depot);
@@ -194,7 +195,7 @@ describe("Posture de sécurité — le code OTP ne fuite pas", () => {
   let prisma: PrismaService;
 
   beforeAll(async () => {
-    prisma = new PrismaService();
+    prisma = creerPrismaDeTest();
     await prisma.$connect();
     service = new ServiceComptes(new DepotComptesPrisma(prisma));
   });

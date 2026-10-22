@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { PrismaService } from "../../base-de-donnees/prisma.service";
+import { creerPrismaDeTest } from "../../base-de-donnees/base-de-test.test-utils";
 import { ErreurMetier } from "../../commun/erreurs";
 import { LimiteurTentatives } from "../../commun/securite/limiteur-tentatives";
 import { DepotComptesPrisma } from "./comptes.prisma";
@@ -18,7 +19,7 @@ describe("Connexion par mot de passe", () => {
     `connexion.${etiquette}.${Date.now()}.${Math.random().toString(36).slice(2, 8)}@terangaway.sn`;
 
   beforeAll(async () => {
-    prisma = new PrismaService();
+    prisma = creerPrismaDeTest();
     await prisma.$connect();
     service = new ServiceComptes(new DepotComptesPrisma(prisma));
   });
