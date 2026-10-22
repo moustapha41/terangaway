@@ -51,7 +51,7 @@ describe("Persistance PostgreSQL — Module Demandes & Prévention IDOR", () => 
     expect(enBase!.coordonnees).toBeNull();
   });
 
-  it("révèle et persiste les coordonnées uniquement au statut confirmée", async () => {
+  it("ne révèle jamais des coordonnées non vérifiées, même confirmée", async () => {
     const creee = await service.creerLogement({
       logementId: "l-002",
       debut: "2026-12-01",
@@ -65,17 +65,24 @@ describe("Persistance PostgreSQL — Module Demandes & Prévention IDOR", () => 
     expect(acceptee.statut).toBe("acceptee");
     expect(acceptee.coordonnees).toBeUndefined();
 
-    // Confirmation visiteur
+    // Coordonnées saisies par l'équipe : gardées en base, jamais rendues au
+    // visiteur tant qu'une seconde personne ne les a pas vérifiées — ce que
+    // la base ne sait pas encore enregistrer (migration en attente).
+    const saisies = { adresseExacte: "ADRESSE-DE-TEST", telephone: "TELEPHONE-DE-TEST" };
+    await prisma.demand.update({ where: { id: creee.id }, data: { coordonnees: saisies } });
+    expect((await service.obtenir(creee.id)).coordonnees).toBeUndefined();
+
+    // Confirmation visiteur : rien n'est fabriqué, rien de non vérifié ne sort
     const confirmee = await service.confirmer(creee.id);
     expect(confirmee.statut).toBe("confirmee");
-    expect(confirmee.coordonnees).toBeDefined();
+    expect(confirmee.coordonnees).toBeUndefined();
 
-    // Vérification en base PostgreSQL
+    // Vérification en base PostgreSQL : la saisie est intacte
     const enBase = await prisma.demand.findUnique({
       where: { id: creee.id },
     });
     expect(enBase!.statut).toBe("confirmee");
-    expect(enBase!.coordonnees).not.toBeNull();
+    expect(enBase!.coordonnees).toEqual(saisies);
   });
 
   it("empêche un visiteur tiers d'accéder ou de modifier la demande d'un autre visiteur (protection IDOR/BOLA)", async () => {

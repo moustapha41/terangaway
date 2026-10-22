@@ -181,6 +181,10 @@ function rangerDemandeAdmin(row: LigneAvecComptes): DemandeAdmin {
 
   return {
     ...base,
+    // Jamais de coordonnées dans la vue de traitement, ni donc dans la liste ou
+    // l'export : elles ne se lisent que par leur route dédiée, qui dit aussi
+    // qui les a saisies et vérifiées.
+    coordonnees: undefined,
     genre: row.genre as GenreDemande,
     creeLe: row.creeLe.toISOString(),
     misAJourLe: row.misAJourLe.toISOString(),

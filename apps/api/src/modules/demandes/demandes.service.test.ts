@@ -19,7 +19,7 @@ describe("ServiceDemandes", () => {
     return module.get(ServiceDemandes);
   }
 
-  it("parcours nominal : acceptation puis confirmation révèle les coordonnées", async () => {
+  it("parcours nominal : acceptation puis confirmation, sans coordonnées inventées", async () => {
     const service = await creerService();
     const creee = await service.creerLogement({
       logementId: "l-001",
@@ -36,9 +36,11 @@ describe("ServiceDemandes", () => {
     expect(acceptee.expireLe).toBeDefined();
     expect(acceptee.coordonnees).toBeUndefined();
 
+    // Les coordonnées sont saisies par l'équipe : la confirmation n'en
+    // fabrique aucune, et réussit sans elles.
     const confirmee = await service.confirmer(creee.id);
     expect(confirmee.statut).toBe("confirmee");
-    expect(confirmee.coordonnees).toBeDefined();
+    expect(confirmee.coordonnees).toBeUndefined();
     expect(confirmee.expireLe).toBeUndefined();
   });
 

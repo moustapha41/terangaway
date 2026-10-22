@@ -5,6 +5,8 @@ import {
   Headers,
   Param,
   Patch,
+  Post,
+  Put,
   Query,
   Res,
 } from "@nestjs/common";
@@ -14,6 +16,8 @@ import { extraireJetonRequete } from "../../commun/securite/hachage";
 import { ServiceComptes } from "../comptes/comptes.service";
 import { lireFiltres } from "./administration.filtres";
 import { ServiceAdministration } from "./administration.service";
+import { ServiceCoordonnees } from "./coordonnees.service";
+import { SaisirCoordonneesDto, VerifierCoordonneesDto } from "./dto/coordonnees.dto";
 import { MettreAJourDemandeDto } from "./dto/mettre-a-jour-demande.dto";
 
 /**
@@ -31,6 +35,7 @@ export class ControleurAdministration {
   constructor(
     private readonly administration: ServiceAdministration,
     private readonly comptes: ServiceComptes,
+    private readonly coordonnees: ServiceCoordonnees,
   ) {}
 
   @Get("moi")
@@ -127,6 +132,63 @@ export class ControleurAdministration {
       prixPropose: corps.prixPropose,
     });
     return { donnees: demande };
+  }
+
+  /*
+   * Les coordonnées d'une réservation. Trois routes, chacune avec sa propre
+   * vérification d'administrateur, et `no-store` posé **avant** elle : une
+   * réponse — même un refus — ne doit rester dans aucun cache.
+   */
+
+  @Get("demandes/:id/coordonnees")
+  @ApiOperation({
+    summary: "Les coordonnées d'une réservation, et qui les a saisies et vérifiées",
+  })
+  async lireCoordonnees(
+    @Param("id") id: string,
+    @Res({ passthrough: true }) res: Response,
+    @Headers("authorization") authHeader?: string,
+    @Headers("cookie") cookieHeader?: string,
+  ) {
+    res.setHeader("Cache-Control", "no-store");
+    const acteur = await this.exigerAdmin(authHeader, cookieHeader);
+    return { donnees: await this.coordonnees.lire(id, acteur) };
+  }
+
+  @Put("demandes/:id/coordonnees")
+  @ApiOperation({
+    summary: "Saisir ou corriger les coordonnées",
+    description:
+      "Seulement à « acceptee » ou « confirmee ». Les champs dépendent du genre : logement ou véhicule. " +
+      "Toute saisie annule la vérification précédente.",
+  })
+  async saisirCoordonnees(
+    @Param("id") id: string,
+    @Body() corps: SaisirCoordonneesDto,
+    @Res({ passthrough: true }) res: Response,
+    @Headers("authorization") authHeader?: string,
+    @Headers("cookie") cookieHeader?: string,
+  ) {
+    res.setHeader("Cache-Control", "no-store");
+    const acteur = await this.exigerAdmin(authHeader, cookieHeader);
+    return { donnees: await this.coordonnees.saisir(id, { ...corps }, acteur) };
+  }
+
+  @Post("demandes/:id/coordonnees/verification")
+  @ApiOperation({
+    summary: "Vérifier les coordonnées saisies par une autre personne",
+    description: "Refusé à la personne qui a fait la dernière saisie (quatre yeux).",
+  })
+  async verifierCoordonnees(
+    @Param("id") id: string,
+    @Body() corps: VerifierCoordonneesDto,
+    @Res({ passthrough: true }) res: Response,
+    @Headers("authorization") authHeader?: string,
+    @Headers("cookie") cookieHeader?: string,
+  ) {
+    res.setHeader("Cache-Control", "no-store");
+    const acteur = await this.exigerAdmin(authHeader, cookieHeader);
+    return { donnees: await this.coordonnees.verifier(id, corps.saisieLe, acteur) };
   }
 
   private exigerAdmin(authHeader?: string, cookieHeader?: string) {

@@ -6,6 +6,9 @@ import { ControleurAdministration } from "./administration.controller";
 import { DEPOT_ADMINISTRATION } from "./administration.depot";
 import { DepotAdministrationPrisma } from "./administration.prisma";
 import { ServiceAdministration } from "./administration.service";
+import { DEPOT_COORDONNEES } from "../../commun/depots/depot";
+import { DepotCoordonneesPrisma } from "./coordonnees.prisma";
+import { ServiceCoordonnees } from "./coordonnees.service";
 
 /**
  * Module « administration » — le backoffice de l'équipe.
@@ -20,6 +23,9 @@ import { ServiceAdministration } from "./administration.service";
   providers: [
     ServiceAdministration,
     { provide: DEPOT_ADMINISTRATION, useClass: DepotAdministrationPrisma },
+    ServiceCoordonnees,
+    // En attente de migration : chaque opération répond 503, explicitement.
+    { provide: DEPOT_COORDONNEES, useClass: DepotCoordonneesPrisma },
   ],
   exports: [ServiceAdministration],
 })

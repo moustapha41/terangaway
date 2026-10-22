@@ -1,6 +1,6 @@
 import { HttpStatus, Inject, Injectable } from "@nestjs/common";
-import type { Demand } from "@prisma/client";
-import { totalSejour, type Demande } from "@teranga/contracts";
+import { Prisma, type Demand } from "@prisma/client";
+import { totalSejour, type Demande, type StatutDemande } from "@teranga/contracts";
 
 import { randomBytes } from "node:crypto";
 import { PrismaService } from "../../base-de-donnees/prisma.service";
@@ -26,6 +26,16 @@ import type {
   DemandeARelancer,
   JetonReponse,
 } from "./demandes.depot";
+import { transitionConcurrente } from "./demandes.depot";
+import { coordonneesAEffacer, coordonneesDivulguables } from "./coordonnees";
+
+/**
+ * La vérification des coordonnées n'a pas encore de colonne en base
+ * (`coordonneesVerifieesLe`, migration en attente de validation). Tant que
+ * c'est le cas, rien n'est vérifié : la lecture se ferme. À remplacer par
+ * `row.coordonneesVerifieesLe !== null` le jour de la migration.
+ */
+const VERIFICATION_PERSISTEE = false;
 import { expireLePour } from "./machine-a-etats/delais";
 
 @Injectable()
@@ -302,18 +312,37 @@ export class DepotDemandesPrisma implements DepotDemandes {
     return demandToDemande(created);
   }
 
-  async enregistrer(demande: Demande): Promise<Demande> {
-    const updated = await this.prisma.demand.update({
-      where: { id: demande.id },
-      data: {
-        statut: demande.statut as any,
-        expireLe: demande.expireLe ? new Date(demande.expireLe) : null,
-        motifRefus: demande.motifRefus ?? null,
-        coordonnees: demande.coordonnees ? (demande.coordonnees as any) : undefined,
-        frise: demande.frise as any,
-      },
+  async enregistrer(demande: Demande, statutLu: StatutDemande): Promise<Demande> {
+    // Un seul `UPDATE … WHERE id = ? AND statut = ?` : la condition et
+    // l'écriture sont le même ordre SQL, il n'y a pas de fenêtre entre les
+    // deux. Relire puis écrire sans condition ne fermerait pas la course.
+    //
+    // La relecture partage la transaction : la ligne reste verrouillée par
+    // notre écriture jusqu'au commit, on rend donc exactement ce qu'on a écrit,
+    // pas une transition arrivée juste après.
+    return this.prisma.$transaction(async (tx) => {
+      const { count } = await tx.demand.updateMany({
+        where: { id: demande.id, statut: statutLu as Demand["statut"] },
+        data: {
+          statut: demande.statut as any,
+          expireLe: demande.expireLe ? new Date(demande.expireLe) : null,
+          motifRefus: demande.motifRefus ?? null,
+          // Une transition n'écrit les coordonnées que pour les **effacer** —
+          // `DbNull`, parce qu'une colonne JSON n'accepte pas `null` tel quel,
+          // et que `undefined` laisserait la valeur en place. Sinon, la colonne
+          // n'est pas touchée : l'objet reçu a été lu à travers le filtre de
+          // divulgation, et l'écrire effacerait des coordonnées saisies par
+          // l'équipe avant la confirmation.
+          ...(coordonneesAEffacer(demande.statut) ? { coordonnees: Prisma.DbNull } : {}),
+          frise: demande.frise as any,
+        },
+      });
+
+      const ligne = await tx.demand.findUnique({ where: { id: demande.id } });
+      if (!ligne) throw introuvable("Demande");
+      if (count === 0) throw transitionConcurrente(demande.id, statutLu, ligne.statut as StatutDemande);
+      return demandToDemande(ligne);
     });
-    return demandToDemande(updated);
   }
 
   async visiteurDe(demandeId: string): Promise<string | null> {
@@ -455,6 +484,13 @@ export function demandToDemande(row: Demand): Demande {
     frise,
     expireLe: row.expireLe ? row.expireLe.toISOString() : undefined,
     motifRefus: (row.motifRefus as any) ?? undefined,
-    coordonnees: (row.coordonnees as any) ?? undefined,
+    // Filtré ici, à la source de toutes les lectures, et pas seulement à
+    // l'écran : il faut un statut qui l'autorise **et** une vérification
+    // enregistrée par une seconde personne. La colonne de vérification
+    // attend sa migration : d'ici là, aucune coordonnée n'est réputée
+    // vérifiée, et aucune ne sort — historiques comprises.
+    coordonnees: coordonneesDivulguables(row.statut as StatutDemande, VERIFICATION_PERSISTEE)
+      ? ((row.coordonnees as any) ?? undefined)
+      : undefined,
   };
 }

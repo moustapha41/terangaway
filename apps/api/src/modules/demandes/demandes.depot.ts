@@ -1,4 +1,22 @@
-import type { Demande, ServiceALaDemande } from "@teranga/contracts";
+import { HttpStatus } from "@nestjs/common";
+import type { Demande, ServiceALaDemande, StatutDemande } from "@teranga/contracts";
+
+import { ErreurMetier } from "../../commun/erreurs";
+
+/**
+ * Le refus d'une transition devancée par une autre.
+ *
+ * Distinct de `TRANSITION_INTERDITE` : la transition était permise quand on l'a
+ * décidée, c'est la demande qui a bougé depuis. Le statut actuel est rendu
+ * pour qu'on sache ce qui a gagné.
+ */
+export function transitionConcurrente(id: string, statutLu: StatutDemande, actuel: StatutDemande): ErreurMetier {
+  return new ErreurMetier(
+    "TRANSITION_CONCURRENTE",
+    `La demande ${id} est passée de « ${statutLu} » à « ${actuel} » entre-temps : rien n'a été modifié.`,
+    HttpStatus.CONFLICT,
+  );
+}
 
 export interface EntreeCreationLogement {
   logementId: string;
@@ -50,7 +68,22 @@ export interface DepotDemandes {
    * personne n'a encore calculé.
    */
   creerService(entree: EntreeCreationService): Promise<Demande>;
-  enregistrer(demande: Demande): Promise<Demande>;
+  /**
+   * Écrit une transition — **à condition** que la demande soit encore au
+   * statut `statutLu`, celui sur lequel la transition a été décidée.
+   *
+   * Sans cette condition, deux transitions décidées sur la même lecture se
+   * succédaient et la seconde effaçait la première : une demande confirmée par
+   * le visiteur pouvait être déclarée expirée par le veilleur une seconde plus
+   * tard, ou l'inverse. Maintenant, la seconde lève `TRANSITION_CONCURRENTE`
+   * et rien d'elle n'est écrit — ni statut, ni frise, ni échéance, ni
+   * coordonnées.
+   *
+   * Comparer le seul statut suffit : toute transition en change, et la table
+   * n'a pas de retour en arrière. Une demande ne peut donc pas avoir quitté
+   * `statutLu` puis y être revenue entre la lecture et l'écriture.
+   */
+  enregistrer(demande: Demande, statutLu: StatutDemande): Promise<Demande>;
   visiteurDe?(demandeId: string): Promise<string | null> | string | undefined;
 
   /**
