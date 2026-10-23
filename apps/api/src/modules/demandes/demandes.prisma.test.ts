@@ -151,12 +151,36 @@ describe("Persistance PostgreSQL — Module Demandes & Prévention IDOR", () => 
 
     // Seuil dans le futur : la demande est en souffrance quoi qu'il arrive.
     const seuils = { logement: new Date(Date.now() + 60_000) };
-    const premier = await depot.aRelancer(seuils, 50);
+
+    /**
+     * La page à demander pour être sûr d'y voir sa propre demande.
+     *
+     * `aRelancer` rend une page ordonnée par date de création **croissante**,
+     * et la demande qu'on vient de créer est la plus récente : elle est donc
+     * la dernière. Une limite fixe — 50 — la laissait hors de la page dès que
+     * la base comptait plus de candidates que cela, et le test échouait sans
+     * que rien n'ait changé dans le code. On dimensionne donc la page sur les
+     * données présentes, en comptant les candidates avec la même condition que
+     * le dépôt : statut « envoyée », jamais relancée, du genre visé, créée
+     * avant le seuil.
+     */
+    const candidates = () =>
+      prisma.demand.count({
+        where: {
+          statut: "envoyee",
+          relanceeLe: null,
+          genre: "logement",
+          creeLe: { lte: seuils.logement },
+        },
+      });
+
+    const premier = await depot.aRelancer(seuils, await candidates());
     expect(premier.map((d) => d.id)).toContain(demande.id);
 
     await depot.marquerRelancees([demande.id]);
 
-    const second = await depot.aRelancer(seuils, 50);
+    // Une de moins : c'est la marque qui l'a retirée, pas un effet de page.
+    const second = await depot.aRelancer(seuils, (await candidates()) + 1);
     expect(second.map((d) => d.id)).not.toContain(demande.id);
 
     // Un genre absent de la table des seuils n'est jamais relancé.
