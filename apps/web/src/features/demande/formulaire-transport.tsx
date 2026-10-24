@@ -70,6 +70,7 @@ export function FormulaireTransport({
   const [erreurs, setErreurs] = useState<Record<string, boolean>>({});
   const [envoi, setEnvoi] = useState<"repos" | "encours" | "fait">("repos");
   const [reference, setReference] = useState("");
+  const [emailEnvoye, setEmailEnvoye] = useState(false);
 
   /** Message d'échec de l'envoi : une demande refusée doit se voir. */
   const [echec, setEchec] = useState<string | null>(null);
@@ -118,6 +119,7 @@ export function FormulaireTransport({
       if (resultat.succes) {
         await oublierBrouillonAction().catch(() => {});
         setReference(resultat.demande.reference);
+        setEmailEnvoye(resultat.demande.emailEnvoye);
         setEnvoi("fait");
         setEtape(3);
       } else {
@@ -388,6 +390,9 @@ export function FormulaireTransport({
           <p className="mt-2 text-petit text-encre-douce chiffres-tabulaires">{reference}</p>
           <p className="mx-auto mt-3 max-w-[46ch] text-corps text-encre-douce">
             {t("demandeTransport.envoyeeTexte")}
+          </p>
+          <p role="status" className="mx-auto mt-2 max-w-[46ch] text-petit text-encre-douce">
+            {emailEnvoye ? t("confirmation.lienEnvoye") : t("confirmation.lienNonEnvoye")}
           </p>
 
           <div className="mx-auto mt-5 max-w-[460px] text-left">

@@ -39,6 +39,11 @@ export interface DetailsDemande {
    * que l'acompte est fermé.
    */
   acompte?: AnnonceAcompte;
+  /**
+   * Lien personnel et à usage unique vers cette demande, sans mot de passe.
+   * Absent quand il n'a pas pu être émis : l'e-mail ne promet alors rien.
+   */
+  lienAcces?: { url: string; validiteHeures: number };
 }
 
 export interface AnnonceAcompte {
@@ -86,6 +91,16 @@ export function genererEmailDemande(details: DetailsDemande): ContenuEmail {
     ...(details.sejour ? [`Séjour : ${details.sejour}`] : []),
     ...(details.total ? [`Total annoncé : ${details.total}`] : []),
     "",
+    ...(details.lienAcces
+      ? [
+          "Retrouvez votre demande et son récapitulatif grâce à ce lien sécurisé :",
+          details.lienAcces.url,
+          `Il est personnel, ne fonctionne qu'une fois et expire sous ${details.lienAcces.validiteHeures} heures.`,
+          "Ne le transférez à personne. Votre demande n'est pas une réservation confirmée tant que",
+          "les conditions de confirmation ne sont pas remplies.",
+          "",
+        ]
+      : []),
     ...(details.acompte
       ? [
           "Rien n'est payé pour l'instant. Si le propriétaire accepte, un acompte de",
@@ -148,6 +163,19 @@ export function genererEmailDemande(details: DetailsDemande): ContenuEmail {
         connexion à usage unique depuis l'écran de connexion&nbsp;: les deux fonctionnent.
         Ne le communiquez à personne&nbsp;— aucun membre de l'équipe Teranga Way ne vous
         le demandera.
+      </p>`
+    : "";
+
+  const blocLien = details.lienAcces
+    ? `
+      <p style="text-align: center; margin: 24px 0 8px;">
+        <a class="bouton" href="${echapper(details.lienAcces.url)}">Accéder à ma demande</a>
+      </p>
+      <p class="warning">
+        🔒 Ce lien est personnel, ne fonctionne qu'une fois et expire sous
+        ${details.lienAcces.validiteHeures}&nbsp;heures. Ne le transférez à personne.
+        Votre demande n'est pas une réservation confirmée tant que les conditions de
+        confirmation ne sont pas remplies.
       </p>`
     : "";
 
@@ -329,7 +357,7 @@ export function genererEmailDemande(details: DetailsDemande): ContenuEmail {
               )}</span></p>`
             : ""
         }
-      </div>
+      </div>${blocLien}
       <div class="notice">
         <p class="notice-text">${blocPaiement}</p>
       </div>${blocIdentifiants}

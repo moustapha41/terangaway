@@ -65,6 +65,7 @@ export function FormulaireDemandeService({
   const [envoi, setEnvoi] = useState<"repos" | "encours" | "fait" | "echec">("repos");
   const [motifEchec, setMotifEchec] = useState<string | null>(null);
   const [reference, setReference] = useState("");
+  const [emailEnvoye, setEmailEnvoye] = useState(false);
 
   const poser = (cle: string, valeur: string) =>
     setValeurs((avant) => ({ ...avant, [cle]: valeur }));
@@ -93,6 +94,7 @@ export function FormulaireDemandeService({
 
     if (resultat.succes) {
       setReference(resultat.demande.reference);
+      setEmailEnvoye(resultat.demande.emailEnvoye);
       setEnvoi("fait");
     } else {
       console.error("[service] envoi de la demande impossible", resultat.erreur);
@@ -113,6 +115,9 @@ export function FormulaireDemandeService({
         <p className="mt-2 text-petit text-encre-douce chiffres-tabulaires">{reference}</p>
         <p className="mx-auto mt-3 max-w-[46ch] text-corps text-encre-douce">
           {t("demandeService.envoyeeTexte")}
+        </p>
+        <p role="status" className="mx-auto mt-2 max-w-[46ch] text-petit text-encre-douce">
+          {emailEnvoye ? t("confirmation.lienEnvoye") : t("confirmation.lienNonEnvoye")}
         </p>
         <div className="mx-auto mt-7 max-w-[320px]">
           <Bouton variante="principal" largeur="pleine" onClick={() => naviguer("/mes-demandes")}>

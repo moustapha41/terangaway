@@ -6,7 +6,9 @@ import { ServiceEmail } from "../../commun/email/email.service";
 import { DEPOT_COMPTES } from "../../commun/depots/depot";
 import { ErreurMetier } from "../../commun/erreurs";
 import {
+  genererJetonLienDemande,
   genererMotDePasseProvisoire,
+  hacherJetonDirect,
   hacherMotDePasse,
   LONGUEUR_MINIMALE_MOT_DE_PASSE,
   motDePasseAcceptable,
@@ -21,6 +23,9 @@ import { CODE_OTP_DEMO, CODE_PRESTATAIRE_DEMO } from "./comptes.fixtures";
 
 const DUREE_OTP_MINUTES = 10;
 const MAX_TENTATIVES_OTP = 5;
+
+/** Durée de vie du lien d'accès à une demande envoyé par e-mail. */
+export const DUREE_LIEN_DEMANDE_HEURES = 24;
 
 /** Longueur maximale acceptée pour un mot de passe, pour borner le coût de scrypt. */
 const LONGUEUR_MAXIMALE_MOT_DE_PASSE = 200;
@@ -65,6 +70,9 @@ export class ServiceComptes {
    * `limiteur-tentatives.ts`.
    */
   private readonly limiteurConnexion = new LimiteurTentatives(10, 15 * 60_000);
+
+  /** Plafond des présentations de lien d'accès, par adresse IP. */
+  private readonly limiteurLiens = new LimiteurTentatives(20, 15 * 60_000);
 
   constructor(
     @Inject(DEPOT_COMPTES) private readonly depot: DepotComptes,
@@ -189,6 +197,82 @@ export class ServiceComptes {
     return {
       visiteurId: session.compteId ?? session.id,
       token: session.token ?? session.id,
+    };
+  }
+
+  /**
+   * Émet le lien d'accès à **une** demande pour le compte qui vient de l'envoyer.
+   *
+   * Le jeton est la seule chose qui sort d'ici en clair : la base ne garde que
+   * son empreinte. Il n'ouvre que la session de ce compte et ne désigne que
+   * cette demande ; il meurt à la première utilisation ou à l'échéance.
+   *
+   * L'appelant a créé la demande pour `compteId` à l'instant : c'est lui qui
+   * garantit que le lien ne pointe pas vers la demande d'un autre.
+   */
+  async emettreLienDemande(entree: {
+    compteId: string;
+    email: string;
+    demandeId: string;
+  }): Promise<{ jeton: string; expireLe: string }> {
+    const jeton = genererJetonLienDemande();
+    const expireLe = new Date(Date.now() + DUREE_LIEN_DEMANDE_HEURES * 3600_000).toISOString();
+    await this.depot.enregistrerLienDemande({
+      email: entree.email.trim().toLowerCase(),
+      compteId: entree.compteId,
+      demandeId: entree.demandeId,
+      empreinte: hacherJetonDirect(jeton),
+      expireLe,
+    });
+    return { jeton, expireLe };
+  }
+
+  /**
+   * Échange un lien d'accès contre une session visiteur et le nom de la demande.
+   *
+   * Même preuve que le code OTP — avoir reçu l'e-mail — mais donnée par un
+   * jeton à usage unique. Les trois refus (inconnu, expiré, déjà utilisé) ne
+   * donnent rien d'exploitable : le jeton, lui, ne se devine pas.
+   */
+  async ouvrirParLienDemande(
+    jeton: string,
+    ipAddress?: string,
+  ): Promise<{ visiteurId: string; token: string; demandeId: string }> {
+    const decision = this.limiteurLiens.verifier(ipAddress ?? "inconnue");
+    if (!decision.autorise) {
+      throw new ErreurMetier(
+        "TROP_DE_TENTATIVES",
+        "Trop de tentatives. Réessayez dans quelques minutes.",
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
+    }
+
+    const propre = jeton.trim();
+    if (!/^twl_[0-9a-f]{64}$/.test(propre)) {
+      this.limiteurLiens.enregistrerEchec(ipAddress ?? "inconnue");
+      throw new ErreurMetier("LIEN_INVALIDE", "Ce lien n'est pas valable.", HttpStatus.UNAUTHORIZED);
+    }
+
+    const resultat = await this.depot.consommerLienDemande(hacherJetonDirect(propre));
+    if (resultat.etat !== "valide") {
+      this.limiteurLiens.enregistrerEchec(ipAddress ?? "inconnue");
+      const messages = {
+        inconnu: ["LIEN_INVALIDE", "Ce lien n'est pas valable."],
+        expire: ["LIEN_EXPIRE", "Ce lien a expiré."],
+        utilise: ["LIEN_DEJA_UTILISE", "Ce lien a déjà été utilisé."],
+      } as const;
+      const [code, message] = messages[resultat.etat];
+      throw new ErreurMetier(code, message, HttpStatus.UNAUTHORIZED);
+    }
+
+    const session = await this.depot.creerSessionVisiteur(resultat.lien.email);
+    if (!session.token) {
+      throw new ErreurMetier("SESSION_INDISPONIBLE", "Impossible d'ouvrir la session.", HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+    return {
+      visiteurId: session.compteId ?? resultat.lien.compteId,
+      token: session.token,
+      demandeId: resultat.lien.demandeId,
     };
   }
 

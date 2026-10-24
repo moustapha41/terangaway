@@ -29,6 +29,7 @@ export const TESTS_INTEGRATION = [
   "src/modules/comptes/comptes.resend.test.ts",
   "src/modules/comptes/connexion-mot-de-passe.prisma.test.ts",
   "src/modules/comptes/inscription.prisma.test.ts",
+  "src/modules/comptes/lien-demande.prisma.test.ts",
   "src/modules/comptes/securite-posture.test.ts",
   "src/modules/demandes/coordonnees.prisma.test.ts",
   "src/modules/demandes/demandes.prisma.test.ts",

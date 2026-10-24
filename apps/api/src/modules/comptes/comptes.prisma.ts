@@ -21,10 +21,13 @@ import type {
   CompteResume,
   DepotComptes,
   FinaliteOtp,
+  NouveauLienDemande,
+  ResultatLienDemande,
   SessionPrestataire,
   SessionVisiteur,
   VerificationRateLimit,
 } from "./comptes.depot";
+import { PREFIXE_LIEN_DEMANDE } from "./comptes.depot";
 
 /**
  * Les colonnes d'un compte vues du dehors — et pas une de plus.
@@ -40,6 +43,15 @@ const SELECTION_RESUME = {
   estVerifie: true,
   motDePasseHash: true,
   motDePasseProvisoire: true,
+} as const;
+
+/**
+ * Les liens d'accès à une demande partagent la table des codes, sans partager
+ * leurs règles : ni cooldown, ni quota, ni invalidation croisée avec les codes
+ * de connexion.
+ */
+const HORS_LIENS_DEMANDE = {
+  NOT: { finalite: { startsWith: PREFIXE_LIEN_DEMANDE } },
 } as const;
 
 @Injectable()
@@ -75,8 +87,10 @@ export class DepotComptesPrisma implements DepotComptes {
           });
 
       // 2. Invalide atomiquement les challenges précédents non consommés
+      // Les liens d'accès à une demande en sont exclus : demander un code de
+      // connexion ne doit pas rendre muet l'e-mail déjà parti.
       await tx.otpChallenge.updateMany({
-        where: { destination, consumedAt: null },
+        where: { destination, consumedAt: null, ...HORS_LIENS_DEMANDE },
         data: { consumedAt: new Date() },
       });
 
@@ -108,6 +122,7 @@ export class DepotComptesPrisma implements DepotComptes {
       where: {
         destination: dest,
         creeLe: { gte: soixanteSecondes },
+        ...HORS_LIENS_DEMANDE,
       },
       orderBy: { creeLe: "desc" },
     });
@@ -128,6 +143,7 @@ export class DepotComptesPrisma implements DepotComptes {
       where: {
         destination: dest,
         creeLe: { gte: uneHeure },
+        ...HORS_LIENS_DEMANDE,
       },
     });
 
@@ -141,6 +157,7 @@ export class DepotComptesPrisma implements DepotComptes {
         where: {
           ipAddress,
           creeLe: { gte: uneHeure },
+          ...HORS_LIENS_DEMANDE,
         },
       });
 
@@ -180,7 +197,7 @@ export class DepotComptesPrisma implements DepotComptes {
   async incrementerTentatives(destination: string): Promise<number> {
     const dest = normaliserDestination(destination);
     const challenge = await this.prisma.otpChallenge.findFirst({
-      where: { destination: dest, consumedAt: null },
+      where: { destination: dest, consumedAt: null, ...HORS_LIENS_DEMANDE },
       orderBy: { creeLe: "desc" },
     });
 
@@ -207,13 +224,55 @@ export class DepotComptesPrisma implements DepotComptes {
       where: {
         OR: [
           { id: idOuDestination },
-          { destination: normaliserDestination(idOuDestination) },
+          { destination: normaliserDestination(idOuDestination), ...HORS_LIENS_DEMANDE },
         ],
         consumedAt: null,
       },
       data: { consumedAt: new Date() },
     });
     return res.count > 0;
+  }
+
+  async enregistrerLienDemande(lien: NouveauLienDemande): Promise<void> {
+    await this.prisma.otpChallenge.create({
+      data: {
+        destination: normaliserDestination(lien.email),
+        ipAddress: lien.ipAddress,
+        finalite: `${PREFIXE_LIEN_DEMANDE}${lien.demandeId}`,
+        codeHash: lien.empreinte,
+        // Un jeton de 256 bits ne se devine pas : le plafond de tentatives n'a
+        // rien à protéger ici, et une seule utilisation est permise de toute façon.
+        maxAttempts: 1,
+        expiresAt: new Date(lien.expireLe),
+        accountId: lien.compteId,
+      },
+    });
+  }
+
+  async consommerLienDemande(empreinte: string): Promise<ResultatLienDemande> {
+    const challenge = await this.prisma.otpChallenge.findFirst({
+      where: { codeHash: empreinte, finalite: { startsWith: PREFIXE_LIEN_DEMANDE } },
+    });
+    if (!challenge || !challenge.accountId) return { etat: "inconnu" };
+    if (challenge.consumedAt !== null) return { etat: "utilise" };
+    if (challenge.expiresAt.getTime() < Date.now()) return { etat: "expire" };
+
+    // Usage unique, atomique : deux clics simultanés ne passent pas tous les deux.
+    const pris = await this.prisma.otpChallenge.updateMany({
+      where: { id: challenge.id, consumedAt: null },
+      data: { consumedAt: new Date() },
+    });
+    if (pris.count === 0) return { etat: "utilise" };
+
+    return {
+      etat: "valide",
+      lien: {
+        compteId: challenge.accountId,
+        email: challenge.destination,
+        demandeId: challenge.finalite.slice(PREFIXE_LIEN_DEMANDE.length),
+        expireLe: challenge.expiresAt.toISOString(),
+      },
+    };
   }
 
   async creerSessionVisiteur(destination: string): Promise<SessionVisiteur> {

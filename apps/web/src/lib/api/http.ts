@@ -46,14 +46,30 @@ function baseUrl(): string {
   );
 }
 
-export async function appelerApi<T>(
+/** Ce qui est réellement parti, et ce qui est annoncé, après une demande. */
+export interface NotificationApi {
+  emailEnvoye: boolean;
+  acompteAnnonce?: boolean;
+}
+
+type OptionsAppel = {
+  method?: "GET" | "POST" | "PATCH" | "PUT";
+  corps?: unknown;
+  headers?: Record<string, string>;
+};
+
+export async function appelerApi<T>(chemin: string, options: OptionsAppel = {}): Promise<T> {
+  return (await appelerApiEnveloppe<T>(chemin, options)).donnees;
+}
+
+/**
+ * Comme `appelerApi`, mais rend aussi `notification` : ce qui est réellement
+ * parti (l'e-mail) après l'enregistrement d'une demande.
+ */
+export async function appelerApiEnveloppe<T>(
   chemin: string,
-  options: {
-    method?: "GET" | "POST" | "PATCH" | "PUT";
-    corps?: unknown;
-    headers?: Record<string, string>;
-  } = {},
-): Promise<T> {
+  options: OptionsAppel = {},
+): Promise<{ donnees: T; notification?: NotificationApi }> {
   const forwardedHeaders: Record<string, string> = {};
   try {
     const { headers } = await import("next/headers");
@@ -95,6 +111,7 @@ export async function appelerApi<T>(
 
   const json = (await reponse.json().catch(() => ({}))) as {
     donnees?: T;
+    notification?: NotificationApi;
     erreur?: { code: string; message: string };
   };
 
@@ -106,5 +123,5 @@ export async function appelerApi<T>(
     );
   }
 
-  return json.donnees as T;
+  return { donnees: json.donnees as T, notification: json.notification };
 }

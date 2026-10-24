@@ -13,6 +13,8 @@ import type {
   CompteResume,
   DepotComptes,
   FinaliteOtp,
+  NouveauLienDemande,
+  ResultatLienDemande,
   SessionPrestataire,
   SessionVisiteur,
   VerificationRateLimit,
@@ -86,6 +88,29 @@ export class DepotComptesFixtures implements DepotComptes {
       this.otps.delete(dest);
     }
     return otp.tentatives;
+  }
+
+  private readonly liensDemande = new Map<string, NouveauLienDemande & { utilise: boolean }>();
+
+  async enregistrerLienDemande(lien: NouveauLienDemande): Promise<void> {
+    this.liensDemande.set(lien.empreinte, { ...lien, utilise: false });
+  }
+
+  async consommerLienDemande(empreinte: string): Promise<ResultatLienDemande> {
+    const lien = this.liensDemande.get(empreinte);
+    if (!lien) return { etat: "inconnu" };
+    if (lien.utilise) return { etat: "utilise" };
+    if (new Date(lien.expireLe).getTime() < Date.now()) return { etat: "expire" };
+    lien.utilise = true;
+    return {
+      etat: "valide",
+      lien: {
+        compteId: lien.compteId,
+        email: lien.email,
+        demandeId: lien.demandeId,
+        expireLe: lien.expireLe,
+      },
+    };
   }
 
   async consommerOtp(destination: string): Promise<boolean> {

@@ -14,6 +14,7 @@ import {
   apiConfirmerDemande,
   apiConnexionPrestataire,
   apiCreerDemandeLogement,
+  type DemandeEnvoyee,
   apiCreerDemandeService,
   apiCreerDemandeVehicule,
   apiListerDemandes,
@@ -226,7 +227,7 @@ export const CODE_DE_DEMONSTRATION = "123456";
 export async function envoyerDemande(
   entree: EntreeDemande,
   etat: EtatEnvoi = "normal",
-): Promise<Demande> {
+): Promise<DemandeEnvoyee> {
   if (!apiMockActive() && etat === "normal") {
     return apiCreerDemandeLogement(entree);
   }
@@ -256,6 +257,9 @@ export async function envoyerDemande(
   const maintenant = new Date().toISOString();
 
   return {
+    // La démonstration n'envoie aucun e-mail, et ne le prétend pas.
+    emailEnvoye: false,
+    acompteAnnonce: false,
     id: `d-${Date.now()}`,
     reference: `TW-${Math.floor(100000 + Math.random() * 900000)}`,
     statut: "envoyee",
@@ -286,7 +290,7 @@ export async function envoyerDemande(
 export async function envoyerDemandeTransport(
   entree: EntreeDemandeTransport,
   etat: EtatEnvoi = "normal",
-): Promise<Demande> {
+): Promise<DemandeEnvoyee> {
   if (!apiMockActive() && etat === "normal") {
     try {
       return await apiCreerDemandeVehicule(entree);
@@ -311,6 +315,9 @@ export async function envoyerDemandeTransport(
   const maintenant = new Date().toISOString();
 
   return {
+    // La démonstration n'envoie aucun e-mail, et ne le prétend pas.
+    emailEnvoye: false,
+    acompteAnnonce: false,
     id: `d-${Date.now()}`,
     reference: `TW-${Math.floor(100000 + Math.random() * 900000)}`,
     statut: "envoyee",
@@ -355,7 +362,7 @@ export interface EntreeDemandeService {
 export async function envoyerDemandeService(
   entree: EntreeDemandeService,
   etat: EtatEnvoi = "normal",
-): Promise<Demande> {
+): Promise<DemandeEnvoyee> {
   if (!apiMockActive() && etat === "normal") {
     return apiCreerDemandeService(entree);
   }
@@ -366,6 +373,9 @@ export async function envoyerDemandeService(
   const quand = entree.details.date ?? maintenant.slice(0, 10);
 
   return {
+    // La démonstration n'envoie aucun e-mail, et ne le prétend pas.
+    emailEnvoye: false,
+    acompteAnnonce: false,
     id: `d-${Date.now()}`,
     reference: `TW-${Math.floor(100000 + Math.random() * 900000)}`,
     statut: "envoyee",

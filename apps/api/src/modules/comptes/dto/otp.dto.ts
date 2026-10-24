@@ -53,3 +53,10 @@ export class ConnexionPrestataireDto {
   @MaxLength(6)
   code!: string;
 }
+
+export class OuvrirLienDemandeDto {
+  @ApiProperty({ description: "Jeton du lien reçu par e-mail (twl_…)" })
+  @IsString()
+  @MaxLength(100)
+  jeton!: string;
+}

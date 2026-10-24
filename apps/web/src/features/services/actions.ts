@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import type { Demande } from "@teranga/contracts";
+import type { DemandeEnvoyee } from "@/lib/api/ecriture";
 import { envoyerDemandeService, type EntreeDemandeService } from "@/mocks/api";
 import { visiteurConnecte } from "@/features/compte/session";
 import {
@@ -11,7 +12,7 @@ import {
 } from "@/features/demande/coordonnees";
 
 export type ResultatDemandeService =
-  | { succes: true; demande: Demande }
+  | { succes: true; demande: DemandeEnvoyee }
   | {
       succes: false;
       erreur: "validation" | "serveur";

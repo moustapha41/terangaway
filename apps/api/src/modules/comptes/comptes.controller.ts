@@ -12,7 +12,7 @@ import {
   VerifierInscriptionDto,
 } from "./dto/inscription.dto";
 import { OAuthGoogleDto } from "./dto/oauth.dto";
-import { ConnexionPrestataireDto, EnvoyerOtpDto, VerifierOtpDto } from "./dto/otp.dto";
+import { ConnexionPrestataireDto, EnvoyerOtpDto, OuvrirLienDemandeDto, VerifierOtpDto } from "./dto/otp.dto";
 import { ServiceComptes } from "./comptes.service";
 
 const TRENTE_JOURS_MS = 30 * 24 * 3600 * 1000;
@@ -67,6 +67,26 @@ export class ControleurComptes {
     }
 
     const resultat = await this.comptes.verifierOtp(identifiant, corps.code);
+    this.poserCookieSession(resultat.token, res);
+    return { donnees: resultat };
+  }
+
+  @Post("lien-demande/ouvrir")
+  @ApiOperation({
+    summary: "Ouvrir une session visiteur depuis le lien d'accès à une demande",
+    description:
+      "Le jeton, envoyé par e-mail, est à usage unique et limité dans le temps. " +
+      "Il désigne une seule demande, celle de son destinataire.",
+  })
+  async ouvrirLienDemande(
+    @Body() corps: OuvrirLienDemandeDto,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res?: Response,
+  ) {
+    const resultat = await this.comptes.ouvrirParLienDemande(
+      corps.jeton,
+      extraireIpClientSecurisee(req),
+    );
     this.poserCookieSession(resultat.token, res);
     return { donnees: resultat };
   }

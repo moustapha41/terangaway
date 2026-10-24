@@ -1,0 +1,68 @@
+import { afterEach, describe, expect, it, vi } from "vitest";
+import type { Demande } from "@teranga/contracts";
+
+import { config } from "../../config/configuration";
+import { ControleurDemandes } from "./demandes.controller";
+
+/**
+ * Ce que le contrôleur dit à l'écran de confirmation : l'e-mail est-il
+ * réellement parti, et un paiement est-il réellement annoncé ?
+ */
+const DEMANDE = {
+  id: "d-1",
+  reference: "TW-111111",
+  statut: "envoyee",
+  offre: { genre: "logement", logementId: "l-1", titre: "Villa", vignette: "" },
+  dates: { debut: "2026-11-10", fin: "2026-11-14" },
+  personnes: 2,
+  prix: { total: 620000 },
+  frise: [],
+} as unknown as Demande;
+
+function controleur(envoye: boolean) {
+  const email = {
+    envoyerConfirmationDemande: vi.fn().mockResolvedValue({ envoye }),
+    alerterEquipe: vi.fn().mockResolvedValue(undefined),
+    envoyerDemandeAuPartenaire: vi.fn().mockResolvedValue(undefined),
+  };
+  const demandes = {
+    creerLogement: vi.fn().mockResolvedValue(DEMANDE),
+    emettreJetonReponse: vi.fn().mockResolvedValue(null),
+  };
+  const comptes = {
+    visiteurPourDemande: vi.fn().mockResolvedValue({ compteId: "c-1", email: "a@b.sn" }),
+    adressesEquipe: vi.fn().mockResolvedValue([]),
+    emettreLienDemande: vi.fn().mockResolvedValue({ jeton: "twl_x", expireLe: "" }),
+  };
+  const c = new ControleurDemandes(demandes as never, comptes as never, email as never);
+  const creer = () =>
+    c.creerLogement({ logementId: "l-1", debut: "2026-11-10", fin: "2026-11-14", personnes: 2, contact: { email: "a@b.sn" } } as never);
+  return { creer, email };
+}
+
+describe("Notification renvoyée avec la demande", () => {
+  const acompteInitial = { ...config.acompte };
+  afterEach(() => Object.assign(config.acompte, acompteInitial));
+
+  it("acompte fermé : e-mail parti, aucun paiement annoncé", async () => {
+    expect(config.acompte.actif).toBe(false);
+    const { creer, email } = controleur(true);
+    const res = await creer();
+    expect(res.notification).toEqual({ emailEnvoye: true, acompteAnnonce: false });
+    expect(email.envoyerConfirmationDemande.mock.calls[0][1].acompte).toBeUndefined();
+    expect(email.envoyerConfirmationDemande.mock.calls[0][1].lienAcces.url).toContain("/fr/acces-demande/twl_x");
+  });
+
+  it("n'affirme pas l'envoi quand l'e-mail échoue", async () => {
+    const { creer } = controleur(false);
+    expect((await creer()).notification).toEqual({ emailEnvoye: false, acompteAnnonce: false });
+  });
+
+  it("acompte ouvert : le paiement n'est annoncé que si l'e-mail l'annonce", async () => {
+    Object.assign(config.acompte, { actif: true, pourcentage: 30 });
+    const { creer, email } = controleur(true);
+    const res = await creer();
+    expect(email.envoyerConfirmationDemande.mock.calls[0][1].acompte).toBeDefined();
+    expect(res.notification.acompteAnnonce).toBe(true);
+  });
+});

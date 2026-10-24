@@ -20,6 +20,7 @@ import {
   type BrouillonDemande,
 } from "@/features/demande/brouillon";
 import { visiteurConnecte } from "@/features/compte/session";
+import { poserRecapitulatif, recapitulatifDe } from "@/features/demande/recapitulatif";
 import {
   coordonneesDemande,
   ouvrirSessionDemo,
@@ -27,6 +28,7 @@ import {
 } from "@/features/demande/coordonnees";
 import { resoudreDestination } from "@/features/compte/destination";
 import { estLangue, type Langue } from "@/lib/i18n/langues";
+import type { DemandeEnvoyee } from "@/lib/api/ecriture";
 
 /**
  * Actions serveur de l'écran 6.
@@ -105,6 +107,10 @@ export async function creerDemandeLogementAction(
 
     if (!sessionActive) await ouvrirSessionDemo(envoyeur?.email);
 
+    // Le récapitulatif de la confirmation vient de la réponse de l'API. S'il ne
+    // peut pas être posé, la demande n'en reste pas moins enregistrée.
+    await poserRecapitulatif(recapitulatifDe(demande, demande.emailEnvoye, demande.acompteAnnonce)).catch(() => {});
+
     revalidatePath("/[locale]/mes-demandes", "page");
     revalidatePath("/[locale]/compte", "page");
 
@@ -124,7 +130,7 @@ export async function creerDemandeLogementAction(
 /* ──────────────────── Création de demande de transport ──────────────────── */
 
 export type ResultatDemandeTransport =
-  | { succes: true; demande: Demande }
+  | { succes: true; demande: DemandeEnvoyee }
   | {
       succes: false;
       erreur: "delai_trop_court" | "validation" | "serveur";
