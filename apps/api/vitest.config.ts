@@ -24,6 +24,7 @@ import { defineConfig } from "vitest/config";
  */
 export const TESTS_INTEGRATION = [
   "src/modules/acomptes/acomptes.prisma.test.ts",
+  "src/modules/acomptes/acomptes.reception.prisma.test.ts",
   "src/modules/acomptes/acomptes.service.prisma.test.ts",
   "src/modules/comptes/comptes.prisma.test.ts",
   "src/modules/comptes/comptes.resend.test.ts",

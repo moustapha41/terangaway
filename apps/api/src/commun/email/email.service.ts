@@ -9,11 +9,13 @@ import {
   type DemandePartenaire,
 } from "./modeles/demande-partenaire.modele";
 import { genererRelanceEquipe, type LigneRelance } from "./modeles/relance-equipe.modele";
-import { genererEmailDemande, type DetailsDemande } from "./modeles/demande.modele";
+import { genererEmailDemande, type ContenuEmail, type DetailsDemande } from "./modeles/demande.modele";
 import { genererEmailOtp } from "./modeles/otp.modele";
 import {
   genererEmailInstructionsAcompte,
+  genererEmailReceptionAcompte,
   type InstructionsAcompte,
+  type ReceptionAcompteEmail,
 } from "./modeles/acompte.modele";
 
 export const RESEND_CLIENT = "RESEND_CLIENT";
@@ -296,16 +298,52 @@ export class ServiceEmail {
     details: InstructionsAcompte,
     options: OptionsEnvoi,
   ): Promise<ResultatEnvoiAcompte> {
+    return this.envoyerAvecReprises(
+      email,
+      () => genererEmailInstructionsAcompte(details),
+      `Instructions d'acompte de ${details.reference}`,
+      options,
+    );
+  }
+
+  /**
+   * Prévient le visiteur qu'une personne a constaté et vérifié un versement.
+   *
+   * Mêmes garanties que les instructions : reprises sur panne passagère, clé
+   * d'idempotence, jamais de levée. Un échec n'annule rien — le versement est
+   * enregistré, seul l'e-mail est à renvoyer.
+   */
+  async envoyerReceptionAcompte(
+    email: string,
+    details: ReceptionAcompteEmail,
+    options: OptionsEnvoi,
+  ): Promise<ResultatEnvoiAcompte> {
+    return this.envoyerAvecReprises(
+      email,
+      () => genererEmailReceptionAcompte(details),
+      `Confirmation de réception de ${details.reference}`,
+      options,
+    );
+  }
+
+  /**
+   * L'envoi commun aux e-mails d'acompte : reprises sur les seules pannes
+   * passagères, toutes avec la même clé d'idempotence.
+   */
+  private async envoyerAvecReprises(
+    email: string,
+    composer: () => ContenuEmail,
+    intitule: string,
+    options: OptionsEnvoi,
+  ): Promise<ResultatEnvoiAcompte> {
     const destinataire = email.trim().toLowerCase();
 
     if (!this.resend) {
-      this.logger.error(
-        `[Sans Resend] Instructions d'acompte de ${details.reference} non envoyées à ${destinataire}.`,
-      );
+      this.logger.error(`[Sans Resend] ${intitule} non envoyé à ${destinataire}.`);
       return { envoye: false, tentatives: 0, erreur: "resend_non_configure" };
     }
 
-    const modele = genererEmailInstructionsAcompte(details);
+    const modele = composer();
     const pauses = options.pauses ?? PAUSES_PAR_DEFAUT;
     let derniere = "erreur_inconnue";
     let tentatives = 0;
@@ -327,8 +365,7 @@ export class ServiceEmail {
 
         if (!reponse.error) {
           this.logger.log(
-            `Instructions d'acompte de ${details.reference} envoyées à ${destinataire} ` +
-              `(id: ${reponse.data?.id}, tentative ${tentative})`,
+            `${intitule} envoyé à ${destinataire} (id: ${reponse.data?.id}, tentative ${tentative})`,
           );
           return { envoye: true, tentatives: tentative };
         }
@@ -343,16 +380,12 @@ export class ServiceEmail {
         passagere = true;
       }
 
-      this.logger.warn(
-        `Instructions d'acompte de ${details.reference}, tentative ${tentative} échouée : ${derniere}`,
-      );
+      this.logger.warn(`${intitule}, tentative ${tentative} échouée : ${derniere}`);
       if (!passagere || tentative > pauses.length) break;
       await new Promise((reprendre) => setTimeout(reprendre, pauses[tentative - 1]));
     }
 
-    this.logger.error(
-      `Instructions d'acompte de ${details.reference} non parties vers ${destinataire} : ${derniere}`,
-    );
+    this.logger.error(`${intitule} non parti vers ${destinataire} : ${derniere}`);
     return { envoye: false, tentatives, erreur: derniere };
   }
 

@@ -193,6 +193,9 @@ describe("Configuration API — Acompte par virement bancaire", () => {
       "actif",
       "beneficiaire",
       "etatCoordonnees",
+      "instructions",
+      "mobileMoney",
+      "moyens",
       "pourcentage",
     ]);
   });

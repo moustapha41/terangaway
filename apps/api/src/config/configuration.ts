@@ -5,7 +5,12 @@
  * lu via `process.env` de façon désordonnée ailleurs dans le code : une valeur
  * obligatoire manquante fait échouer immédiatement le démarrage.
  */
-import type { BeneficiaireAcompte } from "@teranga/contracts";
+import { MOYENS_ACOMPTE } from "@teranga/contracts";
+import type {
+  BeneficiaireAcompte,
+  CompteMobileMoney,
+  MoyenAcompte,
+} from "@teranga/contracts";
 
 import { pourcentageValide } from "../modules/acomptes/calcul";
 
@@ -55,7 +60,57 @@ export interface ConfigAcompte {
    * qui n'arrivera pas — et un visiteur qui croit avoir payé.
    */
   beneficiaire: BeneficiaireAcompte | undefined;
+  /**
+   * Les moyens acceptés. Absent = le virement seul, comme avant que Mobile
+   * Money existe : une configuration qui ne les nomme pas ne change pas.
+   * Chaque moyen listé doit être complètement configuré pour ouvrir l'acompte.
+   */
+  moyens?: MoyenAcompte[];
+  /** Les comptes Mobile Money **complets** — un numéro sans titulaire n'est pas exposé. */
+  mobileMoney?: CompteMobileMoney[];
+  /** Consignes libres jointes à l'e-mail d'instructions, 500 caractères au plus. */
+  instructions?: string;
 }
+
+const LONGUEUR_MAXIMALE_INSTRUCTIONS = 500;
+
+/**
+ * Un numéro Mobile Money tel qu'on le lira dans un e-mail : séparateurs ôtés,
+ * « + » initial conservé. Le contrôle est de forme (8 à 15 chiffres, norme
+ * E.164) ; l'opérateur reste seul juge de l'existence du numéro.
+ */
+function normaliserNumero(brut: string): string | undefined {
+  const propre = brut.replace(/[\s.\-()]/g, "");
+  return /^\+?\d{8,15}$/.test(propre) ? propre : undefined;
+}
+
+interface LectureMobileMoney {
+  compte?: CompteMobileMoney;
+  etat: "absent" | "incomplet" | "defini";
+  /** Le numéro est présent mais n'a pas la forme d'un numéro. */
+  numeroInvalide: boolean;
+}
+
+function lireMobileMoney(
+  operateur: CompteMobileMoney["operateur"],
+  prefixe: string,
+  env: NodeJS.ProcessEnv,
+): LectureMobileMoney {
+  const brutNumero = optionnel(`${prefixe}_NUMERO`, env);
+  const titulaire = optionnel(`${prefixe}_TITULAIRE`, env);
+  const renseignes = [brutNumero, titulaire].filter((v) => v !== undefined).length;
+  const numero = brutNumero === undefined ? undefined : normaliserNumero(brutNumero);
+  const numeroInvalide = brutNumero !== undefined && numero === undefined;
+
+  if (renseignes === 0) return { etat: "absent", numeroInvalide: false };
+  if (renseignes < 2 || numeroInvalide) return { etat: "incomplet", numeroInvalide };
+  return { etat: "defini", numeroInvalide: false, compte: { operateur, numero: numero!, titulaire: titulaire! } };
+}
+
+const PREFIXES_MOBILE_MONEY: Record<CompteMobileMoney["operateur"], string> = {
+  wave: "ACOMPTE_WAVE",
+  "orange-money": "ACOMPTE_ORANGE_MONEY",
+};
 
 /**
  * La configuration de l'acompte par virement, fermée par défaut.
@@ -102,10 +157,66 @@ function chargerAcompte(env: NodeJS.ProcessEnv): ConfigAcompte {
   const etatCoordonnees: EtatCoordonneesBancaires =
     renseignes === 0 ? "absent" : renseignes === champs.length && ibanDeForme ? "defini" : "incomplet";
 
-  const actif = reclame && tauxExploitable && etatCoordonnees === "defini";
+  // Les moyens acceptés : le virement seul tant que rien n'est dit. Une valeur
+  // inconnue n'est jamais ignorée en silence — elle fermerait un moyen que
+  // quelqu'un croit ouvert, ou en ouvrirait un autre.
+  const brutMoyens = optionnel("ACOMPTE_MOYENS", env);
+  const nomsMoyens = brutMoyens
+    ? brutMoyens.split(",").map((m) => m.trim().toLowerCase()).filter(Boolean)
+    : ["virement"];
+  const moyensInconnus = nomsMoyens.filter((m) => !(MOYENS_ACOMPTE as readonly string[]).includes(m));
+  const moyens = [...new Set(nomsMoyens.filter((m): m is MoyenAcompte =>
+    (MOYENS_ACOMPTE as readonly string[]).includes(m)))];
+
+  const lectures = {
+    wave: lireMobileMoney("wave", PREFIXES_MOBILE_MONEY.wave, env),
+    "orange-money": lireMobileMoney("orange-money", PREFIXES_MOBILE_MONEY["orange-money"], env),
+  } as const;
+  const mobileMoney = (["wave", "orange-money"] as const)
+    .map((operateur) => lectures[operateur].compte)
+    .filter((compte): compte is CompteMobileMoney => compte !== undefined);
+
+  const brutInstructions = optionnel("ACOMPTE_INSTRUCTIONS", env);
+  const instructionsTropLongues =
+    brutInstructions !== undefined && brutInstructions.length > LONGUEUR_MAXIMALE_INSTRUCTIONS;
+
+  const virementPret = !moyens.includes("virement") || etatCoordonnees === "defini";
+  const mobilePret = (["wave", "orange-money"] as const).every(
+    (operateur) => !moyens.includes(operateur) || lectures[operateur].etat === "defini",
+  );
+  const actif =
+    reclame &&
+    tauxExploitable &&
+    moyens.length > 0 &&
+    moyensInconnus.length === 0 &&
+    !instructionsTropLongues &&
+    virementPret &&
+    mobilePret;
 
   if (reclame && !actif) {
     const manques: string[] = [];
+    if (moyensInconnus.length > 0) {
+      manques.push(
+        `ACOMPTE_MOYENS contient « ${moyensInconnus.join(", ")} » : seuls ${MOYENS_ACOMPTE.join(", ")} sont acceptés`,
+      );
+    } else if (moyens.length === 0) {
+      manques.push("ACOMPTE_MOYENS ne nomme aucun moyen de paiement");
+    }
+    if (instructionsTropLongues) {
+      manques.push(`ACOMPTE_INSTRUCTIONS dépasse ${LONGUEUR_MAXIMALE_INSTRUCTIONS} caractères`);
+    }
+    for (const operateur of ["wave", "orange-money"] as const) {
+      if (!moyens.includes(operateur)) continue;
+      const lecture = lectures[operateur];
+      const prefixe = PREFIXES_MOBILE_MONEY[operateur];
+      if (lecture.etat === "absent") {
+        manques.push(`${operateur} est accepté mais ${prefixe}_NUMERO et ${prefixe}_TITULAIRE sont absents`);
+      } else if (lecture.numeroInvalide) {
+        manques.push(`${prefixe}_NUMERO n'a pas la forme d'un numéro (8 à 15 chiffres)`);
+      } else if (lecture.etat === "incomplet") {
+        manques.push(`${prefixe}_NUMERO et ${prefixe}_TITULAIRE sont requis ensemble`);
+      }
+    }
     if (!tauxExploitable) {
       manques.push(
         brutPourcentage === undefined
@@ -113,12 +224,12 @@ function chargerAcompte(env: NodeJS.ProcessEnv): ConfigAcompte {
           : `ACOMPTE_POURCENTAGE vaut « ${brutPourcentage} », or le taux doit être un entier de 1 à 100`,
       );
     }
-    if (etatCoordonnees === "absent") {
+    if (!virementPret && etatCoordonnees === "absent") {
       manques.push(
         "aucune coordonnée bancaire n'est renseignée (ACOMPTE_BANQUE_TITULAIRE, " +
           "ACOMPTE_BANQUE_NOM, ACOMPTE_BANQUE_IBAN, ACOMPTE_BANQUE_BIC)",
       );
-    } else if (etatCoordonnees === "incomplet") {
+    } else if (!virementPret && etatCoordonnees === "incomplet") {
       manques.push(
         iban !== undefined && !ibanDeForme
           ? "ACOMPTE_BANQUE_IBAN n'a pas la forme d'un IBAN (15 à 34 caractères alphanumériques)"
@@ -138,6 +249,9 @@ function chargerAcompte(env: NodeJS.ProcessEnv): ConfigAcompte {
       etatCoordonnees === "defini"
         ? { titulaire: titulaire!, banque: banque!, iban: iban!, bic: bic! }
         : undefined,
+    moyens,
+    mobileMoney,
+    instructions: brutInstructions !== undefined && !instructionsTropLongues ? brutInstructions : undefined,
   };
 }
 

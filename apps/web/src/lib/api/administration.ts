@@ -14,8 +14,11 @@ import type {
   FiltresDemandesAdmin,
   MiseAJourDemandeAdmin,
   PageDemandesAdmin,
+  ResultatReceptionAcompte,
   SaisieCoordonneesAdmin,
+  SaisieReceptionAcompte,
   TableauDeBordAdmin,
+  VueAcompteAdmin,
 } from "@teranga/contracts";
 
 import { appelerApi } from "./http";
@@ -113,4 +116,45 @@ export function apiAdminVerifierCoordonnees(
     `/administration/demandes/${encodeURIComponent(id)}/coordonnees/verification`,
     { method: "POST", corps: { saisieLe }, headers: entetes(jeton) },
   );
+}
+
+/* ─────────────────────────────── Acompte ─────────────────────────────── */
+
+/**
+ * L'acompte d'une demande, tel que l'API le calcule. Aucun montant n'est
+ * recalculé ici : l'écran affiche ce que le serveur a décidé.
+ */
+const cheminAcompte = (id: string) => `/administration/demandes/${encodeURIComponent(id)}/acompte`;
+
+export function apiAdminAcompte(jeton: string, id: string): Promise<VueAcompteAdmin> {
+  return appelerApi<VueAcompteAdmin>(cheminAcompte(id), { headers: entetes(jeton) });
+}
+
+export function apiAdminPreparerAcompte(jeton: string, id: string) {
+  return appelerApi<{ issue: { etat: string }; vue: VueAcompteAdmin }>(`${cheminAcompte(id)}/preparation`, {
+    method: "POST",
+    headers: entetes(jeton),
+  });
+}
+
+export function apiAdminReceptionAcompte(jeton: string, id: string, saisie: SaisieReceptionAcompte) {
+  return appelerApi<{ resultat: ResultatReceptionAcompte; vue: VueAcompteAdmin }>(`${cheminAcompte(id)}/reception`, {
+    method: "POST",
+    corps: saisie,
+    headers: entetes(jeton),
+  });
+}
+
+export function apiAdminRenvoyerInstructions(jeton: string, id: string) {
+  return appelerApi<{ issue: string; vue: VueAcompteAdmin }>(`${cheminAcompte(id)}/instructions/renvoi`, {
+    method: "POST",
+    headers: entetes(jeton),
+  });
+}
+
+export function apiAdminRenvoyerConfirmation(jeton: string, id: string) {
+  return appelerApi<{ etat: string; vue: VueAcompteAdmin }>(`${cheminAcompte(id)}/reception/confirmation/renvoi`, {
+    method: "POST",
+    headers: entetes(jeton),
+  });
 }

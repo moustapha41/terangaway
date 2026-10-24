@@ -1,4 +1,4 @@
-import type { StatutAcompte, TypeEvenementAcompte } from "../enums";
+import type { StatutAcompte, StatutDemande, TypeEvenementAcompte } from "../enums";
 
 /**
  * Les coordonnées du compte qui reçoit les acomptes.
@@ -92,4 +92,98 @@ export interface EvenementAcompte {
   referenceTransaction?: string;
   commentaire?: string;
   creeLe: string;
+}
+
+/**
+ * Les moyens par lesquels un acompte peut être réglé, tous **manuels** : aucun
+ * ne passe par une passerelle ni une API de paiement. Le virement est le moyen
+ * historique ; Wave et Orange Money sont un transfert vers un numéro.
+ */
+export const MOYENS_ACOMPTE = ["virement", "wave", "orange-money"] as const;
+export type MoyenAcompte = (typeof MOYENS_ACOMPTE)[number];
+
+/** Un numéro Mobile Money qui reçoit des acomptes. Comme l'IBAN : jamais écrit dans le code. */
+export interface CompteMobileMoney {
+  operateur: Exclude<MoyenAcompte, "virement">;
+  /** Normalisé : chiffres, avec « + » en tête s'il a été saisi. */
+  numero: string;
+  /** Le nom du bénéficiaire, tel que l'opérateur l'affiche au payeur. */
+  titulaire: string;
+}
+
+/**
+ * Tout ce qu'un visiteur reçoit pour payer, tel que la configuration le porte.
+ * Réservé aux administrateurs : le visiteur, lui, le lit dans son e-mail.
+ */
+export interface CoordonneesPaiementAcompte {
+  moyens: MoyenAcompte[];
+  virement?: BeneficiaireAcompte;
+  mobileMoney: CompteMobileMoney[];
+  /** Consignes libres ajoutées à l'e-mail, 500 caractères au plus. */
+  instructions?: string;
+}
+
+/** Ce qu'un acompte donnerait si on l'ouvrait maintenant — rien n'est écrit. */
+export interface ApercuAcompte {
+  pourcentage: number;
+  montantTotal: number;
+  montantAttendu: number;
+  solde: number;
+}
+
+/** Comment un montant reçu se compare à ce qui reste dû. */
+export type SensEcartAcompte = "exact" | "inferieur" | "superieur";
+
+/** Ce que l'écran d'équipe affiche sur l'acompte d'une demande, en une lecture. */
+export interface VueAcompteAdmin {
+  /** Le verrou et la configuration permettent-ils de réclamer un acompte ? */
+  actif: boolean;
+  statutDemande: StatutDemande;
+  /** Absent tant qu'aucun dossier n'est ouvert. */
+  acompte?: Acompte;
+  /** Seulement sans dossier, acompte ouvert et demande éligible. */
+  apercu?: ApercuAcompte;
+  /** Ce qui reste à recevoir : attendu − reçu, jamais négatif. */
+  resteDu?: number;
+  /** Le solde de la réservation hors acompte : total − attendu. */
+  soldeApresAcompte?: number;
+  coordonnees?: CoordonneesPaiementAcompte;
+  journal: EvenementAcompte[];
+  /** Le nom à montrer pour chaque `acteurId` du journal. */
+  acteurs: Record<string, string>;
+  /** Ce que la machine à états permet maintenant — l'API reste juge à l'écriture. */
+  actions: {
+    preparer: boolean;
+    confirmerReception: boolean;
+    renvoyerInstructions: boolean;
+    renvoyerConfirmation: boolean;
+    deciderPaiementTardif: boolean;
+  };
+}
+
+/** Une réception à constater, saisie par la personne qui a relevé le compte. */
+export interface SaisieReceptionAcompte {
+  /** Le montant réellement reçu, en FCFA entiers. */
+  montant: number;
+  /**
+   * Le cumul reçu que l'écran affichait. S'il a changé entre-temps — un autre
+   * administrateur, un double clic —, la saisie est refusée plutôt que
+   * comptée deux fois.
+   */
+  montantRecuAvant: number;
+  referenceTransaction?: string;
+  commentaire?: string;
+  /** Obligatoire dès que le montant diffère du reste dû. */
+  ecartConfirme?: boolean;
+}
+
+export type EtatEnvoiAcompte = "envoye" | "echec" | "sans_destinataire" | "non_requis";
+
+export interface ResultatReceptionAcompte {
+  acompte: Acompte;
+  sens: SensEcartAcompte;
+  /** Montant reçu − reste dû avant cette réception. Négatif = il manque encore. */
+  ecart: number;
+  /** L'e-mail de confirmation : un échec ne défait jamais l'enregistrement. */
+  emailConfirmation: EtatEnvoiAcompte;
 }

@@ -9,7 +9,21 @@ export type {
 } from "./logement";
 export type { Chauffeur, Vehicule, CoordonneesVehicule } from "./vehicule";
 export type { EtapeFrise, Demande } from "./demande";
-export type { Acompte, BeneficiaireAcompte, EvenementAcompte } from "./acompte";
+export { MOYENS_ACOMPTE } from "./acompte";
+export type {
+  Acompte,
+  ApercuAcompte,
+  BeneficiaireAcompte,
+  CompteMobileMoney,
+  CoordonneesPaiementAcompte,
+  EtatEnvoiAcompte,
+  EvenementAcompte,
+  MoyenAcompte,
+  ResultatReceptionAcompte,
+  SaisieReceptionAcompte,
+  SensEcartAcompte,
+  VueAcompteAdmin,
+} from "./acompte";
 export {
   GENRES_DEMANDE,
   type GenreDemande,

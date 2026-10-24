@@ -2,9 +2,19 @@
 
 import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
-import type { CoordonneesAdmin, MiseAJourDemandeAdmin, SaisieCoordonneesAdmin } from "@teranga/contracts";
+import type {
+  CoordonneesAdmin,
+  MiseAJourDemandeAdmin,
+  SaisieCoordonneesAdmin,
+  SaisieReceptionAcompte,
+  VueAcompteAdmin,
+} from "@teranga/contracts";
 import {
   apiAdminMoi,
+  apiAdminPreparerAcompte,
+  apiAdminReceptionAcompte,
+  apiAdminRenvoyerConfirmation,
+  apiAdminRenvoyerInstructions,
   apiAdminSaisirCoordonnees,
   apiAdminTraiter,
   apiAdminVerifierCoordonnees,
@@ -184,4 +194,66 @@ export async function verifierCoordonneesAction(id: string, saisieLe: string): P
   } catch (erreur) {
     return refusCoordonnees(erreur);
   }
+}
+
+/* ─────────────────────────────── Acompte ─────────────────────────────── */
+
+export type ResultatAcompte =
+  | { succes: true; vue: VueAcompteAdmin; info?: string }
+  | { succes: false; code: string; message: string };
+
+function refusAcompte(erreur: unknown): ResultatAcompte {
+  if (erreur instanceof ErreurApi) return { succes: false, code: erreur.code, message: erreur.message };
+  return { succes: false, code: "INJOIGNABLE", message: "Le serveur n'a pas répondu." };
+}
+
+/**
+ * Chaque action relit la session côté serveur et laisse l'API juge : le
+ * montant attendu, l'écart, la concurrence et les droits y sont décidés. Cet
+ * écran n'envoie que ce que la personne a lu sur le compte.
+ */
+async function agirSurAcompte(
+  id: string,
+  action: (jeton: string) => Promise<{ vue: VueAcompteAdmin; info?: string }>,
+): Promise<ResultatAcompte> {
+  const jeton = (await cookies()).get(COOKIE_ADMIN)?.value;
+  if (!jeton) return { succes: false, code: "NON_AUTHENTIFIE", message: "Session expirée." };
+  try {
+    const { vue, info } = await action(jeton);
+    revalidatePath(`/admin/demandes/${id}`);
+    return { succes: true, vue, info };
+  } catch (erreur) {
+    return refusAcompte(erreur);
+  }
+}
+
+export async function preparerAcompteAction(id: string): Promise<ResultatAcompte> {
+  return agirSurAcompte(id, async (jeton) => {
+    const { issue, vue } = await apiAdminPreparerAcompte(jeton, id);
+    return { vue, info: issue.etat };
+  });
+}
+
+export async function saisirReceptionAction(
+  id: string,
+  saisie: SaisieReceptionAcompte,
+): Promise<ResultatAcompte> {
+  return agirSurAcompte(id, async (jeton) => {
+    const { resultat, vue } = await apiAdminReceptionAcompte(jeton, id, saisie);
+    return { vue, info: resultat.emailConfirmation };
+  });
+}
+
+export async function renvoyerInstructionsAction(id: string): Promise<ResultatAcompte> {
+  return agirSurAcompte(id, async (jeton) => {
+    const { issue, vue } = await apiAdminRenvoyerInstructions(jeton, id);
+    return { vue, info: issue };
+  });
+}
+
+export async function renvoyerConfirmationAction(id: string): Promise<ResultatAcompte> {
+  return agirSurAcompte(id, async (jeton) => {
+    const { etat, vue } = await apiAdminRenvoyerConfirmation(jeton, id);
+    return { vue, info: etat };
+  });
 }

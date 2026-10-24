@@ -123,7 +123,58 @@ export interface ContexteAcompte {
   emailVisiteur?: string;
 }
 
+/** Ce que le dépôt sait d'une demande, sans l'écrire ni la déformer. */
+export interface LectureDemandePourAcompte {
+  statutDemande: StatutDemande;
+  /** Le genre fin, tel que la base le porte : `service`, `logement`, `taxi`… */
+  genre: string;
+  prixTotal: number;
+  reference: string;
+}
+
+/** Une réception à constater : tout ce que la transaction doit trancher seule. */
+export interface EntreeReceptionAcompte {
+  acompteId: string;
+  /** FCFA entiers, strictement positifs. */
+  montant: number;
+  /** Le cumul que l'appelant a lu. S'il a bougé, l'écriture est refusée. */
+  montantRecuAvant: number;
+  /** La personne qui a relevé le compte. Jamais le système. */
+  acteurId: string;
+  referenceTransaction?: string;
+  commentaire?: string;
+  /** L'écart (montant ≠ reste dû) a été reconnu par la personne. */
+  ecartConfirme: boolean;
+}
+
+export type SensReception = "exact" | "inferieur" | "superieur";
+
+export interface ResultatReceptionDepot {
+  acompte: Acompte;
+  sens: SensReception;
+  /** Montant reçu − reste dû avant la réception. */
+  ecart: number;
+  /** `true` quand l'acompte était expiré : la réception est consignée, le statut intact. */
+  tardive: boolean;
+}
+
 export interface DepotAcomptes {
+  /** Le nom à montrer pour chaque identifiant d'acteur du journal : nom, sinon adresse. */
+  nomsActeurs(ids: readonly string[]): Promise<Record<string, string>>;
+  /** La demande derrière un identifiant, pour décider d'ouvrir un dossier. */
+  lireDemande(demandeId: string): Promise<LectureDemandePourAcompte | null>;
+  /**
+   * Constate un versement reçu, **en une transaction** : verrou sur le dossier
+   * et sur la demande, cumul relu, écart jugé, statut posé, journal écrit.
+   *
+   * Deux administrateurs qui valident en même temps, ou un double clic, ne
+   * comptent pas deux fois : la seconde saisie porte un cumul périmé et
+   * reçoit un conflit. Une référence de transaction déjà consignée est
+   * refusée. Un écart sans reconnaissance explicite l'est aussi.
+   *
+   * Ne touche jamais le statut de la demande.
+   */
+  enregistrerReception(entree: EntreeReceptionAcompte): Promise<ResultatReceptionDepot>;
   /**
    * Ouvre le dossier d'acompte d'une demande, ou rend celui qui existe.
    *

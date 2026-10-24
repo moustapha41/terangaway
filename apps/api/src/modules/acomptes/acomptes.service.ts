@@ -1,11 +1,21 @@
 import { HttpStatus, Inject, Injectable, Logger, Optional } from "@nestjs/common";
-import type { Acompte, Demande } from "@teranga/contracts";
+import type {
+  Acompte,
+  Demande,
+  EtatEnvoiAcompte,
+  ResultatReceptionAcompte,
+  SaisieReceptionAcompte,
+  StatutDemande,
+  VueAcompteAdmin,
+} from "@teranga/contracts";
 
 import { DEPOT_ACOMPTES } from "../../commun/depots/depot";
 import { ServiceEmail } from "../../commun/email/email.service";
 import { ErreurMetier, introuvable } from "../../commun/erreurs";
 import { config, type ConfigAcompte } from "../../config/configuration";
 import { STATUTS_DEMANDE_PAYABLES, type DepotAcomptes } from "./acomptes.depot";
+import { genreEligibleAcompte, montantAcompte } from "./calcul";
+import { coordonneesPaiement } from "./paiement";
 
 /**
  * La configuration de l'acompte, injectable pour les tests.
@@ -53,6 +63,20 @@ export type IssueFinDeDemande =
 
 /** Les fins de demande qui closent l'acompte. */
 export type FinDeDemande = "expiree" | "annulee" | "refusee";
+
+/**
+ * Le statut de la demande, dit au visiteur : le seul fait que l'e-mail de
+ * réception puisse affirmer sur la réservation — celui que la base porte.
+ */
+const STATUT_RESERVATION: Record<StatutDemande, string> = {
+  envoyee: "demande envoyée, en attente de réponse du propriétaire",
+  acceptee: "acceptée par le propriétaire, pas encore confirmée",
+  confirmee: "confirmée",
+  terminee: "terminée",
+  refusee: "refusée",
+  expiree: "expirée",
+  annulee: "annulée",
+};
 
 export interface DecisionPaiementTardif {
   /** Accepter le paiement, ou le rendre. */
@@ -103,15 +127,55 @@ export class ServiceAcomptes {
    * `accepteeLe` est l'instant de l'acceptation : l'échéance se compte de là.
    */
   async preparer(demande: Demande, accepteeLe: Date): Promise<IssuePreparation> {
+    return this.preparerPour(
+      {
+        id: demande.id,
+        reference: demande.reference,
+        statut: demande.statut,
+        genre: demande.offre.genre,
+        total: demande.prix.total,
+      },
+      accepteeLe,
+    );
+  }
+
+  /**
+   * Ouvre le dossier d'une demande déjà acceptée, à la demande de l'équipe.
+   *
+   * Pour le cas où l'acompte n'était pas ouvert à l'acceptation : la demande
+   * est relue en base, jamais prise d'un navigateur. Mêmes règles que
+   * `preparer`, qui reste la seule à décider.
+   */
+  async ouvrir(demandeId: string): Promise<IssuePreparation> {
+    const demande = await this.depot.lireDemande(demandeId);
+    if (!demande) throw introuvable("Demande");
+    return this.preparerPour(
+      {
+        id: demandeId,
+        reference: demande.reference,
+        statut: demande.statutDemande,
+        genre: demande.genre,
+        total: demande.prixTotal,
+      },
+      new Date(),
+    );
+  }
+
+  private async preparerPour(
+    demande: { id: string; reference: string; statut: StatutDemande; genre: string; total: number },
+    accepteeLe: Date,
+  ): Promise<IssuePreparation> {
     try {
-      const { actif, pourcentage, beneficiaire } = this.configAcompte;
-      if (!actif || pourcentage === undefined || !beneficiaire) return { etat: "desactive" };
+      const { actif, pourcentage } = this.configAcompte;
+      if (!actif || pourcentage === undefined || !coordonneesPaiement(this.configAcompte)) {
+        return { etat: "desactive" };
+      }
 
       if (demande.statut !== "acceptee") return { etat: "statut_incompatible" };
       // Le contrat ne distingue pas location, trajet et taxi : c'est le dépôt,
       // qui lit le genre en base, qui tranche pour un véhicule.
-      if (demande.offre.genre === "service") return { etat: "non_eligible" };
-      if (demande.prix.total <= 0) return { etat: "montant_nul" };
+      if (demande.genre === "service") return { etat: "non_eligible" };
+      if (demande.total <= 0) return { etat: "montant_nul" };
 
       let preparation;
       try {
@@ -154,17 +218,25 @@ export class ServiceAcomptes {
    * être renvoyé. L'inverse — marquer d'abord — transformerait un e-mail perdu
    * en paiement jamais réclamé.
    */
-  async envoyerInstructions(acompteId: string): Promise<IssueInstructions> {
-    const { beneficiaire, actif } = this.configAcompte;
+  async envoyerInstructions(
+    acompteId: string,
+    options: { renvoi?: { acteurId: string } } = {},
+  ): Promise<IssueInstructions> {
+    const { actif } = this.configAcompte;
+    const coordonnees = coordonneesPaiement(this.configAcompte);
     const contexte = await this.depot.contexte(acompteId);
     if (!contexte) throw introuvable("Acompte");
     const { acompte } = contexte;
+    const renvoi = options.renvoi;
 
-    if (acompte.instructionsEnvoyeesLe) return "deja_envoyees";
-    if (acompte.statut !== "en_attente") return "non_requises";
+    // Un renvoi est un geste explicite de l'équipe : il passe outre le marqueur
+    // « déjà parties », mais jamais outre l'état du dossier.
+    if (acompte.instructionsEnvoyeesLe && !renvoi) return "deja_envoyees";
+    const attendu = renvoi ? ["en_attente", "partiel"] : ["en_attente"];
+    if (!attendu.includes(acompte.statut)) return "non_requises";
     // Le verrou peut s'être refermé entre la préparation et l'envoi : on ne
     // réclame rien sans lui.
-    if (!actif || !beneficiaire) return "non_requises";
+    if (!actif || !coordonnees) return "non_requises";
 
     if (!contexte.emailVisiteur) {
       this.logger.error(`Acompte de ${contexte.reference} : aucune adresse visiteur.`);
@@ -184,20 +256,36 @@ export class ServiceAcomptes {
         acompte: formaterFrancs(acompte.montantAttendu),
         pourcentage: acompte.pourcentageApplique,
         echeance: heureDeDakar(acompte.echeanceLe),
-        beneficiaire,
+        beneficiaire: coordonnees.virement,
+        mobileMoney: coordonnees.mobileMoney,
+        instructions: coordonnees.instructions,
       },
-      { cleIdempotence: `acompte-instructions-${acompte.id}` },
+      {
+        // Le renvoi a sa propre clé, à la minute : un double clic ne double pas
+        // l'envoi, mais un second renvoi voulu, plus tard, part bien.
+        cleIdempotence: renvoi
+          ? `acompte-instructions-${acompte.id}-renvoi-${minuteCourante()}`
+          : `acompte-instructions-${acompte.id}`,
+      },
     );
 
     if (!resultat.envoye) {
       await this.depot.consigner(acompteId, {
         type: "envoi_echoue",
+        acteurId: renvoi?.acteurId,
         commentaire: `${resultat.erreur ?? "erreur inconnue"} (${resultat.tentatives} tentative(s))`,
       });
       return "echec";
     }
 
     await this.depot.marquerInstructionsEnvoyees(acompteId);
+    if (renvoi) {
+      await this.depot.consigner(acompteId, {
+        type: "instructions_envoyees",
+        acteurId: renvoi.acteurId,
+        commentaire: "Instructions renvoyées à la demande de l'équipe.",
+      });
+    }
     return "envoyees";
   }
 
@@ -331,6 +419,198 @@ export class ServiceAcomptes {
   }
 
   /**
+   * Tout ce que l'écran d'équipe affiche sur l'acompte d'une demande.
+   *
+   * Lecture seule. Les drapeaux d'`actions` disent ce que la machine à états
+   * permet maintenant ; chaque écriture les revérifie, dans sa transaction.
+   */
+  async lireVue(demandeId: string): Promise<VueAcompteAdmin> {
+    const demande = await this.depot.lireDemande(demandeId);
+    if (!demande) throw introuvable("Demande");
+
+    const acompte = (await this.depot.parDemande(demandeId)) ?? undefined;
+    const journal = acompte ? await this.depot.journal(acompte.id) : [];
+    const ids = [...new Set(journal.map((e) => e.acteurId).filter((id): id is string => !!id))];
+    const acteurs = await this.depot.nomsActeurs(ids);
+
+    const coordonnees = coordonneesPaiement(this.configAcompte);
+    const { pourcentage } = this.configAcompte;
+    const actif = this.configAcompte.actif && pourcentage !== undefined && coordonnees !== undefined;
+    const payable = (STATUTS_DEMANDE_PAYABLES as readonly string[]).includes(demande.statutDemande);
+
+    let apercu: VueAcompteAdmin["apercu"];
+    if (!acompte && actif && genreEligibleAcompte(demande.genre) && demande.prixTotal > 0) {
+      const montantAttendu = montantAcompte(demande.prixTotal, pourcentage!);
+      apercu = {
+        pourcentage: pourcentage!,
+        montantTotal: demande.prixTotal,
+        montantAttendu,
+        solde: demande.prixTotal - montantAttendu,
+      };
+    }
+
+    const statut = acompte?.statut;
+    return {
+      actif,
+      statutDemande: demande.statutDemande,
+      acompte,
+      apercu,
+      resteDu: acompte ? Math.max(acompte.montantAttendu - acompte.montantRecu, 0) : undefined,
+      soldeApresAcompte: acompte ? Math.max(acompte.montantTotal - acompte.montantAttendu, 0) : undefined,
+      // Visibles à l'équipe seule, jamais au visiteur ni dans un journal.
+      coordonnees: acompte || actif ? coordonnees : undefined,
+      journal,
+      acteurs,
+      actions: {
+        preparer: !acompte && apercu !== undefined && demande.statutDemande === "acceptee",
+        confirmerReception:
+          statut === "expire" || ((statut === "en_attente" || statut === "partiel") && payable),
+        renvoyerInstructions: actif && (statut === "en_attente" || statut === "partiel"),
+        renvoyerConfirmation: (statut === "paye" || statut === "partiel") && (acompte?.montantRecu ?? 0) > 0,
+        deciderPaiementTardif: statut === "expire" && (acompte?.montantRecu ?? 0) > 0,
+      },
+    };
+  }
+
+  /**
+   * Constate un versement qu'une personne a vérifié sur le compte, et prévient
+   * le visiteur.
+   *
+   * La déclaration d'un client, une
+   * capture d'écran ne passent par aucune de ces lignes. Le montant vient de
+   * la personne, le contrôle d'écart, la concurrence et le statut du dépôt.
+   *
+   * L'e-mail part **après** l'enregistrement et ne l'annule jamais : son échec
+   * est consigné et le renvoi (`renvoyerConfirmation`) ne compte rien de plus.
+   */
+  async confirmerReception(
+    demandeId: string,
+    saisie: SaisieReceptionAcompte,
+    acteurId: string,
+  ): Promise<ResultatReceptionAcompte> {
+    const dossier = await this.depot.parDemande(demandeId);
+    if (!dossier) throw introuvable("Acompte");
+
+    const resultat = await this.depot.enregistrerReception({
+      acompteId: dossier.id,
+      montant: saisie.montant,
+      montantRecuAvant: saisie.montantRecuAvant,
+      acteurId,
+      referenceTransaction: saisie.referenceTransaction,
+      commentaire: saisie.commentaire,
+      ecartConfirme: saisie.ecartConfirme === true,
+    });
+
+    // Reçu après l'échéance : l'argent est consigné, la décision reste à
+    // prendre (`deciderPaiementTardif`). Écrire « reçu et vérifié » au
+    // visiteur maintenant lui promettrait une réservation qu'on n'a pas décidée.
+    const emailConfirmation: EtatEnvoiAcompte = resultat.tardive
+      ? "non_requis"
+      : await this.envoyerConfirmation(dossier.id, undefined);
+
+    return {
+      acompte: resultat.acompte,
+      sens: resultat.sens,
+      ecart: resultat.ecart,
+      emailConfirmation,
+    };
+  }
+
+  /**
+   * Renvoie l'e-mail de réception, sans rien compter : le cumul ne bouge pas.
+   * Seuls un dossier payé ou partiel, avec de l'argent réellement constaté,
+   * en ont un à renvoyer.
+   */
+  async renvoyerConfirmation(demandeId: string, acteurId: string): Promise<EtatEnvoiAcompte> {
+    const dossier = await this.depot.parDemande(demandeId);
+    if (!dossier) throw introuvable("Acompte");
+    if (!(dossier.statut === "paye" || dossier.statut === "partiel") || dossier.montantRecu <= 0) {
+      throw new ErreurMetier(
+        "ACOMPTE_RIEN_A_CONFIRMER",
+        `L'acompte est « ${dossier.statut} » avec ${dossier.montantRecu} FCFA reçus : aucune confirmation à renvoyer.`,
+        HttpStatus.CONFLICT,
+      );
+    }
+    return this.envoyerConfirmation(dossier.id, { acteurId });
+  }
+
+  /** Renvoie les instructions de paiement d'un dossier encore attendu. */
+  async renvoyerInstructionsPourDemande(demandeId: string, acteurId: string): Promise<IssueInstructions> {
+    const dossier = await this.depot.parDemande(demandeId);
+    if (!dossier) throw introuvable("Acompte");
+    return this.envoyerInstructions(dossier.id, { renvoi: { acteurId } });
+  }
+
+  /**
+   * L'e-mail « reçu et vérifié », composé de l'état **enregistré** : cumul,
+   * reste et statut de la demande viennent de la base, pas de l'appelant.
+   * Ne lève jamais.
+   */
+  private async envoyerConfirmation(
+    acompteId: string,
+    renvoi: { acteurId: string } | undefined,
+  ): Promise<EtatEnvoiAcompte> {
+    try {
+      const contexte = await this.depot.contexte(acompteId);
+      if (!contexte) return "echec";
+      const { acompte } = contexte;
+
+      if (!contexte.emailVisiteur) {
+        await this.depot.consigner(acompteId, {
+          type: "envoi_echoue",
+          acteurId: renvoi?.acteurId,
+          commentaire: "Confirmation de réception : aucune adresse e-mail sur le compte du visiteur.",
+        });
+        return "sans_destinataire";
+      }
+
+      const journal = await this.depot.journal(acompteId);
+      const derniere = [...journal].reverse().find((e) => e.type === "reception_confirmee");
+      const versement = derniere?.montant ?? acompte.montantRecu;
+
+      const reste = acompte.montantAttendu - acompte.montantRecu;
+      const resultat = await this.email.envoyerReceptionAcompte(
+        contexte.emailVisiteur,
+        {
+          reference: contexte.reference,
+          titre: contexte.titre,
+          montantRecu: formaterFrancs(versement),
+          cumulRecu: formaterFrancs(acompte.montantRecu),
+          acompteAttendu: formaterFrancs(acompte.montantAttendu),
+          resteAcompte: reste > 0 ? formaterFrancs(reste) : undefined,
+          surplus: reste < 0 ? formaterFrancs(-reste) : undefined,
+          soldeSejour: formaterFrancs(Math.max(acompte.montantTotal - acompte.montantAttendu, 0)),
+          dateValidation: heureDeDakar(derniere?.creeLe ?? acompte.misAJourLe),
+          statutReservation: STATUT_RESERVATION[contexte.statutDemande],
+          reservationConfirmee: contexte.statutDemande === "confirmee",
+        },
+        {
+          // Une confirmation automatique est rejouable à l'identique ; un
+          // renvoi voulu a sa clé, à la minute.
+          cleIdempotence: renvoi
+            ? `acompte-reception-${acompteId}-${acompte.montantRecu}-renvoi-${minuteCourante()}`
+            : `acompte-reception-${acompteId}-${acompte.montantRecu}`,
+        },
+      );
+
+      if (!resultat.envoye) {
+        await this.depot.consigner(acompteId, {
+          type: "envoi_echoue",
+          acteurId: renvoi?.acteurId,
+          commentaire: `Confirmation de réception non envoyée : ${resultat.erreur ?? "erreur inconnue"} (${resultat.tentatives} tentative(s))`,
+        });
+        return "echec";
+      }
+      return "envoye";
+    } catch (erreur) {
+      this.logger.error(
+        `Confirmation de réception de l'acompte ${acompteId} non envoyée : ${(erreur as Error)?.message}`,
+      );
+      return "echec";
+    }
+  }
+
+  /**
    * Consigne un remboursement **déjà exécuté** par une personne.
    *
    * Rien ne part d'ici : aucune banque n'est appelée. C'est le constat qui
@@ -349,6 +629,11 @@ export class ServiceAcomptes {
       },
     );
   }
+}
+
+/** Un numéro de minute : sépare un double clic d'un second renvoi voulu. */
+function minuteCourante(): number {
+  return Math.floor(Date.now() / 60_000);
 }
 
 function codeMetier(erreur: unknown): string | undefined {
