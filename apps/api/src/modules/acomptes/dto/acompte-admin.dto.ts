@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
-import { IsBoolean, IsIn, IsInt, IsOptional, IsString, Max, MaxLength, Min } from "class-validator";
+import { IsBoolean, IsIn, IsInt, IsOptional, IsString, Max, MaxLength, Min, MinLength } from "class-validator";
 
 /**
  * Une réception à constater.
@@ -48,4 +48,32 @@ export class DeciderPaiementTardifDto {
   @IsString()
   @MaxLength(500)
   commentaire!: string;
+}
+
+export class DeciderRemboursementDto {
+  @ApiProperty({ description: "Pourquoi l'acompte est rendu. Obligatoire." })
+  @IsString()
+  @MinLength(3)
+  @MaxLength(500)
+  commentaire!: string;
+}
+
+export class ConstaterRemboursementDto {
+  @ApiProperty({ description: "Montant rendu, en FCFA entiers : la totalité du cumul reçu." })
+  @IsInt()
+  @Min(1)
+  @Max(1_000_000_000)
+  montant!: number;
+
+  @ApiPropertyOptional({ description: "Référence du transfert effectué hors plateforme." })
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  referenceTransaction?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  commentaire?: string;
 }

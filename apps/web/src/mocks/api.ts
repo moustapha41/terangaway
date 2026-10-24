@@ -222,7 +222,7 @@ export const CODE_DE_DEMONSTRATION = "123456";
  * Envoie une demande.
  *
  * Le prix est **figé ici** et ne bouge plus : c'est la règle de l'étape 4 (§B.2).
- * Aucun paiement n'est demandé, à aucun moment.
+ * Aucun paiement n'est demandé à l'envoi ; un éventuel acompte ne vient qu'après acceptation.
  */
 export async function envoyerDemande(
   entree: EntreeDemande,
@@ -449,7 +449,9 @@ export async function confirmerDemande(id: string): Promise<Demande | null> {
   if (!apiMockActive()) {
     try {
       return await apiConfirmerDemande(id);
-    } catch {
+    } catch (e) {
+      if (e instanceof ErreurApi && e.code === "ACOMPTE_NON_PAYE") throw new AcomptePasPaye();
+      if (e instanceof ErreurApi && e.code === "OFFRE_DEJA_CONFIRMEE") throw new OffreDejaConfirmee();
       return null;
     }
   }
@@ -602,6 +604,28 @@ export type BesoinTransport = "trajet" | "location" | "taxi";
 
 /** Une prise en charge demandée à moins de deux heures est refusée (§B.3). */
 export const DELAI_MINIMUM_HEURES = 2;
+
+/**
+ * Un acompte a été demandé et sa réception n'est pas vérifiée : la réservation
+ * ne peut pas être confirmée. Distinct d'une panne — le visiteur doit le lire.
+ */
+export class AcomptePasPaye extends Error {
+  constructor() {
+    super("L'acompte demandé n'est pas encore vérifié.");
+    this.name = "AcomptePasPaye";
+  }
+}
+
+/**
+ * Une autre réservation confirmée occupe déjà cette offre sur des dates qui recouvrent
+ * les siennes. Distinct d'une panne : le visiteur doit le lire, pas voir un bouton muet.
+ */
+export class OffreDejaConfirmee extends Error {
+  constructor() {
+    super("Cette offre est déjà confirmée pour des dates qui recouvrent les vôtres.");
+    this.name = "OffreDejaConfirmee";
+  }
+}
 
 export class DelaiTropCourt extends Error {
   constructor() {

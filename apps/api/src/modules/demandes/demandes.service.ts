@@ -138,11 +138,9 @@ export class ServiceDemandes {
     };
 
     if (vers === "acceptee") {
-      const genre =
-        demande.offre.genre === "logement"
-          ? "logement"
-          : "trajet";
-      miseAJour.expireLe = expireConfirmationPour(genre);
+      // Depuis l'instant d'acceptation inscrit dans la frise, pas depuis « maintenant » :
+      // l'échéance de l'acompte part du même instant, et les deux restent d'accord.
+      miseAJour.expireLe = expireConfirmationPour(await this.genreDeConfirmation(demande), horodatage);
     } else if (vers === "confirmee") {
       // Aucune coordonnée n'est fabriquée ici : elles sont saisies et
       // vérifiées par l'équipe. Une demande se confirme sans elles, et la
@@ -155,6 +153,16 @@ export class ServiceDemandes {
     } else if (vers === "annulee" || vers === "expiree" || vers === "terminee") {
       miseAJour.expireLe = undefined;
       if (vers !== "terminee") miseAJour.coordonnees = undefined;
+    }
+
+    // Un acompte demandé doit être payé et vérifié avant toute confirmation. La
+    // table n'autorise que le visiteur à confirmer ; ce contrôle s'applique à
+    // lui, et à quiconque pourrait un jour le faire.
+    if (vers === "confirmee") {
+      // L'offre d'abord : dire « déjà confirmée » à qui n'a pas payé vaut mieux que
+      // « payez d'abord ». Indépendant de l'acompte, qui peut être fermé.
+      await this.depot.exigerOffreLibre?.(id);
+      if (this.acomptes) await this.acomptes.exigerPaiementVerifie(id);
     }
 
     // Conditionnelle au statut lu : si une autre transition est passée entre
@@ -186,6 +194,29 @@ export class ServiceDemandes {
     }
 
     return enregistree;
+  }
+
+  /**
+   * Le genre dont la demande acceptée reçoit la fenêtre de confirmation.
+   *
+   * Le contrat visiteur ne distingue que `logement` et `vehicule` ; la base
+   * porte le genre fin. **Seule la location avec chauffeur** a sa propre
+   * fenêtre (12 h, `DELAIS.location`) : un véhicule loué à la journée se
+   * confirme comme un logement, pas à la course.
+   *
+   * Tout le reste reçoit **le délai du trajet (3 h)**, et deux de ces cas
+   * s'écartent de `DELAIS` — voir « Écarts connus » dans `delais.ts` : le taxi
+   * (15 min déclarées) et le service (12 h déclarées). Ils sont laissés tels
+   * quels tant que leur règle n'est pas tranchée, et un test fige cet état.
+   *
+   * Le véhicule n'est bloqué par aucun code ici : la fenêtre ne fait qu'allonger
+   * le temps avant l'expiration de la demande, donc celui pendant lequel le
+   * partenaire doit garder le véhicule libre.
+   */
+  private async genreDeConfirmation(demande: Demande): Promise<"logement" | "location" | "trajet"> {
+    if (demande.offre.genre === "logement") return "logement";
+    const fin = await this.depot.genreDe?.(demande.id);
+    return fin === "location" ? "location" : "trajet";
   }
 
   confirmer(id: string): Promise<Demande> {

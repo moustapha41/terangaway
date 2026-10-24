@@ -24,6 +24,7 @@ import { defineConfig } from "vitest/config";
  */
 export const TESTS_INTEGRATION = [
   "src/modules/acomptes/acomptes.prisma.test.ts",
+  "src/modules/acomptes/acomptes.integrite.prisma.test.ts",
   "src/modules/acomptes/acomptes.reception.prisma.test.ts",
   "src/modules/acomptes/acomptes.service.prisma.test.ts",
   "src/modules/comptes/comptes.prisma.test.ts",
@@ -34,6 +35,7 @@ export const TESTS_INTEGRATION = [
   "src/modules/comptes/securite-posture.test.ts",
   "src/modules/demandes/coordonnees.prisma.test.ts",
   "src/modules/demandes/demandes.prisma.test.ts",
+  "src/modules/demandes/offre-deja-confirmee.prisma.test.ts",
   "src/modules/demandes/transitions-concurrentes.prisma.test.ts",
   "src/modules/reponses/reponses.prisma.test.ts",
 ];

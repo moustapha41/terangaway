@@ -161,3 +161,46 @@ describe("ServiceEmail — envoi des instructions, erreurs et tentatives", () =>
     expect(resultat).toEqual({ envoye: false, tentatives: 0, erreur: "resend_non_configure" });
   });
 });
+
+
+describe("Accusé de demande — le moyen annoncé suit la configuration", () => {
+  const base = { reference: "TW-123456", titre: "Villa", urlSite: "https://exemple.sn" };
+  const avec = (moyens?: readonly ("virement" | "wave" | "orange-money")[]) =>
+    genererEmailDemande({ ...base, acompte: { pourcentage: 30, delaiHeures: 12, moyens } });
+  const texte = (m: { texte: string }) => m.texte.replace(/\s+/g, " ");
+
+  it("annonce le virement seul quand rien n'est précisé (comportement historique)", () => {
+    expect(texte(avec())).toContain("par virement bancaire, à régler sous 12 heures");
+  });
+
+  it("n'annonce que les moyens réellement configurés", () => {
+    expect(texte(avec(["wave"]))).toContain("par Wave, à régler");
+    expect(texte(avec(["wave"]))).not.toContain("virement");
+    expect(texte(avec(["virement", "wave"]))).toContain("par virement bancaire ou Wave, à régler");
+    expect(texte(avec(["virement", "wave", "orange-money"]))).toContain(
+      "par virement bancaire, Wave ou Orange Money, à régler",
+    );
+    const html = avec(["wave", "orange-money"]).html.replace(/&nbsp;/g, " ").replace(/\s+/g, " ");
+    expect(html).toContain("par Wave ou Orange Money, à régler");
+  });
+
+  it("dit que l'acompte se règle à Teranga Way, avec les seules coordonnées des instructions", () => {
+    expect(texte(avec())).toContain("Il se règle à Teranga Way, uniquement avec les coordonnées de cet e-mail");
+    expect(avec().html.replace(/\s+/g, " ")).toContain("Il se règle à Teranga Way");
+  });
+
+  it("ne promet toujours rien de payé ni de confirmé", () => {
+    const t = avec(["virement", "wave"]).texte;
+    expect(t).toContain("Rien n'est payé pour l'instant");
+    expect(t).not.toMatch(/paiement (a été |est )?(bien )?reçu\b/i);
+    expect(t).not.toMatch(/réservation (est )?confirmée/i);
+  });
+});
+
+describe("E-mail d'instructions — le partenaire n'encaisse pas", () => {
+  it("interdit de verser l'acompte directement au propriétaire", () => {
+    const { texte, html } = genererEmailInstructionsAcompte(INSTRUCTIONS);
+    expect(texte).toContain("ne le versez jamais directement au propriétaire");
+    expect(html.replace(/&nbsp;/g, " ").replace(/\s+/g, " ")).toContain("ne le versez jamais directement au propriétaire");
+  });
+});

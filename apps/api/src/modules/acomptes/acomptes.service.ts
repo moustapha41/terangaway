@@ -15,6 +15,7 @@ import { ErreurMetier, introuvable } from "../../commun/erreurs";
 import { config, type ConfigAcompte } from "../../config/configuration";
 import { STATUTS_DEMANDE_PAYABLES, type DepotAcomptes } from "./acomptes.depot";
 import { genreEligibleAcompte, montantAcompte } from "./calcul";
+import { acompteNonPaye } from "./erreurs";
 import { coordonneesPaiement } from "./paiement";
 
 /**
@@ -49,6 +50,12 @@ export type IssuePreparation =
    * virement dont l'échéance est déjà passée.
    */
   | { etat: "echeance_invalide" }
+  /**
+   * Une autre demande confirmée occupe déjà cette offre sur des dates qui recouvrent
+   * les siennes. Aucun dossier n'est ouvert et aucune instruction n'est envoyée :
+   * réclamer un acompte pour une offre prise, c'est encaisser pour rien.
+   */
+  | { etat: "offre_deja_confirmee" }
   | { etat: "prepare"; acompteId: string; cree: boolean; instructions: IssueInstructions }
   | { etat: "erreur"; message: string };
 
@@ -176,6 +183,14 @@ export class ServiceAcomptes {
       // qui lit le genre en base, qui tranche pour un véhicule.
       if (demande.genre === "service") return { etat: "non_eligible" };
       if (demande.total <= 0) return { etat: "montant_nul" };
+
+      // Un dossier déjà ouvert reste ce qu'il est — la préparation est idempotente et
+      // ne reprend pas ce qui a été annoncé. Seule une ouverture *nouvelle* est refusée
+      // quand l'offre est prise. Ce contrôle évite d'encaisser pour rien ; la garde
+      // qui fait foi est celle de la confirmation, sous verrou.
+      if (!(await this.depot.parDemande(demande.id)) && (await this.depot.offreDejaConfirmee(demande.id))) {
+        return { etat: "offre_deja_confirmee" };
+      }
 
       let preparation;
       try {
@@ -322,16 +337,24 @@ export class ServiceAcomptes {
       }
 
       if (acompte.statut === "partiel") {
-        await this.depot.changerStatut(
-          acompte.id,
-          { de: "partiel", vers: "a_rembourser" },
-          {
+        try {
+          // Le montant du journal est relu sous verrou : il est celui du dossier
+          // au moment de la décision, pas celui qu'on a lu une ligne plus haut.
+          const rendu = await this.depot.declarerARembourser({
+            acompteId: acompte.id,
+            depuisStatuts: ["partiel"],
             type: "annulation",
-            montant: acompte.montantRecu,
-            commentaire: `Demande ${fin} : ${acompte.montantRecu} FCFA déjà reçus sont à rembourser.`,
-          },
-        );
-        return { etat: "a_rembourser", montantRecu: acompte.montantRecu };
+            commentaire: `Demande ${fin} : l'argent déjà reçu est à rembourser.`,
+          });
+          return { etat: "a_rembourser", montantRecu: rendu.montantRecu };
+        } catch (erreur) {
+          // Le dossier a changé entre la lecture et le verrou (un complément a
+          // fini de le payer) : il ne part pas d'office, et l'écran d'équipe le
+          // montrera comme tout acompte payé sur une demande morte.
+          if (codeMetier(erreur) !== "ACOMPTE_RIEN_A_REMBOURSER") throw erreur;
+          const relu = await this.depot.parDemande(demandeId);
+          return { etat: "inchange", statut: relu?.statut ?? acompte.statut };
+        }
       }
 
       if (acompte.statut === "paye") {
@@ -382,16 +405,15 @@ export class ServiceAcomptes {
     }
 
     if (decision.issue === "rembourser") {
-      return this.depot.changerStatut(
+      // Un versement tardif peut encore arriver pendant qu'on décide : le cumul
+      // décidé est celui relu sous verrou.
+      return this.depot.declarerARembourser({
         acompteId,
-        { de: "expire", vers: "a_rembourser" },
-        {
-          type: "remboursement_decide",
-          montant: acompte.montantRecu,
-          acteurId: decision.acteurId,
-          commentaire: decision.commentaire,
-        },
-      );
+        depuisStatuts: ["expire"],
+        type: "remboursement_decide",
+        acteurId: decision.acteurId,
+        commentaire: decision.commentaire,
+      });
     }
 
     if (acompte.montantRecu < acompte.montantAttendu) {
@@ -416,6 +438,28 @@ export class ServiceAcomptes {
       { de: "expire", vers: "paye" },
       { type: "verification", acteurId: decision.acteurId, commentaire: decision.commentaire },
     );
+  }
+
+  /**
+   * La réservation ne se confirme pas tant que l'acompte demandé n'est pas
+   * payé **et vérifié**.
+   *
+   * Sans dossier, rien n'a été demandé et rien n'est exigé : acompte fermé au
+   * moment de l'acceptation, ou genre non éligible. Avec un dossier, seul
+   * « payé » laisse passer — « partiel », « en attente », « expiré » ou
+   * « à rembourser » refusent. Une déclaration du visiteur ou une capture
+   * d'écran n'y change rien : ce statut ne se pose que par le constat d'un
+   * administrateur.
+   *
+   * Cette règle **restreint** la confirmation, elle n'en déclenche aucune : un
+   * paiement vérifié ne confirme toujours pas la réservation, c'est le visiteur
+   * qui la confirme. La lecture échoue fermée : si le dossier est illisible,
+   * l'erreur remonte et la confirmation n'a pas lieu.
+   */
+  async exigerPaiementVerifie(demandeId: string): Promise<void> {
+    const dossier = await this.depot.parDemande(demandeId);
+    if (!dossier || dossier.statut === "paye") return;
+    throw acompteNonPaye();
   }
 
   /**
@@ -449,9 +493,13 @@ export class ServiceAcomptes {
       };
     }
 
+    // Sans dossier, l'équipe doit savoir pourquoi l'acompte ne s'ouvre pas.
+    const offreDejaConfirmee = acompte ? false : await this.depot.offreDejaConfirmee(demandeId);
+
     const statut = acompte?.statut;
     return {
       actif,
+      offreDejaConfirmee,
       statutDemande: demande.statutDemande,
       acompte,
       apercu,
@@ -462,12 +510,15 @@ export class ServiceAcomptes {
       journal,
       acteurs,
       actions: {
-        preparer: !acompte && apercu !== undefined && demande.statutDemande === "acceptee",
+        preparer:
+          !acompte && !offreDejaConfirmee && apercu !== undefined && demande.statutDemande === "acceptee",
         confirmerReception:
           statut === "expire" || ((statut === "en_attente" || statut === "partiel") && payable),
         renvoyerInstructions: actif && (statut === "en_attente" || statut === "partiel"),
         renvoyerConfirmation: (statut === "paye" || statut === "partiel") && (acompte?.montantRecu ?? 0) > 0,
         deciderPaiementTardif: statut === "expire" && (acompte?.montantRecu ?? 0) > 0,
+        deciderRemboursement: (statut === "paye" || statut === "partiel") && (acompte?.montantRecu ?? 0) > 0,
+        constaterRemboursement: statut === "a_rembourser" && (acompte?.montantRecu ?? 0) > 0,
       },
     };
   }
@@ -583,6 +634,7 @@ export class ServiceAcomptes {
           dateValidation: heureDeDakar(derniere?.creeLe ?? acompte.misAJourLe),
           statutReservation: STATUT_RESERVATION[contexte.statutDemande],
           reservationConfirmee: contexte.statutDemande === "confirmee",
+          confirmationAttendue: contexte.statutDemande === "acceptee",
         },
         {
           // Une confirmation automatique est rejouable à l'identique ; un
@@ -608,6 +660,76 @@ export class ServiceAcomptes {
       );
       return "echec";
     }
+  }
+
+  /**
+   * Décide qu'un acompte payé ou partiel doit être rendu.
+   *
+   * C'est une **décision**, pas un transfert : rien ne part vers une banque, et
+   * aucun délai n'est promis au visiteur. Elle sort l'acompte des statuts où
+   * une réception s'enregistre — plus rien ne s'y ajoute — et l'inscrit dans la
+   * file « à rembourser ». Le motif est obligatoire : on ne rend pas de
+   * l'argent sans dire pourquoi.
+   *
+   * Un remboursement est toujours **intégral** : le cumul reçu. Un remboursement
+   * partiel — rendre un surplus, garder l'acompte — n'est pas modélisé.
+   */
+  async deciderRemboursement(
+    demandeId: string,
+    decision: { acteurId: string; commentaire: string },
+  ): Promise<Acompte> {
+    if (!decision.commentaire?.trim()) {
+      throw new ErreurMetier(
+        "ACOMPTE_MOTIF_REQUIS",
+        "Un remboursement se décide avec son motif : dites pourquoi l'acompte est rendu.",
+      );
+    }
+    const dossier = await this.depot.parDemande(demandeId);
+    if (!dossier) throw introuvable("Acompte");
+    // Le statut et le cumul sont jugés par le dépôt, sous le verrou du dossier :
+    // une réception partielle qui arrive en même temps passe avant (la décision
+    // porte alors sur le cumul complet) ou après (elle est refusée). Lire ici
+    // puis écrire plus loin laisserait un montant périmé au journal.
+    return this.depot.declarerARembourser({
+      acompteId: dossier.id,
+      depuisStatuts: ["paye", "partiel"],
+      type: "remboursement_decide",
+      acteurId: decision.acteurId,
+      commentaire: decision.commentaire.trim(),
+    });
+  }
+
+  /**
+   * Consigne qu'une personne a **rendu** l'argent d'un acompte « à rembourser ».
+   *
+   * Le montant est relu en base et doit être exactement le cumul reçu : un
+   * remboursement partiel n'est pas modélisé, et un montant saisi de travers
+   * ne doit pas clore un dossier. Rien n'est exécuté ici — aucune banque,
+   * aucun opérateur n'est appelé ; la personne a fait le transfert ailleurs.
+   * « Remboursé » est final : un second constat reçoit un conflit.
+   */
+  async constaterRemboursement(
+    demandeId: string,
+    constat: ConstatRemboursement,
+  ): Promise<Acompte> {
+    const dossier = await this.depot.parDemande(demandeId);
+    if (!dossier) throw introuvable("Acompte");
+    if (dossier.statut !== "a_rembourser") {
+      throw new ErreurMetier(
+        "ACOMPTE_NON_A_REMBOURSER",
+        `L'acompte est « ${dossier.statut} » : il n'y a pas de remboursement décidé à constater.`,
+        HttpStatus.CONFLICT,
+      );
+    }
+    if (constat.montant !== dossier.montantRecu) {
+      throw new ErreurMetier(
+        "ACOMPTE_REMBOURSEMENT_MONTANT",
+        `Le remboursement porte sur la totalité du cumul reçu (${dossier.montantRecu} FCFA) : ` +
+          `${constat.montant} FCFA saisis. Les remboursements partiels ne sont pas pris en charge.`,
+        HttpStatus.UNPROCESSABLE_ENTITY,
+      );
+    }
+    return this.confirmerRemboursement(dossier.id, constat);
   }
 
   /**

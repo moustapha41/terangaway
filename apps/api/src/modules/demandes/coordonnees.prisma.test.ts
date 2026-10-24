@@ -16,6 +16,7 @@ import type { DepotDemandes } from "./demandes.depot";
 import { DepotDemandesFixtures } from "./demandes.fixtures";
 import { DepotDemandesPrisma } from "./demandes.prisma";
 import { ServiceDemandes } from "./demandes.service";
+import { fenetreUnique, reserverFenetres } from "./fenetres-uniques.test-utils";
 
 async function codeDe(promesse: Promise<unknown>): Promise<string> {
   try {
@@ -55,8 +56,7 @@ describe("Coordonnées personnelles — divulgation et effacement", () => {
     const visiteurId = `visiteur-coordonnees-${randomBytes(4).toString("hex")}`;
     const demande = await depot.creerLogement({
       logementId: "l-001",
-      debut: "2026-11-10",
-      fin: "2026-11-14",
+      ...fenetreUnique(4),
       personnes: 2,
       visiteurId,
     });
@@ -81,6 +81,7 @@ describe("Coordonnées personnelles — divulgation et effacement", () => {
   beforeAll(async () => {
     prisma = creerPrismaDeTest();
     await prisma.$connect();
+    await reserverFenetres(prisma);
     depot = new DepotDemandesPrisma(prisma, new DepotLogementsFixtures(), new DepotVehiculesFixtures());
     administration = new DepotAdministrationPrisma(prisma);
     service = new ServiceDemandes(depot);
@@ -242,8 +243,7 @@ describe("Coordonnées personnelles — divulgation et effacement", () => {
       const { service: enMemoire } = memoire();
       const demande = await enMemoire.creerLogement({
         logementId: "l-001",
-        debut: "2026-11-10",
-        fin: "2026-11-14",
+        ...fenetreUnique(4),
         personnes: 2,
         visiteurId: "visiteur-memoire",
       });

@@ -11,6 +11,7 @@ import { DepotDemandesPrisma } from "../demandes/demandes.prisma";
 import { ServiceDemandes } from "../demandes/demandes.service";
 import { DepotComptesPrisma } from "./comptes.prisma";
 import { ServiceComptes } from "./comptes.service";
+import { fenetreUnique, reserverFenetres } from "../demandes/fenetres-uniques.test-utils";
 
 /**
  * Le lien d'accès à une demande, sur PostgreSQL (base `teranga_test` seule).
@@ -27,11 +28,14 @@ describe("Lien d'accès à une demande — PostgreSQL", () => {
 
   const adresse = (etiquette: string) =>
     `lien.${etiquette}.${Date.now()}.${Math.random().toString(36).slice(2, 8)}@terangaway.sn`;
+  /** Le quota de codes est de 20 par heure et par adresse IP : une IP fixe se remplirait d'une exécution à l'autre. */
+  const ipNeuve = () => `10.${Math.floor(Math.random() * 250)}.${Math.floor(Math.random() * 250)}.${Math.floor(Math.random() * 250) + 1}`;
   const code = (e: unknown) => ((e as ErreurMetier).getResponse() as { code: string }).code;
 
   beforeAll(async () => {
     prisma = creerPrismaDeTest();
     await prisma.$connect();
+    await reserverFenetres(prisma);
     depot = new DepotComptesPrisma(prisma);
     comptes = new ServiceComptes(depot);
     demandes = new ServiceDemandes(
@@ -47,8 +51,7 @@ describe("Lien d'accès à une demande — PostgreSQL", () => {
     const visiteur = await comptes.visiteurPourDemande(undefined, { email });
     const demande = await demandes.creerLogement({
       logementId: "l-001",
-      debut: "2026-11-10",
-      fin: "2026-11-14",
+      ...fenetreUnique(4),
       personnes: 2,
       visiteurId: visiteur.compteId,
     });
@@ -102,7 +105,7 @@ describe("Lien d'accès à une demande — PostgreSQL", () => {
     await enProduction(async () => {
       const email = adresse("otp-apres");
       const { lien } = await demandeDe(email);
-      await comptes.envoyerOtp(email, "10.2.0.1");
+      await comptes.envoyerOtp(email, ipNeuve());
       await expect(comptes.ouvrirParLienDemande(lien.jeton, "10.2.0.2")).resolves.toBeTruthy();
     });
   });
@@ -110,7 +113,7 @@ describe("Lien d'accès à une demande — PostgreSQL", () => {
   it("le lien ne retarde pas la demande d'un code (ni cooldown, ni quota)", async () => {
     const email = adresse("cooldown");
     await demandeDe(email); // émet un lien à l'instant
-    const verdict = await depot.verifierRateLimit(email, "10.3.0.1");
+    const verdict = await depot.verifierRateLimit(email, ipNeuve());
     expect(verdict.autorise).toBe(true);
   });
 
@@ -123,7 +126,7 @@ describe("Lien d'accès à une demande — PostgreSQL", () => {
       await expect(comptes.verifierOtp(email, lien.jeton)).rejects.toBeInstanceOf(ErreurMetier);
 
       // Un vrai code OTP présenté comme jeton de lien : refusé, et sans effet sur le lien.
-      const envoi = await comptes.envoyerOtp(email, "10.4.0.1");
+      const envoi = await comptes.envoyerOtp(email, ipNeuve());
       const otp = envoi.codeDemo ?? "000000";
       await expect(comptes.ouvrirParLienDemande(otp, "10.4.0.2")).rejects.toBeInstanceOf(ErreurMetier);
       await expect(comptes.ouvrirParLienDemande(lien.jeton, "10.4.0.3")).resolves.toBeTruthy();

@@ -20,6 +20,9 @@ import {
   saisiePrete,
 } from "../../src/features/admin/acompte-admin";
 import {
+  constaterRemboursementAction,
+  deciderPaiementTardifAction,
+  deciderRemboursementAction,
   preparerAcompteAction,
   renvoyerConfirmationAction,
   renvoyerInstructionsAction,
@@ -71,7 +74,9 @@ describe("Acompte (équipe) — textes", () => {
     const codes = [
       "ACOMPTE_ECART_A_CONFIRMER", "ACOMPTE_CUMUL_CONCURRENT", "ACOMPTE_STATUT_CONCURRENT", "ACOMPTE_RECEPTION_DOUBLON",
       "ACOMPTE_NON_ATTENDU", "ACOMPTE_DEMANDE_CLOSE", "ACOMPTE_RIEN_A_CONFIRMER", "NON_AUTHENTIFIE", "INTERDIT",
-      "REQUETE_INVALIDE", "INJOIGNABLE", "CODE_INCONNU",
+      "REQUETE_INVALIDE", "INJOIGNABLE", "CODE_INCONNU", "ACOMPTE_MOTIF_REQUIS", "ACOMPTE_EXAMEN_REQUIS",
+      "ACOMPTE_RIEN_A_REMBOURSER", "ACOMPTE_NON_A_REMBOURSER", "ACOMPTE_REMBOURSEMENT_MONTANT",
+      "ACOMPTE_PAS_EN_RETARD", "ACOMPTE_RIEN_RECU", "ACOMPTE_PAIEMENT_INCOMPLET",
     ];
     const cles = [
       ...codes.map(cleErreurAcompte),
@@ -92,6 +97,19 @@ describe("Acompte (équipe) — textes", () => {
     ];
     for (const langue of ["fr", "en", "es"]) {
       for (const cle of cles) expect(typeof lire(langue, cle), `${langue} ${cle}`).toBe("string");
+    }
+  });
+
+  it("les écrans de décision et de remboursement sont traduits dans les trois langues", () => {
+    const cles = [
+      "titre", "aucunTransfert", "tardifTitre", "rembourser", "accepter", "examen", "decider", "enregistree",
+      "remboursementTitre", "motif", "deciderRemboursement", "constatTitre", "montantRendu", "dejaRembourse",
+      "constater", "constatEnregistre",
+    ].map((c) => `admin.acompte.decisions.${c}`);
+    for (const langue of ["fr", "en", "es"]) {
+      for (const cle of cles) expect(typeof lire(langue, cle), `${langue} ${cle}`).toBe("string");
+      // L'écran n'effectue aucun transfert et ne promet aucun délai : il le dit.
+      expect(lire(langue, "admin.acompte.decisions.aucunTransfert") as string).toMatch(/plateforme|platform|plataforma/i);
     }
   });
 
@@ -153,6 +171,41 @@ describe("Acompte (équipe) — actions serveur", () => {
       succes: false,
       code: "ACOMPTE_CUMUL_CONCURRENT",
     });
+  });
+
+  it("refusent sans session les décisions de remboursement, sans appeler l'API", async () => {
+    const fetchSimule = vi.fn();
+    vi.stubGlobal("fetch", fetchSimule);
+    for (const resultat of await Promise.all([
+      deciderRemboursementAction("d-1", "motif"),
+      constaterRemboursementAction("d-1", { montant: 1 }),
+      deciderPaiementTardifAction("d-1", { issue: "rembourser", commentaire: "x" }),
+    ])) {
+      expect(resultat).toMatchObject({ succes: false, code: "NON_AUTHENTIFIE" });
+    }
+    expect(fetchSimule).not.toHaveBeenCalled();
+  });
+
+  it("n'envoient pour un remboursement que ce que la personne a saisi", async () => {
+    jar.set(COOKIE_ADMIN, { value: "tws_" + "a".repeat(64) });
+    const fetchSimule = vi.fn(async () => new Response(JSON.stringify({ donnees: { vue: vue(0) } }), { status: 201 }));
+    vi.stubGlobal("fetch", fetchSimule);
+
+    await deciderRemboursementAction("d-1", "Désistement");
+    await constaterRemboursementAction("d-1", { montant: 186000, referenceTransaction: "R1" });
+    await deciderPaiementTardifAction("d-1", { issue: "accepter", commentaire: "Dispo vérifiée" });
+
+    const appels = fetchSimule.mock.calls as unknown as Array<[string, RequestInit]>;
+    expect(appels.map(([url]) => url.split("/acompte")[1])).toEqual([
+      "/remboursement/decision",
+      "/remboursement/effectue",
+      "/paiement-tardif",
+    ]);
+    expect(appels.map(([, init]) => JSON.parse(String(init.body)))).toEqual([
+      { commentaire: "Désistement" },
+      { montant: 186000, referenceTransaction: "R1" },
+      { issue: "accepter", commentaire: "Dispo vérifiée" },
+    ]);
   });
 
   it("traitent une panne réseau comme un échec", async () => {

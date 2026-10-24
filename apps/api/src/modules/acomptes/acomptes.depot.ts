@@ -27,10 +27,13 @@ import type {
  */
 export const TRANSITIONS_ACOMPTE: Readonly<Record<StatutAcompte, readonly StatutAcompte[]>> = {
   en_attente: ["partiel", "paye", "expire", "annule"],
-  partiel: ["paye", "expire", "annule", "a_rembourser"],
+  // Pas d'« annulé » ici : un acompte annulé n'a rien reçu. De l'argent reçu se
+  // rend (« à rembourser »), il ne s'annule pas.
+  partiel: ["paye", "expire", "a_rembourser"],
   paye: ["a_rembourser"],
   expire: ["paye", "a_rembourser"],
-  annule: ["a_rembourser"],
+  // Final : annulé avant toute réception, il n'y a rien à rembourser.
+  annule: [],
   a_rembourser: ["rembourse"],
   rembourse: [],
 };
@@ -158,7 +161,37 @@ export interface ResultatReceptionDepot {
   tardive: boolean;
 }
 
+/** Mettre un acompte « à rembourser », au montant relu sous verrou. */
+export interface EntreeARembourser {
+  acompteId: string;
+  /** Les seuls statuts d'où la décision est permise : le dépôt relit celui de la base. */
+  depuisStatuts: readonly StatutAcompte[];
+  /** `remboursement_decide` (une personne, obligatoire) ou `annulation` (le système). */
+  type: "remboursement_decide" | "annulation";
+  /** Absent = le système. Obligatoire pour `remboursement_decide`. */
+  acteurId?: string;
+  commentaire: string;
+}
+
 export interface DepotAcomptes {
+  /**
+   * Une autre demande **confirmée** occupe-t-elle déjà l'offre de cette demande, sur des
+   * dates qui recouvrent les siennes ? Lecture seule, sans verrou : elle évite d'envoyer
+   * des instructions de paiement pour une offre prise, elle ne remplace pas la garde
+   * de la confirmation, qui seule fait foi.
+   */
+  offreDejaConfirmee(demandeId: string): Promise<boolean>;
+  /**
+   * Décide, en une transaction, que l'argent reçu est à rendre.
+   *
+   * Le dossier est verrouillé (`FOR UPDATE`) — le même verrou que celui d'une
+   * réception — puis son statut et son **cumul** sont relus : le montant du
+   * journal est celui qui est réellement dans le dossier à cet instant, jamais
+   * celui qu'un écran ou un appelant avait lu avant. Une réception concurrente
+   * passe avant (le cumul décidé l'inclut) ou après (elle est refusée, le
+   * dossier n'attend plus de paiement) : jamais entre les deux.
+   */
+  declarerARembourser(entree: EntreeARembourser): Promise<Acompte>;
   /** Le nom à montrer pour chaque identifiant d'acteur du journal : nom, sinon adresse. */
   nomsActeurs(ids: readonly string[]): Promise<Record<string, string>>;
   /** La demande derrière un identifiant, pour décider d'ouvrir un dossier. */
@@ -203,10 +236,14 @@ export interface DepotAcomptes {
     evenement: EntreeEvenementAcompte,
   ): Promise<Acompte>;
   /**
-   * Ajoute un événement sans changer le statut.
+   * Ajoute une ligne au journal, sans changer ni le statut ni le cumul reçu.
    *
-   * Une réception confirmée ajoute son montant au cumul reçu, dans la même
-   * transaction : le cumul ne bouge jamais sans la ligne qui l'explique.
+   * Réservé aux événements qui ne déplacent rien : instructions envoyées, rappel,
+   * preuve déclarée (jamais une preuve), doublon ou anomalie signalés, échec d'envoi,
+   * note de vérification. Une réception, une décision ou un changement d'état sont
+   * refusés ici : ils passent par `enregistrerReception`, `declarerARembourser` ou
+   * `changerStatut`, qui verrouillent le dossier et écrivent l'événement avec ce qu'il
+   * explique. Ainsi le cumul ne bouge jamais sans la ligne qui l'explique.
    */
   consigner(acompteId: string, evenement: EntreeEvenementAcompte): Promise<EvenementAcompte>;
   /** Le journal, du plus ancien au plus récent. */

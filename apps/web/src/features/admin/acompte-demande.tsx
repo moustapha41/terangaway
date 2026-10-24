@@ -6,6 +6,9 @@ import { AlertTriangle, Banknote, Mail, RefreshCw, ShieldCheck } from "lucide-re
 import type { VueAcompteAdmin } from "@teranga/contracts";
 import { useLangue, useT } from "@/lib/i18n/contexte";
 import {
+  constaterRemboursementAction,
+  deciderPaiementTardifAction,
+  deciderRemboursementAction,
   preparerAcompteAction,
   renvoyerConfirmationAction,
   renvoyerInstructionsAction,
@@ -45,6 +48,14 @@ export function AcompteDemande({
   const [verifie, setVerifie] = useState(false);
   const [ecartConfirme, setEcartConfirme] = useState(false);
 
+  // Décisions : un formulaire chacune, jamais plusieurs à la fois.
+  const [motif, setMotif] = useState("");
+  const [issueTardive, setIssueTardive] = useState<"accepter" | "rembourser">("rembourser");
+  const [montantRembourse, setMontantRembourse] = useState("");
+  const [referenceRemb, setReferenceRemb] = useState("");
+  const [commentaireRemb, setCommentaireRemb] = useState("");
+  const [rembourseFait, setRembourseFait] = useState(false);
+
   const francs = (n: number) => formaterFrancs(n, langue);
 
   const enTete = (
@@ -76,6 +87,11 @@ export function AcompteDemande({
       return;
     }
     setVue(resultat.vue);
+    // Aucun dossier n'a été ouvert : dire pourquoi, au lieu d'un faux « acompte ouvert ».
+    if (resultat.info === "offre_deja_confirmee") {
+      setMessage({ ton: "avertissement", texte: t("admin.acompte.offreDejaConfirmeeOuverture") });
+      return;
+    }
     const cleEnvoi = cleEtatEnvoi(resultat.info);
     // Un envoi qui a échoué n'est jamais présenté comme un succès.
     const echec = resultat.info === "echec" || resultat.info === "sans_destinataire";
@@ -112,6 +128,16 @@ export function AcompteDemande({
       );
     });
 
+  const decider = (action: () => Promise<ResultatAcompte>, succes: string) =>
+    demarrer(async () => {
+      appliquer(await action(), succes);
+      setMotif("");
+      setMontantRembourse("");
+      setReferenceRemb("");
+      setCommentaireRemb("");
+      setRembourseFait(false);
+    });
+
   const bouton = (libelle: string, action: () => Promise<ResultatAcompte>, succes: string) => (
     <button
       type="button"
@@ -131,6 +157,12 @@ export function AcompteDemande({
       {!vue.actif && (
         <div className="mt-4">
           <Bandeau variante="information">{t("admin.acompte.inactif")}</Bandeau>
+        </div>
+      )}
+
+      {!vue.acompte && vue.offreDejaConfirmee && (
+        <div className="mt-4" role="alert">
+          <Bandeau variante="avertissement">{t("admin.acompte.offreDejaConfirmee")}</Bandeau>
         </div>
       )}
 
@@ -198,6 +230,15 @@ export function AcompteDemande({
               }
             />
           </dl>
+
+          {acompte.montantRecu > acompte.montantAttendu && (
+            // Le reste dû est plafonné à zéro : sans cet avis, un trop-perçu serait invisible.
+            <div className="mt-4" role="note">
+              <Bandeau variante="avertissement">
+                {t("admin.acompte.surplus", { surplus: francs(acompte.montantRecu - acompte.montantAttendu) })}
+              </Bandeau>
+            </div>
+          )}
 
           {actions.deciderPaiementTardif && (
             <div className="mt-4">
@@ -336,6 +377,153 @@ export function AcompteDemande({
                 {t("admin.acompte.reception.enregistrer")}
               </button>
             </form>
+          )}
+
+          {(actions.deciderPaiementTardif || actions.deciderRemboursement || actions.constaterRemboursement) && (
+            <div className="mt-5 space-y-5 border-t border-slate-100 pt-5">
+              <h3 className="text-sm font-bold text-slate-900">{t("admin.acompte.decisions.titre")}</h3>
+              <p className="text-xs text-slate-500">{t("admin.acompte.decisions.aucunTransfert")}</p>
+              <p className="text-xs font-semibold text-slate-600">{t("admin.acompte.decisions.limites")}</p>
+
+              {actions.deciderPaiementTardif && (
+                <form
+                  className="space-y-2"
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    if (motif.trim()) {
+                      decider(
+                        () => deciderPaiementTardifAction(demandeId, { issue: issueTardive, commentaire: motif.trim() }),
+                        t("admin.acompte.decisions.enregistree"),
+                      );
+                    }
+                  }}
+                >
+                  <p className="text-sm font-semibold text-slate-800">{t("admin.acompte.decisions.tardifTitre")}</p>
+                  <select
+                    value={issueTardive}
+                    onChange={(e) => setIssueTardive(e.target.value as "accepter" | "rembourser")}
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm"
+                    aria-label={t("admin.acompte.decisions.tardifTitre")}
+                  >
+                    <option value="rembourser">{t("admin.acompte.decisions.rembourser")}</option>
+                    <option value="accepter">{t("admin.acompte.decisions.accepter")}</option>
+                  </select>
+                  <textarea
+                    rows={2}
+                    maxLength={500}
+                    value={motif}
+                    onChange={(e) => setMotif(e.target.value)}
+                    placeholder={t("admin.acompte.decisions.examen")}
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm"
+                  />
+                  <button
+                    type="submit"
+                    disabled={enCours || !motif.trim()}
+                    className="w-full rounded-xl bg-[#001D35] px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
+                  >
+                    {t("admin.acompte.decisions.decider")}
+                  </button>
+                </form>
+              )}
+
+              {actions.deciderRemboursement && (
+                <form
+                  className="space-y-2"
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    if (motif.trim().length >= 3) {
+                      decider(() => deciderRemboursementAction(demandeId, motif.trim()), t("admin.acompte.decisions.enregistree"));
+                    }
+                  }}
+                >
+                  <p className="text-sm font-semibold text-slate-800">{t("admin.acompte.decisions.remboursementTitre")}</p>
+                  <textarea
+                    rows={2}
+                    maxLength={500}
+                    value={motif}
+                    onChange={(e) => setMotif(e.target.value)}
+                    placeholder={t("admin.acompte.decisions.motif")}
+                    aria-label={t("admin.acompte.decisions.motif")}
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm"
+                  />
+                  <button
+                    type="submit"
+                    disabled={enCours || motif.trim().length < 3}
+                    className="w-full rounded-xl border border-amber-300 bg-amber-50 px-4 py-2.5 text-sm font-semibold text-amber-900 disabled:opacity-50"
+                  >
+                    {t("admin.acompte.decisions.deciderRemboursement")}
+                  </button>
+                </form>
+              )}
+
+              {actions.constaterRemboursement && acompte && (
+                <form
+                  className="space-y-2"
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    const montantRendu = Number(montantRembourse.replace(/[\s\u202f\u00a0]/g, ""));
+                    if (rembourseFait && Number.isInteger(montantRendu) && montantRendu > 0) {
+                      decider(
+                        () =>
+                          constaterRemboursementAction(demandeId, {
+                            montant: montantRendu,
+                            referenceTransaction: referenceRemb.trim() || undefined,
+                            commentaire: commentaireRemb.trim() || undefined,
+                          }),
+                        t("admin.acompte.decisions.constatEnregistre"),
+                      );
+                    }
+                  }}
+                >
+                  <p className="text-sm font-semibold text-slate-800">
+                    {t("admin.acompte.decisions.constatTitre", { montant: francs(acompte.montantRecu) })}
+                  </p>
+                  <input
+                    inputMode="numeric"
+                    autoComplete="off"
+                    value={montantRembourse}
+                    onChange={(e) => setMontantRembourse(e.target.value)}
+                    placeholder={t("admin.acompte.decisions.montantRendu")}
+                    aria-label={t("admin.acompte.decisions.montantRendu")}
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm"
+                  />
+                  <input
+                    maxLength={100}
+                    autoComplete="off"
+                    value={referenceRemb}
+                    onChange={(e) => setReferenceRemb(e.target.value)}
+                    placeholder={t("admin.acompte.reception.reference")}
+                    aria-label={t("admin.acompte.reception.reference")}
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm"
+                  />
+                  <textarea
+                    rows={2}
+                    maxLength={500}
+                    value={commentaireRemb}
+                    onChange={(e) => setCommentaireRemb(e.target.value)}
+                    placeholder={t("admin.acompte.reception.commentaire")}
+                    aria-label={t("admin.acompte.reception.commentaire")}
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm"
+                  />
+                  <label className="flex items-start gap-2 text-xs text-slate-700">
+                    <input
+                      type="checkbox"
+                      checked={rembourseFait}
+                      onChange={(e) => setRembourseFait(e.target.checked)}
+                      className="mt-0.5"
+                    />
+                    <span>{t("admin.acompte.decisions.dejaRembourse")}</span>
+                  </label>
+                  <button
+                    type="submit"
+                    disabled={enCours || !rembourseFait || !montantRembourse.trim()}
+                    className="w-full rounded-xl bg-[#001D35] px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
+                  >
+                    {t("admin.acompte.decisions.constater")}
+                  </button>
+                </form>
+              )}
+            </div>
           )}
 
           {(actions.renvoyerInstructions || actions.renvoyerConfirmation) && (

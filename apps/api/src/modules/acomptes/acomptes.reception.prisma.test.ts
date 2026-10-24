@@ -14,6 +14,7 @@ import { DepotDemandesPrisma } from "../demandes/demandes.prisma";
 import { ServiceDemandes } from "../demandes/demandes.service";
 import { DepotAcomptesPrisma } from "./acomptes.prisma";
 import { ServiceAcomptes } from "./acomptes.service";
+import { fenetreUnique, reserverFenetres } from "../demandes/fenetres-uniques.test-utils";
 
 async function codeDe(promesse: Promise<unknown>): Promise<string> {
   try {
@@ -68,8 +69,7 @@ describe("Acompte — constat manuel d'une réception", () => {
     await prisma.account.create({ data: { id, email: avecEmail ? `${id}@test.local` : null } });
     const demande = await depotDemandes.creerLogement({
       logementId: "l-001",
-      debut: "2026-11-10",
-      fin: "2026-11-14",
+      ...fenetreUnique(4),
       personnes: 2,
       visiteurId: id,
     });
@@ -86,6 +86,7 @@ describe("Acompte — constat manuel d'une réception", () => {
   beforeAll(async () => {
     prisma = creerPrismaDeTest();
     await prisma.$connect();
+    await reserverFenetres(prisma);
     depot = new DepotAcomptesPrisma(prisma);
     depotDemandes = new DepotDemandesPrisma(prisma, new DepotLogementsFixtures(), new DepotVehiculesFixtures());
     adminId = (await prisma.account.create({ data: { email: `admin-recep-${suffixe()}@test.local`, role: "ADMINISTRATEUR", nom: "Aminata Admin" } })).id;
@@ -330,7 +331,7 @@ describe("Acompte — constat manuel d'une réception", () => {
 
     it("consigne l'argent arrivé après l'échéance sans rien décider ni écrire au visiteur", async () => {
       const { demande, dossier, acomptes } = await dossierPret();
-      await prisma.depositPayment.update({ where: { id: dossier.id }, data: { statut: "expire" } });
+      await depot.changerStatut(dossier.id, { de: "en_attente", vers: "expire" }, { type: "expiration_prononcee" });
 
       const res = await acomptes.confirmerReception(demande.id, { montant: 186_000, montantRecuAvant: 0 }, adminId);
       expect(res.emailConfirmation).toBe("non_requis");
@@ -426,7 +427,7 @@ describe("Acompte — constat manuel d'une réception", () => {
       const id = `visiteur-recep-${suffixe()}`;
       await prisma.account.create({ data: { id, email: `${id}@test.local` } });
       const demande = await depotDemandes.creerLogement({
-        logementId: "l-001", debut: "2026-11-10", fin: "2026-11-14", personnes: 2, visiteurId: id,
+        logementId: "l-001", ...fenetreUnique(4), personnes: 2, visiteurId: id,
       });
       const fermee = monter({ actif: false, pourcentage: undefined, etatCoordonnees: "absent", beneficiaire: undefined });
       await fermee.demandes.accepterParPartenaire(demande.id);

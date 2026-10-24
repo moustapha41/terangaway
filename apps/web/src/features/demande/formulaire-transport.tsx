@@ -21,7 +21,7 @@ import type { BrouillonTransport } from "./brouillon";
  * Trois étapes : le trajet, vos informations, la confirmation. La saisie est
  * conservée d'une étape à l'autre, y compris en revenant en arrière (§B.1).
  *
- * Les mêmes règles que pour un logement : rien n'est bloqué, rien n'est payé,
+ * Mêmes règles que pour un logement : rien n'est bloqué, rien n'est payé à l'envoi,
  * et le nom comme le numéro du chauffeur n'arrivent qu'après confirmation
  * (§D.4) — ils ne sont donc affichés nulle part sur cet écran.
  */

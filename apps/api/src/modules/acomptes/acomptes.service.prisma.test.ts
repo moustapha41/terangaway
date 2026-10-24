@@ -15,6 +15,7 @@ import { ServiceDemandes } from "../demandes/demandes.service";
 import type { DepotAcomptes } from "./acomptes.depot";
 import { DepotAcomptesPrisma } from "./acomptes.prisma";
 import { ServiceAcomptes } from "./acomptes.service";
+import { fenetreUnique, instantUnique, reserverFenetres } from "../demandes/fenetres-uniques.test-utils";
 
 async function codeDe(promesse: Promise<unknown>): Promise<string> {
   try {
@@ -80,8 +81,7 @@ describe("Service Acomptes — préparation à l'acceptation et instructions", (
   const logement = async (visiteurId?: string) =>
     depotDemandes.creerLogement({
       logementId: "l-001",
-      debut: "2026-11-10",
-      fin: "2026-11-14",
+      ...fenetreUnique(4),
       personnes: 2,
       visiteurId: visiteurId ?? (await visiteur()),
     });
@@ -92,7 +92,7 @@ describe("Service Acomptes — préparation à l'acceptation et instructions", (
       prestation,
       depart: "Dakar",
       arrivee: "Saly",
-      quand: "2026-11-10T09:00",
+      quand: instantUnique("09:00"),
       passagers: 2,
       bagages: 1,
       visiteurId: await visiteur(),
@@ -103,6 +103,7 @@ describe("Service Acomptes — préparation à l'acceptation et instructions", (
   beforeAll(async () => {
     prisma = creerPrismaDeTest();
     await prisma.$connect();
+    await reserverFenetres(prisma);
     depot = new DepotAcomptesPrisma(prisma);
     depotDemandes = new DepotDemandesPrisma(prisma, new DepotLogementsFixtures(), new DepotVehiculesFixtures());
     const admin = await prisma.account.create({
@@ -383,11 +384,16 @@ describe("Service Acomptes — préparation à l'acceptation et instructions", (
       await demandes.accepterParPartenaire(demande.id);
       const dossier = (await dossierDe(demande.id))!;
       await depot.changerStatut(dossier.id, { de: "en_attente", vers: "expire" }, { type: "expiration_prononcee" });
-      await depot.consigner(dossier.id, {
-        type: "reception_confirmee",
+      // Le versement tardif s'enregistre par la voie verrouillée : l'acompte reste
+      // « expiré », seul le cumul bouge. Un montant différent du dû est un écart reconnu.
+      await depot.enregistrerReception({
+        acompteId: dossier.id,
         montant: montant ?? dossier.montantAttendu,
+        montantRecuAvant: 0,
         acteurId: administrateurId,
         referenceTransaction: "VIR-TARDIF",
+        commentaire: "Versement reçu après l'échéance",
+        ecartConfirme: true,
       });
       return { demande, dossier, acomptes };
     };
@@ -475,10 +481,12 @@ describe("Service Acomptes — préparation à l'acceptation et instructions", (
       await demandes.accepterParPartenaire(demande.id);
       const dossier = (await dossierDe(demande.id))!;
       await depot.changerStatut(dossier.id, { de: "en_attente", vers: "expire" }, { type: "expiration_prononcee" });
-      await depot.consigner(dossier.id, {
-        type: "reception_confirmee",
+      await depot.enregistrerReception({
+        acompteId: dossier.id,
         montant: dossier.montantAttendu,
+        montantRecuAvant: 0,
         acteurId: administrateurId,
+        ecartConfirme: false,
       });
 
       const aRembourser = await acomptes.deciderPaiementTardif(dossier.id, {
@@ -508,7 +516,11 @@ describe("Service Acomptes — préparation à l'acceptation et instructions", (
 
       expect(
         await codeDe(
-          depot.changerStatut(dossier.id, { de: "rembourse", vers: "a_rembourser" }, { type: "verification" }),
+          depot.changerStatut(
+            dossier.id,
+            { de: "rembourse", vers: "a_rembourser" },
+            { type: "verification", acteurId: administrateurId },
+          ),
         ),
       ).toBe("ACOMPTE_TRANSITION_INTERDITE");
 
@@ -537,25 +549,45 @@ describe("Service Acomptes — préparation à l'acceptation et instructions", (
     /** L'instant d'acceptation inscrit dans la frise. */
     const t0 = (demande: { frise: { horodatage: string }[] }) => Date.parse(demande.frise.at(-1)!.horodatage);
 
-    it("fige le délai de confirmation actuel d'une location : trois heures", async () => {
-      // Comportement **actuel**, documenté tel quel : un véhicule reçoit le
-      // délai du trajet (`demandes.service.ts`), et non `DELAIS.location`, qui
-      // déclare douze heures sans être lu à cet endroit.
+    it("porte à douze heures la fenêtre de confirmation d'une location avec chauffeur", async () => {
+      // Décision métier : la location se confirme comme un logement. C'est
+      // `DELAIS.location` qui est lu, via le genre fin que seule la base porte.
       const { demandes } = monter(FERMEE);
       const acceptee = await demandes.accepterParPartenaire((await vehicule("journee")).id);
       const ecart = Date.parse(acceptee.expireLe!) - t0(acceptee);
-      expect(ecart).toBeGreaterThanOrEqual(3 * HEURE);
-      expect(ecart).toBeLessThan(3 * HEURE + 1_000);
+      expect(ecart).toBeGreaterThanOrEqual(12 * HEURE);
+      expect(ecart).toBeLessThan(12 * HEURE + 1_000);
     });
 
-    it("plafonne l'acompte d'une location à l'échéance de la demande : trois heures, pas douze", async () => {
+    it("ne change ni le délai du trajet, ni celui du taxi, ni celui du service : trois heures", async () => {
+      // Le taxi et le service reçoivent, comme avant, le délai du trajet : leurs
+      // délais ne bougent pas avec celui de la location.
+      const { demandes } = monter(FERMEE);
+      for (const prestation of ["trajet", "taxi"] as const) {
+        const acceptee = await demandes.accepterParPartenaire((await vehicule(prestation)).id);
+        const ecart = Date.parse(acceptee.expireLe!) - t0(acceptee);
+        expect(ecart, prestation).toBeGreaterThanOrEqual(3 * HEURE);
+        expect(ecart, prestation).toBeLessThan(3 * HEURE + 1_000);
+      }
+      const service = await depotDemandes.creerService({
+        service: "guides",
+        details: { zone: "Dakar" },
+        visiteurId: await visiteur(),
+      });
+      const accepte = await demandes.accepterParPartenaire(service.id);
+      const ecartService = Date.parse(accepte.expireLe!) - t0(accepte);
+      expect(ecartService).toBeGreaterThanOrEqual(3 * HEURE);
+      expect(ecartService).toBeLessThan(3 * HEURE + 1_000);
+    });
+
+    it("accorde douze heures d'acompte à une location : l'échéance égale la fenêtre de la demande", async () => {
       const { demandes } = monter();
       const acceptee = await demandes.accepterParPartenaire((await vehicule("journee")).id);
       const dossier = (await dossierDe(acceptee.id))!;
 
+      expect(dossier.echeanceLe.getTime()).toBe(t0(acceptee) + 12 * HEURE);
       expect(dossier.echeanceLe.toISOString()).toBe(acceptee.expireLe);
-      expect(dossier.echeanceLe.getTime()).toBeLessThan(t0(acceptee) + 12 * HEURE);
-      // Et l'e-mail annonce cette échéance-là.
+      // Et l'e-mail annonce cette échéance-là, et lui seule.
       expect(send).toHaveBeenCalledTimes(1);
     });
 
@@ -762,10 +794,12 @@ describe("Service Acomptes — préparation à l'acceptation et instructions", (
       const acceptee = await demandes.accepterParPartenaire((await logement()).id);
       const dossier = (await dossierDe(acceptee.id))!;
       await depot.changerStatut(dossier.id, { de: "en_attente", vers: "expire" }, { type: "expiration_prononcee" });
-      await depot.consigner(dossier.id, {
-        type: "reception_confirmee",
+      await depot.enregistrerReception({
+        acompteId: dossier.id,
         montant: dossier.montantAttendu,
+        montantRecuAvant: 0,
         acteurId: administrateurId,
+        ecartConfirme: false,
       });
       await prisma.demand.update({ where: { id: acceptee.id }, data: { statut: "expiree" } });
 
@@ -784,13 +818,19 @@ describe("Service Acomptes — préparation à l'acceptation et instructions", (
     it("le paiement tardif reste une décision humaine, et passe sur une demande confirmée", async () => {
       const { demandes, acomptes } = monter();
       const acceptee = await demandes.accepterParPartenaire((await logement()).id);
-      await demandes.confirmer(acceptee.id);
+      // Le service ne confirme plus une demande dont l'acompte n'est pas payé et
+      // vérifié : on pose l'état en base pour continuer d'éprouver la règle du
+      // dépôt, qui accepte un paiement tardif sur une demande « confirmée ».
+      expect(await codeDe(demandes.confirmer(acceptee.id))).toBe("ACOMPTE_NON_PAYE");
+      await prisma.demand.update({ where: { id: acceptee.id }, data: { statut: "confirmee" } });
       const dossier = (await dossierDe(acceptee.id))!;
       await depot.changerStatut(dossier.id, { de: "en_attente", vers: "expire" }, { type: "expiration_prononcee" });
-      await depot.consigner(dossier.id, {
-        type: "reception_confirmee",
+      await depot.enregistrerReception({
+        acompteId: dossier.id,
         montant: dossier.montantAttendu,
+        montantRecuAvant: 0,
         acteurId: administrateurId,
+        ecartConfirme: false,
       });
 
       // Sans examen écrit, ni le service ni le dépôt n'acceptent.

@@ -2,6 +2,7 @@ import { HttpStatus } from "@nestjs/common";
 import type { Demande, ServiceALaDemande, StatutDemande } from "@teranga/contracts";
 
 import { ErreurMetier } from "../../commun/erreurs";
+import type { GenreService } from "./machine-a-etats/delais";
 
 /**
  * Le refus d'une transition devancée par une autre.
@@ -85,6 +86,20 @@ export interface DepotDemandes {
    */
   enregistrer(demande: Demande, statutLu: StatutDemande): Promise<Demande>;
   visiteurDe?(demandeId: string): Promise<string | null> | string | undefined;
+  /**
+   * Le genre **fin** d'une demande — `logement`, `trajet`, `location`, `taxi`,
+   * `service` —, que le contrat visiteur ne distingue pas (tout véhicule y est
+   * « vehicule »). Seule la base le porte ; absent, l'appelant retombe sur le
+   * comportement d'avant.
+   */
+  genreDe?(demandeId: string): Promise<GenreService | undefined>;
+  /**
+   * Lève `OFFRE_DEJA_CONFIRMEE` si une autre demande confirmée occupe déjà l'offre
+   * sur des dates qui recouvrent celles de cette demande. Contrôle rapide, sans
+   * verrou : le dépôt refait la même vérification, sous verrou, en écrivant la
+   * confirmation. Absent (dépôt en mémoire), aucune garde n'est appliquée.
+   */
+  exigerOffreLibre?(demandeId: string): Promise<void>;
 
   /**
    * Fabrique le jeton par lequel on répond à une demande sans se connecter.

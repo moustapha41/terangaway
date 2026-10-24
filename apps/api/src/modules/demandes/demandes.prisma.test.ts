@@ -7,6 +7,7 @@ import { DepotLogementsFixtures } from "../offres/logements/logements.fixtures";
 import { DepotVehiculesFixtures } from "../offres/vehicules/vehicules.fixtures";
 import { DepotDemandesPrisma } from "./demandes.prisma";
 import { ServiceDemandes } from "./demandes.service";
+import { fenetreUnique, reserverFenetres } from "./fenetres-uniques.test-utils";
 
 describe("Persistance PostgreSQL — Module Demandes & Prévention IDOR", () => {
   let service: ServiceDemandes;
@@ -16,6 +17,7 @@ describe("Persistance PostgreSQL — Module Demandes & Prévention IDOR", () => 
   beforeAll(async () => {
     prisma = creerPrismaDeTest();
     await prisma.$connect();
+    await reserverFenetres(prisma);
     const depotLogements = new DepotLogementsFixtures();
     const depotVehicules = new DepotVehiculesFixtures();
     depot = new DepotDemandesPrisma(prisma, depotLogements, depotVehicules);
@@ -29,8 +31,7 @@ describe("Persistance PostgreSQL — Module Demandes & Prévention IDOR", () => 
   it("crée et persiste une demande dans PostgreSQL avec prix figé et coordonnées masquées", async () => {
     const creee = await service.creerLogement({
       logementId: "l-001",
-      debut: "2026-11-10",
-      fin: "2026-11-14",
+      ...fenetreUnique(4),
       personnes: 2,
       visiteurId: "visiteur-test-01",
     });
@@ -54,8 +55,7 @@ describe("Persistance PostgreSQL — Module Demandes & Prévention IDOR", () => 
   it("ne révèle jamais des coordonnées non vérifiées, même confirmée", async () => {
     const creee = await service.creerLogement({
       logementId: "l-002",
-      debut: "2026-12-01",
-      fin: "2026-12-04",
+      ...fenetreUnique(3),
       personnes: 3,
       visiteurId: "visiteur-test-02",
     });
@@ -91,8 +91,7 @@ describe("Persistance PostgreSQL — Module Demandes & Prévention IDOR", () => 
 
     const demande = await service.creerLogement({
       logementId: "l-001",
-      debut: "2026-11-20",
-      fin: "2026-11-23",
+      ...fenetreUnique(3),
       personnes: 2,
       visiteurId: visiteurLegitime,
     });
@@ -118,8 +117,7 @@ describe("Persistance PostgreSQL — Module Demandes & Prévention IDOR", () => 
   it("émet le jeton de réponse une fois, en clair, et garde l'empreinte", async () => {
     const demande = await service.creerLogement({
       logementId: "l-001",
-      debut: "2026-11-24",
-      fin: "2026-11-27",
+      ...fenetreUnique(3),
       personnes: 2,
       visiteurId: "visiteur-jeton",
     });
@@ -143,8 +141,7 @@ describe("Persistance PostgreSQL — Module Demandes & Prévention IDOR", () => 
   it("ne propose à la relance que les demandes en souffrance, et une seule fois", async () => {
     const demande = await service.creerLogement({
       logementId: "l-001",
-      debut: "2026-11-28",
-      fin: "2026-12-01",
+      ...fenetreUnique(3),
       personnes: 2,
       visiteurId: "visiteur-relance",
     });

@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import type { Demande, Logement } from "@teranga/contracts";
 import {
+  AcomptePasPaye,
+  OffreDejaConfirmee,
   annulerDemande,
   confirmerDemande,
   envoyerDemande,
@@ -38,9 +40,27 @@ import type { DemandeEnvoyee } from "@/lib/api/ecriture";
  */
 export async function confirmer(formData: FormData) {
   const id = String(formData.get("id"));
-  await confirmerDemande(id);
+  const brut = String(formData.get("locale") ?? "fr");
+  const langue: Langue = estLangue(brut) ? brut : "fr";
+
+  let paiementAttendu = false;
+  let offrePrise = false;
+  try {
+    await confirmerDemande(id);
+  } catch (erreur) {
+    // Deux refus que le visiteur doit lire : la demande reste « acceptée », et il
+    // l'apprend au lieu de voir un bouton qui ne fait rien.
+    //   - un acompte demandé et non vérifié ;
+    //   - l'offre confirmée entre-temps par une autre réservation aux mêmes dates.
+    if (erreur instanceof AcomptePasPaye) paiementAttendu = true;
+    else if (erreur instanceof OffreDejaConfirmee) offrePrise = true;
+    else throw erreur;
+  }
   revalidatePath("/[locale]/mes-demandes/[id]", "page");
   revalidatePath("/[locale]/mes-demandes", "page");
+  // Hors du `try` : `redirect` lève, et le `catch` l'avalerait.
+  if (offrePrise) redirect(`/${langue}/mes-demandes/${encodeURIComponent(id)}?confirmation=offre-prise`);
+  if (paiementAttendu) redirect(`/${langue}/mes-demandes/${encodeURIComponent(id)}?paiement=attendu`);
 }
 
 export async function annuler(formData: FormData) {

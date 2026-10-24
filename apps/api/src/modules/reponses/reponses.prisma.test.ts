@@ -10,6 +10,7 @@ import { DepotLogementsFixtures } from "../offres/logements/logements.fixtures";
 import { DepotVehiculesFixtures } from "../offres/vehicules/vehicules.fixtures";
 import { DepotJetonsPrisma } from "./jetons.prisma";
 import { ServiceReponses } from "./reponses.service";
+import { fenetreUnique, reserverFenetres } from "../demandes/fenetres-uniques.test-utils";
 
 describe("Persistance PostgreSQL — Module Réponses Partenaires & Usage Unique", () => {
   let reponses: ServiceReponses;
@@ -19,6 +20,7 @@ describe("Persistance PostgreSQL — Module Réponses Partenaires & Usage Unique
   beforeAll(async () => {
     prisma = creerPrismaDeTest();
     await prisma.$connect();
+    await reserverFenetres(prisma);
     const depotJetons = new DepotJetonsPrisma(prisma);
     const depotLogements = new DepotLogementsFixtures();
     const depotVehicules = new DepotVehiculesFixtures();
@@ -60,8 +62,7 @@ describe("Persistance PostgreSQL — Module Réponses Partenaires & Usage Unique
   const logement = () =>
     demandes.creerLogement({
       logementId: "l-001",
-      debut: "2026-11-25",
-      fin: "2026-11-28",
+      ...fenetreUnique(3),
       personnes: 2,
       visiteurId: `visiteur-reponse-${suffixe()}`,
     });

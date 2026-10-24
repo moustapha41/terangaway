@@ -7,6 +7,7 @@ import { ErreurMetier } from "../../commun/erreurs";
 import { config } from "../../config/configuration";
 import { extraireJetonRequete } from "../../commun/securite/hachage";
 import { delaiAcompteHeures } from "../acomptes/calcul";
+import { coordonneesPaiement } from "../acomptes/paiement";
 import { DUREE_LIEN_DEMANDE_HEURES, ServiceComptes, type VisiteurDeDemande } from "../comptes/comptes.service";
 import { CreerDemandeLogementDto } from "./dto/creer-demande-logement.dto";
 import { CreerDemandeServiceDto } from "./dto/creer-demande-service.dto";
@@ -226,7 +227,7 @@ export class ControleurDemandes {
     const delaiHeures = delaiAcompteHeures(genre);
     const annonceAcompte =
       actif && pourcentage !== undefined && delaiHeures !== undefined && demande.prix.total > 0
-        ? { pourcentage, delaiHeures }
+        ? { pourcentage, delaiHeures, moyens: coordonneesPaiement(config.acompte)?.moyens }
         : undefined;
 
     const { envoye } = await this.email.envoyerConfirmationDemande(visiteur.email, {

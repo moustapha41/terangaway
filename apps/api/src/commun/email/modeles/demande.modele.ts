@@ -13,6 +13,8 @@
  *   l'adresse — s'en servir, c'est avoir relevé cette boîte.
  */
 
+import type { MoyenAcompte } from "@teranga/contracts";
+
 export interface IdentifiantsDemande {
   email: string;
   motDePasse: string;
@@ -49,6 +51,25 @@ export interface DetailsDemande {
 export interface AnnonceAcompte {
   pourcentage: number;
   delaiHeures: number;
+  /**
+   * Les moyens réellement configurés. Absent = le virement seul, comme avant
+   * Mobile Money : l'e-mail n'annonce jamais un moyen que l'instruction
+   * d'après n'offrirait pas.
+   */
+  moyens?: readonly MoyenAcompte[];
+}
+
+const LIBELLE_MOYEN: Record<MoyenAcompte, string> = {
+  virement: "virement bancaire",
+  wave: "Wave",
+  "orange-money": "Orange Money",
+};
+
+/** « par virement bancaire », « par Wave ou Orange Money »… */
+function parMoyens(moyens: readonly MoyenAcompte[] | undefined): string {
+  const libelles = (moyens && moyens.length > 0 ? moyens : (["virement"] as const)).map((m) => LIBELLE_MOYEN[m]);
+  const liste = libelles.length === 1 ? libelles[0] : `${libelles.slice(0, -1).join(", ")} ou ${libelles.at(-1)}`;
+  return `par ${liste}`;
 }
 
 export interface ContenuEmail {
@@ -104,8 +125,9 @@ export function genererEmailDemande(details: DetailsDemande): ContenuEmail {
     ...(details.acompte
       ? [
           "Rien n'est payé pour l'instant. Si le propriétaire accepte, un acompte de",
-          `${details.acompte.pourcentage} % du total vous sera demandé par virement bancaire, à régler sous`,
-          `${details.acompte.delaiHeures} heures : les instructions vous arriveront par e-mail. Votre acompte`,
+          `${details.acompte.pourcentage} % du total vous sera demandé ${parMoyens(details.acompte.moyens)}, à régler sous`,
+          `${details.acompte.delaiHeures} heures : les instructions vous arriveront par e-mail. Il se règle à`,
+          "Teranga Way, uniquement avec les coordonnées de cet e-mail d'instructions. Votre acompte",
           "n'est considéré comme reçu qu'après vérification de notre compte par notre équipe.",
         ]
       : [
@@ -184,9 +206,10 @@ export function genererEmailDemande(details: DetailsDemande): ContenuEmail {
   const blocPaiement = details.acompte
     ? `
           💳 <strong>Rien n'est payé pour l'instant.</strong> Si le propriétaire accepte, un
-          acompte de ${details.acompte.pourcentage}&nbsp;% du total vous sera demandé par virement
-          bancaire, à régler sous ${details.acompte.delaiHeures}&nbsp;heures&nbsp;: les instructions
-          vous arriveront par e-mail. Votre acompte n'est considéré comme reçu qu'après
+          acompte de ${details.acompte.pourcentage}&nbsp;% du total vous sera demandé
+          ${parMoyens(details.acompte.moyens)}, à régler sous ${details.acompte.delaiHeures}&nbsp;heures&nbsp;: les
+          instructions vous arriveront par e-mail. Il se règle à Teranga Way, uniquement avec les
+          coordonnées de cet e-mail d'instructions. Votre acompte n'est considéré comme reçu qu'après
           vérification de notre compte par notre équipe.
         `
     : `

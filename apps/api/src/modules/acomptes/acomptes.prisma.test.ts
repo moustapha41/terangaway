@@ -10,6 +10,7 @@ import { DepotVehiculesFixtures } from "../offres/vehicules/vehicules.fixtures";
 import { DepotDemandesPrisma } from "../demandes/demandes.prisma";
 import { ServiceDemandes } from "../demandes/demandes.service";
 import { DepotAcomptesPrisma } from "./acomptes.prisma";
+import { fenetreUnique, instantUnique, reserverFenetres } from "../demandes/fenetres-uniques.test-utils";
 
 /** Le code stable d'une erreur métier, pour décider dessus comme le site. */
 async function codeDe(promesse: Promise<unknown>): Promise<string> {
@@ -48,8 +49,7 @@ describe("Persistance PostgreSQL — Module Acomptes", () => {
   const logement = async () =>
     demandes.creerLogement({
       logementId: "l-001",
-      debut: "2026-11-10",
-      fin: "2026-11-14",
+      ...fenetreUnique(4),
       personnes: 2,
       visiteurId: `visiteur-acompte-${suffixe()}`,
     });
@@ -60,7 +60,7 @@ describe("Persistance PostgreSQL — Module Acomptes", () => {
       prestation,
       depart: "Dakar",
       arrivee: "Saly",
-      quand: "2026-11-10T09:00",
+      quand: instantUnique("09:00"),
       passagers: 2,
       bagages: 1,
       visiteurId: `visiteur-acompte-${suffixe()}`,
@@ -83,6 +83,7 @@ describe("Persistance PostgreSQL — Module Acomptes", () => {
   beforeAll(async () => {
     prisma = creerPrismaDeTest();
     await prisma.$connect();
+    await reserverFenetres(prisma);
     depot = new DepotAcomptesPrisma(prisma);
     demandes = new DepotDemandesPrisma(
       prisma,
@@ -138,8 +139,11 @@ describe("Persistance PostgreSQL — Module Acomptes", () => {
       expect(journal[0].acteurId).toBeUndefined();
     });
 
-    it("accepte la location, et ne lui accorde que trois heures", async () => {
+    it("accepte la location et lui accorde douze heures, plafonnées par la demande", async () => {
       const demande = await vehicule("journee");
+      // Une demande « acceptée » a une fenêtre de douze heures ; on la pose
+      // comme `transitionner` le ferait, pour éprouver le délai du genre seul.
+      await prisma.demand.update({ where: { id: demande.id }, data: { expireLe: new Date(Date.now() + 24 * 3_600_000) } });
       const accepteeLe = accepteeMaintenant();
       const { cree, acompte } = await depot.preparer({
         demandeId: demande.id,
@@ -149,10 +153,18 @@ describe("Persistance PostgreSQL — Module Acomptes", () => {
       expect(cree).toBe(true);
       expect(acompte.montantAttendu).toBe(Math.round((38000 * 30) / 100));
 
-      // Trois heures, et non les douze du logement : c'est la non-conformité
-      // que la table par genre corrige. Une location « envoyée » expire dans
-      // six heures, le plafond ne mord donc pas ici.
-      expect(Date.parse(acompte.echeanceLe) - Date.parse(accepteeLe)).toBe(3 * 3_600_000);
+      expect(Date.parse(acompte.echeanceLe) - Date.parse(accepteeLe)).toBe(12 * 3_600_000);
+    });
+
+    it("plafonne l'échéance d'une location à l'expiration de sa demande quand celle-ci arrive avant", async () => {
+      // Une location « envoyée » expire dans six heures : l'acompte n'est pas
+      // exigible au-delà, quel que soit le délai du genre.
+      const demande = await vehicule("journee");
+      const accepteeLe = accepteeMaintenant();
+      const { acompte } = await depot.preparer({ demandeId: demande.id, pourcentage: 30, accepteeLe });
+      const expireLe = (await prisma.demand.findUniqueOrThrow({ where: { id: demande.id } })).expireLe!;
+      expect(Date.parse(acompte.echeanceLe)).toBe(expireLe.getTime());
+      expect(Date.parse(acompte.echeanceLe) - Date.parse(accepteeLe)).toBeLessThan(12 * 3_600_000);
     });
 
     it("refuse le taxi et le trajet, sans rien écrire", async () => {
@@ -318,7 +330,7 @@ describe("Persistance PostgreSQL — Module Acomptes", () => {
       expect(
         await codeDe(depot.changerStatut("inexistant", { de: "en_attente", vers: "expire" }, { type: "expiration_prononcee" })),
       ).toBe("ACOMPTE_INTROUVABLE");
-      expect(await codeDe(depot.consigner("inexistant", { type: "verification" }))).toBe("ACOMPTE_INTROUVABLE");
+      expect(await codeDe(depot.consigner("inexistant", { type: "verification", acteurId: administrateurId }))).toBe("ACOMPTE_INTROUVABLE");
     });
   });
 
@@ -375,7 +387,14 @@ describe("Persistance PostgreSQL — Module Acomptes", () => {
     it("annule le cumul si l'événement ne peut pas s'écrire (acteur inconnu)", async () => {
       const { acompte } = await acompteNeuf();
       await expect(
-        depot.consigner(acompte.id, { type: "reception_confirmee", montant: 1000, acteurId: "compte-inexistant" }),
+        depot.enregistrerReception({
+          acompteId: acompte.id,
+          montant: 1000,
+          montantRecuAvant: 0,
+          acteurId: "compte-inexistant",
+          ecartConfirme: true,
+          commentaire: "essai",
+        }),
       ).rejects.toThrow();
       expect((await depot.parId(acompte.id))!.montantRecu).toBe(0);
       expect(await depot.journal(acompte.id)).toHaveLength(1);
@@ -437,10 +456,12 @@ describe("Persistance PostgreSQL — Module Acomptes", () => {
     it("trace une réception tardive puis la décision de rembourser", async () => {
       const { acompte } = await acompteNeuf();
       await depot.changerStatut(acompte.id, { de: "en_attente", vers: "expire" }, { type: "expiration_prononcee" });
-      await depot.consigner(acompte.id, {
-        type: "reception_confirmee",
+      await depot.enregistrerReception({
+        acompteId: acompte.id,
         montant: acompte.montantAttendu,
+        montantRecuAvant: 0,
         acteurId: administrateurId,
+        ecartConfirme: false,
       });
       const aRembourser = await depot.changerStatut(
         acompte.id,

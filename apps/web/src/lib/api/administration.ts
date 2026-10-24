@@ -152,6 +152,39 @@ export function apiAdminRenvoyerInstructions(jeton: string, id: string) {
   });
 }
 
+export function apiAdminDeciderRemboursement(jeton: string, id: string, commentaire: string) {
+  return appelerApi<{ vue: VueAcompteAdmin }>(`${cheminAcompte(id)}/remboursement/decision`, {
+    method: "POST",
+    corps: { commentaire },
+    headers: entetes(jeton),
+  });
+}
+
+/** Consigne un remboursement déjà exécuté hors plateforme : aucun transfert n'est lancé. */
+export function apiAdminConstaterRemboursement(
+  jeton: string,
+  id: string,
+  constat: { montant: number; referenceTransaction?: string; commentaire?: string },
+) {
+  return appelerApi<{ vue: VueAcompteAdmin }>(`${cheminAcompte(id)}/remboursement/effectue`, {
+    method: "POST",
+    corps: constat,
+    headers: entetes(jeton),
+  });
+}
+
+export function apiAdminPaiementTardif(
+  jeton: string,
+  id: string,
+  decision: { issue: "accepter" | "rembourser"; commentaire: string },
+) {
+  return appelerApi<{ vue: VueAcompteAdmin }>(`${cheminAcompte(id)}/paiement-tardif`, {
+    method: "POST",
+    corps: decision,
+    headers: entetes(jeton),
+  });
+}
+
 export function apiAdminRenvoyerConfirmation(jeton: string, id: string) {
   return appelerApi<{ etat: string; vue: VueAcompteAdmin }>(`${cheminAcompte(id)}/reception/confirmation/renvoi`, {
     method: "POST",

@@ -10,7 +10,10 @@ import type {
   VueAcompteAdmin,
 } from "@teranga/contracts";
 import {
+  apiAdminConstaterRemboursement,
+  apiAdminDeciderRemboursement,
   apiAdminMoi,
+  apiAdminPaiementTardif,
   apiAdminPreparerAcompte,
   apiAdminReceptionAcompte,
   apiAdminRenvoyerConfirmation,
@@ -256,4 +259,22 @@ export async function renvoyerConfirmationAction(id: string): Promise<ResultatAc
     const { etat, vue } = await apiAdminRenvoyerConfirmation(jeton, id);
     return { vue, info: etat };
   });
+}
+
+export async function deciderRemboursementAction(id: string, commentaire: string): Promise<ResultatAcompte> {
+  return agirSurAcompte(id, async (jeton) => ({ vue: (await apiAdminDeciderRemboursement(jeton, id, commentaire)).vue }));
+}
+
+export async function constaterRemboursementAction(
+  id: string,
+  constat: { montant: number; referenceTransaction?: string; commentaire?: string },
+): Promise<ResultatAcompte> {
+  return agirSurAcompte(id, async (jeton) => ({ vue: (await apiAdminConstaterRemboursement(jeton, id, constat)).vue }));
+}
+
+export async function deciderPaiementTardifAction(
+  id: string,
+  decision: { issue: "accepter" | "rembourser"; commentaire: string },
+): Promise<ResultatAcompte> {
+  return agirSurAcompte(id, async (jeton) => ({ vue: (await apiAdminPaiementTardif(jeton, id, decision)).vue }));
 }

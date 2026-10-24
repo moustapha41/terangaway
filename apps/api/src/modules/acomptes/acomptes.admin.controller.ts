@@ -5,7 +5,12 @@ import type { Response } from "express";
 import { introuvable } from "../../commun/erreurs";
 import { extraireJetonRequete } from "../../commun/securite/hachage";
 import { ServiceComptes } from "../comptes/comptes.service";
-import { DeciderPaiementTardifDto, SaisirReceptionDto } from "./dto/acompte-admin.dto";
+import {
+  ConstaterRemboursementDto,
+  DeciderPaiementTardifDto,
+  DeciderRemboursementDto,
+  SaisirReceptionDto,
+} from "./dto/acompte-admin.dto";
 import { ServiceAcomptes } from "./acomptes.service";
 
 /**
@@ -128,6 +133,45 @@ export class ControleurAcomptesAdmin {
     const vue = await this.acomptes.lireVue(id);
     if (!vue.acompte) throw introuvable("Acompte");
     await this.acomptes.deciderPaiementTardif(vue.acompte.id, { ...corps, acteurId: acteur.id });
+    return { donnees: { vue: await this.acomptes.lireVue(id) } };
+  }
+
+  @Post("remboursement/decision")
+  @ApiOperation({
+    summary: "Décider qu'un acompte payé ou partiel doit être rendu",
+    description:
+      "Une décision, pas un transfert : aucune banque n'est appelée et aucun délai n'est promis. " +
+      "Motif obligatoire ; remboursement intégral du cumul reçu.",
+  })
+  async deciderRemboursement(
+    @Param("id") id: string,
+    @Body() corps: DeciderRemboursementDto,
+    @Res({ passthrough: true }) res: Response,
+    @Headers("authorization") authHeader?: string,
+    @Headers("cookie") cookieHeader?: string,
+  ) {
+    res.setHeader("Cache-Control", "no-store");
+    const acteur = await this.exigerAdmin(authHeader, cookieHeader);
+    await this.acomptes.deciderRemboursement(id, { acteurId: acteur.id, commentaire: corps.commentaire });
+    return { donnees: { vue: await this.acomptes.lireVue(id) } };
+  }
+
+  @Post("remboursement/effectue")
+  @ApiOperation({
+    summary: "Consigner un remboursement déjà exécuté hors plateforme",
+    description:
+      "Rien n'est transféré par cette route. Le montant doit être la totalité du cumul reçu ; « remboursé » est final.",
+  })
+  async constaterRemboursement(
+    @Param("id") id: string,
+    @Body() corps: ConstaterRemboursementDto,
+    @Res({ passthrough: true }) res: Response,
+    @Headers("authorization") authHeader?: string,
+    @Headers("cookie") cookieHeader?: string,
+  ) {
+    res.setHeader("Cache-Control", "no-store");
+    const acteur = await this.exigerAdmin(authHeader, cookieHeader);
+    await this.acomptes.constaterRemboursement(id, { ...corps, acteurId: acteur.id });
     return { donnees: { vue: await this.acomptes.lireVue(id) } };
   }
 

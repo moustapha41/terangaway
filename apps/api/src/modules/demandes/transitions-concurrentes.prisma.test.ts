@@ -19,6 +19,7 @@ import { DepotDemandesFixtures } from "./demandes.fixtures";
 import { DepotDemandesPrisma } from "./demandes.prisma";
 import { ServiceDemandes } from "./demandes.service";
 import { VeilleurDemandes } from "./veilleur.service";
+import { fenetreUnique, reserverFenetres } from "./fenetres-uniques.test-utils";
 
 async function codeDe(promesse: Promise<unknown>): Promise<string> {
   try {
@@ -52,8 +53,7 @@ describe("Transitions concurrentes — écriture conditionnelle au statut lu", (
   const logement = async (visiteurId = `visiteur-course-${suffixe()}`) =>
     depot.creerLogement({
       logementId: "l-001",
-      debut: "2026-11-10",
-      fin: "2026-11-14",
+      ...fenetreUnique(4),
       personnes: 2,
       visiteurId,
     });
@@ -78,6 +78,7 @@ describe("Transitions concurrentes — écriture conditionnelle au statut lu", (
   beforeAll(async () => {
     prisma = creerPrismaDeTest();
     await prisma.$connect();
+    await reserverFenetres(prisma);
     depot = new DepotDemandesPrisma(prisma, new DepotLogementsFixtures(), new DepotVehiculesFixtures());
     service = new ServiceDemandes(depot);
   });
@@ -126,8 +127,7 @@ describe("Transitions concurrentes — écriture conditionnelle au statut lu", (
       const memoire = new DepotDemandesFixtures();
       const demande = await memoire.creerLogement({
         logementId: "l-001",
-        debut: "2026-11-10",
-        fin: "2026-11-14",
+        ...fenetreUnique(4),
         personnes: 2,
         visiteurId: "visiteur-memoire",
       });
@@ -229,6 +229,13 @@ describe("Transitions concurrentes — écriture conditionnelle au statut lu", (
       const demande = await logement(visiteurId);
       const avecAcompte = new ServiceDemandes(depot, acomptes);
       const acceptee = await avecAcompte.accepterParPartenaire(demande.id);
+      // La confirmation exige un acompte payé et vérifié : un administrateur
+      // constate la réception avant que le visiteur confirme.
+      const administrateur = await prisma.account.create({
+        data: { email: `admin-course-${suffixe()}@test.local`, role: "ADMINISTRATEUR" },
+      });
+      const attendu = (await prisma.depositPayment.findUniqueOrThrow({ where: { demandeId: demande.id } })).montantAttendu;
+      await acomptes.confirmerReception(demande.id, { montant: attendu, montantRecuAvant: 0 }, administrateur.id);
       await avecAcompte.confirmer(demande.id);
 
       const veilleurEnRetard = new ServiceDemandes(avecLecturesFigees(acceptee), acomptes);
@@ -237,7 +244,8 @@ describe("Transitions concurrentes — écriture conditionnelle au statut lu", (
       );
 
       const dossier = await prisma.depositPayment.findUniqueOrThrow({ where: { demandeId: demande.id } });
-      expect(dossier.statut).toBe("en_attente");
+      // Le conflit n'a touché ni la demande confirmée ni son acompte payé.
+      expect(dossier.statut).toBe("paye");
     });
   });
 

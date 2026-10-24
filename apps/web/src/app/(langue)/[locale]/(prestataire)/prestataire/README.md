@@ -33,7 +33,7 @@ candidature  →  charte signée  →  compte ouvert par l'équipe  →  connexi
 | Téléverser ses photos, choisir la principale | Modifier son badge « vérifié » |
 | Tenir ses disponibilités, signaler un bien pris | Modifier la grille de prix du transport |
 | Accepter, refuser une demande avec motif | Voir les coordonnées du visiteur avant confirmation |
-| Déclarer ses moyens de paiement acceptés | Demander un acompte (motif de suspension) |
+| Déclarer ses moyens de paiement acceptés | Demander ou encaisser un acompte hors procédure Teranga Way (motif de suspension) |
 
 ## Champs obligatoires
 

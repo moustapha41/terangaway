@@ -64,6 +64,20 @@ export function cleErreurAcompte(code: string): string {
       return "admin.acompte.erreur.demandeClose";
     case "ACOMPTE_RIEN_A_CONFIRMER":
       return "admin.acompte.erreur.rienAConfirmer";
+    case "ACOMPTE_MOTIF_REQUIS":
+    case "ACOMPTE_EXAMEN_REQUIS":
+      return "admin.acompte.erreur.motifRequis";
+    case "ACOMPTE_RIEN_A_REMBOURSER":
+      return "admin.acompte.erreur.rienARembourser";
+    case "ACOMPTE_NON_A_REMBOURSER":
+      return "admin.acompte.erreur.nonARembourser";
+    case "ACOMPTE_REMBOURSEMENT_MONTANT":
+      return "admin.acompte.erreur.montantRemboursement";
+    case "ACOMPTE_PAS_EN_RETARD":
+    case "ACOMPTE_RIEN_RECU":
+      return "admin.acompte.erreur.pasEnRetard";
+    case "ACOMPTE_PAIEMENT_INCOMPLET":
+      return "admin.acompte.erreur.incomplet";
     case "NON_AUTHENTIFIE":
     case "ACCES_INTERDIT":
     case "INTERDIT":

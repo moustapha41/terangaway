@@ -183,7 +183,7 @@ describe("Configuration API — Acompte par virement bancaire", () => {
 
   it("ne porte aucun délai : il dépend du genre, pas de l'environnement", () => {
     // Le défaut corrigé : un `ACOMPTE_DELAI_HEURES` unique imposait les douze
-    // heures du logement à la location, qui n'en a que trois. La variable est
+    // heures du logement à tous les genres, sans que chacun puisse changer. La variable est
     // retirée, et ce test interdit qu'elle revienne — même posée, elle ne doit
     // plus avoir d'effet.
     const config = chargerConfiguration({ ...base, ACOMPTE_DELAI_HEURES: "12" });
@@ -338,7 +338,7 @@ describe("Supervision — /sante/posture ne divulgue jamais le compte bancaire",
     expect(projection).toEqual({
       actif: true,
       pourcentage: 30,
-      delaisHeures: { logement: 12, location: 3, trajet: null, taxi: null, service: null },
+      delaisHeures: { logement: 12, location: 12, trajet: null, taxi: null, service: null },
       coordonneesBancaires: "defini",
     });
 
@@ -363,7 +363,7 @@ describe("Supervision — /sante/posture ne divulgue jamais le compte bancaire",
     ).toEqual({
       actif: false,
       pourcentage: null,
-      delaisHeures: { logement: 12, location: 3, trajet: null, taxi: null, service: null },
+      delaisHeures: { logement: 12, location: 12, trajet: null, taxi: null, service: null },
       coordonneesBancaires: "absent",
     });
   });
@@ -379,7 +379,7 @@ describe("Supervision — /sante/posture ne divulgue jamais le compte bancaire",
     });
 
     expect(projection.delaisHeures.logement).toBe(12);
-    expect(projection.delaisHeures.location).toBe(3);
+    expect(projection.delaisHeures.location).toBe(12);
     expect(projection.delaisHeures.trajet).toBeNull();
     expect(projection.delaisHeures.taxi).toBeNull();
   });

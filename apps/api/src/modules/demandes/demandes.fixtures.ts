@@ -3,7 +3,7 @@ import { totalSejour, type Demande, type StatutDemande } from "@teranga/contract
 import { DEMANDES, LOGEMENTS, VEHICULES } from "@teranga/fixtures";
 
 import { ErreurMetier, introuvable } from "../../commun/erreurs";
-import { expireLePour } from "./machine-a-etats/delais";
+import { expireLePour, type GenreService } from "./machine-a-etats/delais";
 import type {
   DepotDemandes,
   EntreeCreationLogement,
@@ -26,6 +26,13 @@ export class DepotDemandesFixtures implements DepotDemandes {
   private readonly parVisiteur = new Map<string, string>(
     this.demandes.map((d) => [d.id, "visiteur-demo"]),
   );
+
+  /** Le genre fin de chaque demande créée ici, comme la colonne `genre` de la base. */
+  private readonly genres = new Map<string, GenreService>();
+
+  async genreDe(demandeId: string): Promise<GenreService | undefined> {
+    return this.genres.get(demandeId);
+  }
 
   async listerPourVisiteur(visiteurId: string): Promise<Demande[]> {
     const ids = [...this.parVisiteur.entries()]
@@ -148,6 +155,7 @@ export class DepotDemandesFixtures implements DepotDemandes {
 
     this.demandes.unshift(demande);
     this.parVisiteur.set(demande.id, entree.visiteurId);
+    this.genres.set(demande.id, "logement");
     return structuredClone(demande);
   }
 
@@ -188,6 +196,7 @@ export class DepotDemandesFixtures implements DepotDemandes {
 
     this.demandes.unshift(demande);
     this.parVisiteur.set(demande.id, entree.visiteurId);
+    this.genres.set(demande.id, genre);
     return structuredClone(demande);
   }
 
@@ -214,6 +223,7 @@ export class DepotDemandesFixtures implements DepotDemandes {
 
     this.demandes.unshift(demande);
     this.parVisiteur.set(demande.id, entree.visiteurId);
+    this.genres.set(demande.id, "service");
     return structuredClone(demande);
   }
 

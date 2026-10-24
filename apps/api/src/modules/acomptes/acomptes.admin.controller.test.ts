@@ -33,6 +33,8 @@ function appels(c: ControleurAcomptesAdmin, auth?: string) {
     renvoyerConfirmation: () => c.renvoyerConfirmation("d-1", res, auth),
     deciderPaiementTardif: () =>
       c.deciderPaiementTardif("d-1", { issue: "accepter", commentaire: "x" }, res, auth),
+    deciderRemboursement: () => c.deciderRemboursement("d-1", { commentaire: "motif" }, res, auth),
+    constaterRemboursement: () => c.constaterRemboursement("d-1", { montant: 1 }, res, auth),
   } as Record<string, () => Promise<unknown>>;
 }
 

@@ -23,16 +23,19 @@ import { titreOffre } from "@/lib/i18n/titre-logement";
  * le statut.
  *
  * C'est aussi l'écran de l'étape 7 : le jour venu, le visiteur y retrouve tout,
- * avec le rappel que le paiement se fait sur place.
+ * avec le rappel qu'aucun paiement n'est demandé à l'envoi (acompte éventuel après acceptation).
  */
 const ORDRE: StatutDemande[] = ["envoyee", "acceptee", "confirmee", "terminee"];
 
 export default async function DetailDemande({
   params,
+  searchParams,
 }: {
   params: Promise<{ locale: string; id: string }>;
+  searchParams: Promise<{ paiement?: string; confirmation?: string }>;
 }) {
   const { locale, id } = await params;
+  const { paiement, confirmation } = await searchParams;
   const langue: Langue = estLangue(locale) ? locale : "fr";
   const t = traducteurPour(langue);
 
@@ -91,7 +94,23 @@ export default async function DetailDemande({
             les a saisies : chaque cas a son texte, aucun ne promet à tort. */}
         <Coordonnees vue={vueCoordonnees(demande)} t={t} />
 
-        <Actions demande={demande} t={t} />
+        {confirmation === "offre-prise" && demande.statut === "acceptee" && (
+          // La confirmation a été refusée : une autre réservation occupe déjà cette offre
+          // sur des dates qui recouvrent les vôtres. La demande n'est pas confirmée.
+          <Bandeau variante="avertissement" className="mt-6">
+            {t("detailDemande.offrePrise")}
+          </Bandeau>
+        )}
+
+        {paiement === "attendu" && demande.statut === "acceptee" && (
+          // La confirmation a été refusée : un acompte est demandé et sa réception
+          // n'est pas encore vérifiée par l'équipe. Une déclaration de paiement ne suffit pas.
+          <Bandeau variante="avertissement" className="mt-6">
+            {t("detailDemande.paiementAttendu")}
+          </Bandeau>
+        )}
+
+        <Actions demande={demande} langue={langue} t={t} />
       </div>
     </main>
   );
@@ -260,12 +279,13 @@ function Coordonnees({ vue, t }: { vue: VueCoordonnees; t: Traducteur }) {
 }
 
 /** Les boutons dépendent du statut : un statut terminal ne propose plus d'action. */
-function Actions({ demande, t }: { demande: Demande; t: Traducteur }) {
+function Actions({ demande, langue, t }: { demande: Demande; langue: Langue; t: Traducteur }) {
   if (demande.statut === "acceptee") {
     return (
       <div className="mt-8 flex flex-col gap-3 sm:flex-row">
         <form action={confirmer} className="flex-1">
           <input type="hidden" name="id" value={demande.id} />
+          <input type="hidden" name="locale" value={langue} />
           <Bouton type="submit" variante="confirmation" largeur="pleine">
             {t("detailDemande.confirmer")}
           </Bouton>

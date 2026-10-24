@@ -44,7 +44,8 @@ export type MoyenDePaiement = (typeof MOYENS_DE_PAIEMENT)[number];
 
 /**
  * Les 7 statuts d'une demande. L'ordre compte : il est celui de la frise.
- * Le paiement n'en fait jamais partie — il a lieu sur place, hors plateforme.
+ * Le paiement n'en fait pas partie : un acompte a son propre cycle (`STATUTS_ACOMPTE`),
+ * distinct du statut de la demande — l'acompte payé ne la confirme pas.
  */
 export const STATUTS_DEMANDE = [
   "envoyee",

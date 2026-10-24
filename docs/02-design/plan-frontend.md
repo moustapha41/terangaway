@@ -19,7 +19,8 @@ je demande, je suis ma demande, je confirme*. Cinq règles le gouvernent, et cha
 | Jamais d'impasse | Tout état vide, refusé ou expiré propose une suite. Aucun cul-de-sac n'est acceptable en revue. |
 | Le logement amène au transport | Après confirmation d'un logement, le transfert aéroport est proposé avec dates et adresse pré-remplies. |
 
-Trois interdits absolus, repris du cahier des charges : **jamais de paiement en ligne**,
+Trois interdits absolus, repris du cahier des charges : **jamais de passerelle de paiement en ligne** (un acompte
+éventuel se règle par virement ou Mobile Money, demandé par Teranga Way seule, et vérifié à la main),
 **jamais de coordonnées avant confirmation**, **jamais d'offre non vérifiée affichée**.
 
 ---
@@ -153,7 +154,7 @@ les envoyer avant confirmation — critère de fin §D.4.
 ### Écran 4 · Demande — `demande/[offreId]/`
 
 Récapitulatif (offre, dates, personnes, prix) · heure d'arrivée · message au
-partenaire · mention de paiement sur place · « Envoyer la demande » · feuille du
+partenaire · mention « aucun paiement à l'envoi » · « Envoyer la demande » · feuille du
 code si le visiteur n'est pas connecté.
 
 Le prix est **figé** à l'envoi. La saisie est conservée à travers la création du
@@ -172,7 +173,7 @@ Badge de statut et phrase d'explication · frise horodatée · récapitulatif et
 « Confirmer » et « Annuler » selon le statut.
 
 C'est l'écran de l'étape 7 aussi : le jour venu, le visiteur y retrouve tout, avec
-le rappel que le paiement se fait sur place.
+le rappel qu'aucun paiement n'est demandé à l'envoi (acompte éventuel après acceptation).
 
 ### Écran 7 · Formulaire de trajet — `transports/trajet/`
 
@@ -231,7 +232,7 @@ deux personnes) et les **pièces justificatives restent hors plateforme**.
 
 | Sujet | Règle |
 |---|---|
-| Prix | Jamais sans unité. Espace entre les milliers, « FCFA » après le montant, dans les trois langues. Conversion en euros ou dollars en texte secondaire, précédée de « environ ». « Paiement sur place, jamais avant la prestation » sous chaque total. |
+| Prix | Jamais sans unité. Espace entre les milliers, « FCFA » après le montant, dans les trois langues. Conversion en euros ou dollars en texte secondaire, précédée de « environ ». « Aucun paiement à l'envoi · acompte éventuel après acceptation » sous chaque total. |
 | Dates | Selon la langue : « 30 oct. », « Oct 30 », « 30 oct ». Chiffres à largeur fixe pour aligner les colonnes. |
 | Ton | On parle au visiteur, on dit quoi faire ensuite, verbe d'action sur les boutons, chiffres complets, erreur utile. Vouvoiement en français, « usted » en espagnol. |
 | États | Les cinq états sont dessinés pour chaque écran clé, pas seulement l'état nominal. |

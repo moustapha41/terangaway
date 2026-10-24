@@ -156,6 +156,21 @@ describe("E-mails — Mobile Money et réception", () => {
     expect(m.texte).toContain("aucun remboursement n'a été effectué automatiquement");
   });
 
+  it("dit au visiteur qu'il lui reste à confirmer, seulement quand l'acompte est complet et la demande acceptée", () => {
+    const attendue = genererEmailReceptionAcompte({ ...reception, confirmationAttendue: true });
+    expect(attendue.texte).toContain("vous pouvez maintenant confirmer votre réservation depuis votre");
+    expect(attendue.texte).toContain("Tant que vous ne l'avez pas fait, elle n'est pas confirmée.");
+    // Un versement partiel n'ouvre pas la confirmation.
+    const partiel = genererEmailReceptionAcompte({ ...reception, confirmationAttendue: true, resteAcompte: "86 000 FCFA" });
+    expect(partiel.texte).not.toContain("vous pouvez maintenant confirmer");
+    // Déjà confirmée, ou non attendue : rien à ajouter.
+    const deja = genererEmailReceptionAcompte({
+      ...reception, statutReservation: "confirmée", reservationConfirmee: true, confirmationAttendue: true,
+    });
+    expect(deja.texte).not.toContain("vous pouvez maintenant confirmer");
+    expect(genererEmailReceptionAcompte(reception).texte).not.toContain("vous pouvez maintenant confirmer");
+  });
+
   it("n'ajoute la mise en garde que si la réservation n'est pas déjà confirmée", () => {
     const m = genererEmailReceptionAcompte({ ...reception, statutReservation: "confirmée", reservationConfirmee: true });
     expect(m.texte).not.toContain("ne vaut pas, à elle seule");

@@ -65,4 +65,18 @@ describe("Notification renvoyée avec la demande", () => {
     expect(email.envoyerConfirmationDemande.mock.calls[0][1].acompte).toBeDefined();
     expect(res.notification.acompteAnnonce).toBe(true);
   });
+
+  it("annonce dans l'e-mail les seuls moyens configurés", async () => {
+    Object.assign(config.acompte, {
+      actif: true,
+      pourcentage: 30,
+      etatCoordonnees: "defini",
+      beneficiaire: { titulaire: "T", banque: "B", iban: "IBANDETESTNEPASUTILISER", bic: "BICDETEST" },
+      moyens: ["virement", "wave"],
+      mobileMoney: [{ operateur: "wave", numero: "+221000000000", titulaire: "TW" }],
+    });
+    const { creer, email } = controleur(true);
+    await creer();
+    expect(email.envoyerConfirmationDemande.mock.calls[0][1].acompte.moyens).toEqual(["virement", "wave"]);
+  });
 });

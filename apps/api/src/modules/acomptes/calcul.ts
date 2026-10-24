@@ -21,17 +21,19 @@ import type { GenreDemande } from "@teranga/contracts";
  * genre est éligible s'il a un délai, et il a un délai s'il est éligible. Les
  * tenir dans deux listes séparées — ce qui était le cas — laissait un genre
  * éligible hériter du délai d'un autre. C'est exactement le défaut que cette
- * table corrige : la location, éligible, recevait les douze heures du
- * logement parce qu'un unique `ACOMPTE_DELAI_HEURES` valait pour tous.
+ * table corrige : une variable unique valait pour tous les genres, et chacun
+ * doit pouvoir changer de délai sans entraîner les autres.
  *
  * Pourquoi ces valeurs :
  *
  *   `logement` — douze heures. Un séjour se prépare, le visiteur a le temps
  *   de passer à sa banque ;
  *
- *   `location` — **trois heures**. Un véhicule bloqué est un véhicule qui ne
- *   roule pas pour quelqu'un d'autre : on ne le retient pas une demi-journée
- *   sur la foi d'un virement qui n'est pas parti ;
+ *   `location` — douze heures, comme le logement : décision métier. La fenêtre
+ *   de confirmation d'une location (`DELAIS.location`) est la même, et c'est
+ *   elle qui plafonne l'acompte. Un véhicule retenu l'est donc jusqu'à douze
+ *   heures sur la foi d'un paiement qui n'est pas encore arrivé : c'est le
+ *   prix de ce choix, que l'équipe assume ;
  *
  *   `trajet` et `taxi` — aucun acompte. Leur demande se joue en minutes ; le
  *   temps d'un virement, la course est partie ou perdue ;
@@ -50,7 +52,7 @@ export const DELAIS_ACOMPTE_HEURES: Readonly<
   Record<GenreDemande, number | null>
 > = {
   logement: 12,
-  location: 3,
+  location: 12,
   trajet: null,
   taxi: null,
   service: null,

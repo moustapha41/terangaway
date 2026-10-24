@@ -141,6 +141,11 @@ export interface VueAcompteAdmin {
   statutDemande: StatutDemande;
   /** Absent tant qu'aucun dossier n'est ouvert. */
   acompte?: Acompte;
+  /**
+   * Une autre demande confirmée occupe déjà l'offre aux mêmes dates : aucun acompte ne
+   * s'ouvre, aucune instruction ne part. Toujours faux quand un dossier existe.
+   */
+  offreDejaConfirmee: boolean;
   /** Seulement sans dossier, acompte ouvert et demande éligible. */
   apercu?: ApercuAcompte;
   /** Ce qui reste à recevoir : attendu − reçu, jamais négatif. */
@@ -158,6 +163,10 @@ export interface VueAcompteAdmin {
     renvoyerInstructions: boolean;
     renvoyerConfirmation: boolean;
     deciderPaiementTardif: boolean;
+    /** Un acompte payé ou partiel qui doit être rendu. */
+    deciderRemboursement: boolean;
+    /** Un remboursement décidé, que la personne a exécuté hors plateforme. */
+    constaterRemboursement: boolean;
   };
 }
 

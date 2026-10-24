@@ -112,6 +112,9 @@ export function genererEmailInstructionsAcompte(details: InstructionsAcompte): C
     "Vous avez déjà payé, ou vous rencontrez une difficulté ? Répondez à cet e-mail",
     "en indiquant votre référence : nous vérifions et revenons vers vous.",
     "",
+    "Cet acompte se règle à Teranga Way, uniquement avec les coordonnées ci-dessus :",
+    "ne le versez jamais directement au propriétaire.",
+    "",
     "Ces coordonnées ne changent jamais par e-mail. Si quelqu'un vous en communique",
     "d'autres, ne payez rien et prévenez-nous.",
     "",
@@ -213,7 +216,8 @@ export function genererEmailInstructionsAcompte(details: InstructionsAcompte): C
       </p>
       <div class="alerte">
         <p class="alerte-text">
-          Ces coordonnées ne changent jamais par e-mail. Si quelqu'un vous en communique
+          Cet acompte se règle à Teranga Way, uniquement avec les coordonnées ci-dessus&nbsp;: ne le
+          versez jamais directement au propriétaire. Ces coordonnées ne changent jamais par e-mail. Si quelqu'un vous en communique
           d'autres, ne payez rien et prévenez-nous.
         </p>
       </div>
@@ -249,6 +253,11 @@ export interface ReceptionAcompteEmail {
   statutReservation: string;
   /** La réservation est-elle déjà confirmée ? Sinon l'e-mail le dit. */
   reservationConfirmee: boolean;
+  /**
+   * Il reste au visiteur à confirmer lui-même : la demande est acceptée, et
+   * l'acompte est désormais vérifié. Le paiement ne confirme rien à sa place.
+   */
+  confirmationAttendue?: boolean;
 }
 
 /**
@@ -297,6 +306,12 @@ export function genererEmailReceptionAcompte(details: ReceptionAcompteEmail): Co
           "La réception de l'acompte ne vaut pas, à elle seule, confirmation de la réservation :",
           "le statut ci-dessus est celui de votre réservation à cette date.",
         ]),
+    ...(complet && details.confirmationAttendue && !details.reservationConfirmee
+      ? [
+          "Votre acompte étant vérifié, vous pouvez maintenant confirmer votre réservation depuis votre",
+          "demande. Tant que vous ne l'avez pas fait, elle n'est pas confirmée.",
+        ]
+      : []),
   ];
 
   const texte = [

@@ -40,10 +40,24 @@ describe("Acompte — transitions de statut", () => {
     expect(transitionAcompteAutorisee("expire", "paye")).toBe(true);
   });
 
-  it("laisse partir vers le remboursement ce qui a été reçu à tort", () => {
+  it("laisse partir vers le remboursement ce qui a été reçu", () => {
     expect(transitionAcompteAutorisee("expire", "a_rembourser")).toBe(true);
-    expect(transitionAcompteAutorisee("annule", "a_rembourser")).toBe(true);
+    expect(transitionAcompteAutorisee("partiel", "a_rembourser")).toBe(true);
     expect(transitionAcompteAutorisee("paye", "a_rembourser")).toBe(true);
+  });
+
+  it("n'annule jamais de l'argent reçu, et n'a rien à rembourser d'un acompte annulé", () => {
+    // De l'argent reçu se rend, il ne s'annule pas ; un acompte annulé n'a rien reçu.
+    expect(transitionAcompteAutorisee("partiel", "annule")).toBe(false);
+    expect(transitionAcompteAutorisee("paye", "annule")).toBe(false);
+    expect(transitionAcompteAutorisee("expire", "annule")).toBe(false);
+    expect(TRANSITIONS_ACOMPTE.annule).toEqual([]);
+    for (const statut of STATUTS_ACOMPTE) {
+      if (statut !== "annule") {
+        // Seul un acompte qui n'a rien reçu peut s'annuler.
+        expect(transitionAcompteAutorisee(statut, "annule")).toBe(statut === "en_attente");
+      }
+    }
   });
 
   it("ne déclare « remboursé » que ce qui était à rembourser, et s'y arrête", () => {

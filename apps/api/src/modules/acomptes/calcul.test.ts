@@ -120,9 +120,9 @@ describe("Acompte — genres éligibles", () => {
 });
 
 describe("Acompte — délai par genre", () => {
-  it("accorde douze heures au logement et trois à la location", () => {
+  it("accorde douze heures au logement et à la location", () => {
     expect(delaiAcompteHeures("logement")).toBe(12);
-    expect(delaiAcompteHeures("location")).toBe(3);
+    expect(delaiAcompteHeures("location")).toBe(12);
   });
 
   it("n'accorde aucun délai au trajet, au taxi ni au service", () => {
@@ -160,11 +160,9 @@ describe("Acompte — échéance", () => {
     );
   });
 
-  it("donne trois heures à une location — et non les douze du logement", () => {
-    // La non-conformité que cette correction vise : une location recevait
-    // douze heures parce qu'un unique ACOMPTE_DELAI_HEURES valait pour tous.
+  it("donne douze heures à une location, comme au logement (décision métier)", () => {
     expect(echeanceAcompte("location", acceptationLe)).toBe(
-      "2026-11-01T11:00:00.000Z",
+      "2026-11-01T20:00:00.000Z",
     );
   });
 
@@ -206,16 +204,16 @@ describe("Acompte — échéance", () => {
 
   it("n'invente aucun plafond quand la demande n'a pas d'échéance", () => {
     expect(echeanceAcompte("location", acceptationLe, undefined)).toBe(
-      "2026-11-01T11:00:00.000Z",
+      "2026-11-01T20:00:00.000Z",
     );
     expect(echeanceAcompte("location", acceptationLe, null)).toBe(
-      "2026-11-01T11:00:00.000Z",
+      "2026-11-01T20:00:00.000Z",
     );
   });
 
   it("ignore un plafond illisible plutôt que d'échouer sur une donnée voisine", () => {
     expect(echeanceAcompte("location", acceptationLe, "pas une date")).toBe(
-      "2026-11-01T11:00:00.000Z",
+      "2026-11-01T20:00:00.000Z",
     );
   });
 
@@ -270,12 +268,18 @@ describe("Acompte — non-régression sur les délais de confirmation des demand
     expect(DELAIS.taxi.expirationReponseMinutes).toBe(30);
   });
 
-  it("ne confond pas le délai d'acompte d'une location avec sa fenêtre de confirmation", () => {
-    // Trois heures de paiement, douze heures de confirmation : deux nombres
-    // différents, et c'est le plafonnement qui les met d'accord, pas une
-    // égalisation.
-    expect(delaiAcompteHeures("location")).toBe(3);
+  it("aligne le délai d'acompte d'une location sur sa fenêtre de confirmation : douze heures", () => {
+    // Le délai d'acompte ne peut pas dépasser la fenêtre de confirmation (le
+    // plafond de `expireLe` l'impose) : les deux valent douze heures.
+    expect(delaiAcompteHeures("location")).toBe(12);
     expect(DELAIS.location.confirmationVisiteurMinutes / 60).toBe(12);
+  });
+
+  it("ne touche à aucun autre délai de confirmation", () => {
+    expect(DELAIS.logement.confirmationVisiteurMinutes).toBe(12 * 60);
+    expect(DELAIS.trajet.confirmationVisiteurMinutes).toBe(3 * 60);
+    expect(DELAIS.taxi.confirmationVisiteurMinutes).toBe(15);
+    expect(DELAIS.service.confirmationVisiteurMinutes).toBe(12 * 60);
   });
 });
 
