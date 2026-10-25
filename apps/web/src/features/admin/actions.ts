@@ -2,8 +2,26 @@
 
 import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
-import type { MiseAJourDemandeAdmin } from "@teranga/contracts";
-import { apiAdminMoi, apiAdminTraiter } from "@/lib/api/administration";
+import type {
+  CoordonneesAdmin,
+  MiseAJourDemandeAdmin,
+  SaisieCoordonneesAdmin,
+  SaisieReceptionAcompte,
+  VueAcompteAdmin,
+} from "@teranga/contracts";
+import {
+  apiAdminConstaterRemboursement,
+  apiAdminDeciderRemboursement,
+  apiAdminMoi,
+  apiAdminPaiementTardif,
+  apiAdminPreparerAcompte,
+  apiAdminReceptionAcompte,
+  apiAdminRenvoyerConfirmation,
+  apiAdminRenvoyerInstructions,
+  apiAdminSaisirCoordonnees,
+  apiAdminTraiter,
+  apiAdminVerifierCoordonnees,
+} from "@/lib/api/administration";
 import { apiEnvoyerOtp, apiVerifierOtp } from "@/lib/api/ecriture";
 import { ErreurApi } from "@/lib/api/http";
 import { COOKIE_ADMIN, DUREE_SESSION_ADMIN_SECONDES } from "./cookie";
@@ -135,4 +153,128 @@ export async function traiterDemandeAction(
   revalidatePath("/admin/demandes");
   revalidatePath("/admin");
   return { succes: true };
+}
+
+export type ResultatCoordonnees =
+  | { succes: true; coordonnees: CoordonneesAdmin }
+  | { succes: false; code: string; message: string };
+
+/**
+ * Le refus d'une opération sur les coordonnées, remonté avec son **code** :
+ * l'écran choisit son texte sur le code — quatre yeux, conflit, statut —
+ * plutôt que d'afficher un message serveur dans la mauvaise langue. Les
+ * messages de l'API ne citent jamais une coordonnée.
+ */
+function refusCoordonnees(erreur: unknown): ResultatCoordonnees {
+  if (erreur instanceof ErreurApi) return { succes: false, code: erreur.code, message: erreur.message };
+  return { succes: false, code: "INJOIGNABLE", message: "Le serveur n'a pas répondu." };
+}
+
+export async function saisirCoordonneesAction(
+  id: string,
+  saisie: SaisieCoordonneesAdmin,
+): Promise<ResultatCoordonnees> {
+  const jeton = (await cookies()).get(COOKIE_ADMIN)?.value;
+  if (!jeton) return { succes: false, code: "NON_AUTHENTIFIE", message: "Session expirée." };
+
+  try {
+    const coordonnees = await apiAdminSaisirCoordonnees(jeton, id, saisie);
+    revalidatePath(`/admin/demandes/${id}`);
+    return { succes: true, coordonnees };
+  } catch (erreur) {
+    return refusCoordonnees(erreur);
+  }
+}
+
+export async function verifierCoordonneesAction(id: string, saisieLe: string): Promise<ResultatCoordonnees> {
+  const jeton = (await cookies()).get(COOKIE_ADMIN)?.value;
+  if (!jeton) return { succes: false, code: "NON_AUTHENTIFIE", message: "Session expirée." };
+
+  try {
+    const coordonnees = await apiAdminVerifierCoordonnees(jeton, id, saisieLe);
+    revalidatePath(`/admin/demandes/${id}`);
+    return { succes: true, coordonnees };
+  } catch (erreur) {
+    return refusCoordonnees(erreur);
+  }
+}
+
+/* ─────────────────────────────── Acompte ─────────────────────────────── */
+
+export type ResultatAcompte =
+  | { succes: true; vue: VueAcompteAdmin; info?: string }
+  | { succes: false; code: string; message: string };
+
+function refusAcompte(erreur: unknown): ResultatAcompte {
+  if (erreur instanceof ErreurApi) return { succes: false, code: erreur.code, message: erreur.message };
+  return { succes: false, code: "INJOIGNABLE", message: "Le serveur n'a pas répondu." };
+}
+
+/**
+ * Chaque action relit la session côté serveur et laisse l'API juge : le
+ * montant attendu, l'écart, la concurrence et les droits y sont décidés. Cet
+ * écran n'envoie que ce que la personne a lu sur le compte.
+ */
+async function agirSurAcompte(
+  id: string,
+  action: (jeton: string) => Promise<{ vue: VueAcompteAdmin; info?: string }>,
+): Promise<ResultatAcompte> {
+  const jeton = (await cookies()).get(COOKIE_ADMIN)?.value;
+  if (!jeton) return { succes: false, code: "NON_AUTHENTIFIE", message: "Session expirée." };
+  try {
+    const { vue, info } = await action(jeton);
+    revalidatePath(`/admin/demandes/${id}`);
+    return { succes: true, vue, info };
+  } catch (erreur) {
+    return refusAcompte(erreur);
+  }
+}
+
+export async function preparerAcompteAction(id: string): Promise<ResultatAcompte> {
+  return agirSurAcompte(id, async (jeton) => {
+    const { issue, vue } = await apiAdminPreparerAcompte(jeton, id);
+    return { vue, info: issue.etat };
+  });
+}
+
+export async function saisirReceptionAction(
+  id: string,
+  saisie: SaisieReceptionAcompte,
+): Promise<ResultatAcompte> {
+  return agirSurAcompte(id, async (jeton) => {
+    const { resultat, vue } = await apiAdminReceptionAcompte(jeton, id, saisie);
+    return { vue, info: resultat.emailConfirmation };
+  });
+}
+
+export async function renvoyerInstructionsAction(id: string): Promise<ResultatAcompte> {
+  return agirSurAcompte(id, async (jeton) => {
+    const { issue, vue } = await apiAdminRenvoyerInstructions(jeton, id);
+    return { vue, info: issue };
+  });
+}
+
+export async function renvoyerConfirmationAction(id: string): Promise<ResultatAcompte> {
+  return agirSurAcompte(id, async (jeton) => {
+    const { etat, vue } = await apiAdminRenvoyerConfirmation(jeton, id);
+    return { vue, info: etat };
+  });
+}
+
+export async function deciderRemboursementAction(id: string, commentaire: string): Promise<ResultatAcompte> {
+  return agirSurAcompte(id, async (jeton) => ({ vue: (await apiAdminDeciderRemboursement(jeton, id, commentaire)).vue }));
+}
+
+export async function constaterRemboursementAction(
+  id: string,
+  constat: { montant: number; referenceTransaction?: string; commentaire?: string },
+): Promise<ResultatAcompte> {
+  return agirSurAcompte(id, async (jeton) => ({ vue: (await apiAdminConstaterRemboursement(jeton, id, constat)).vue }));
+}
+
+export async function deciderPaiementTardifAction(
+  id: string,
+  decision: { issue: "accepter" | "rembourser"; commentaire: string },
+): Promise<ResultatAcompte> {
+  return agirSurAcompte(id, async (jeton) => ({ vue: (await apiAdminPaiementTardif(jeton, id, decision)).vue }));
 }

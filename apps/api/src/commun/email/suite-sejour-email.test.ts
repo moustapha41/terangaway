@@ -69,9 +69,14 @@ describe("Accusé de réception — la suite du séjour", () => {
     expect(lire(arrivee).get("passagers")).toBe("4");
   });
 
-  it("dit que rien n'est payé maintenant", () => {
+  it("reste facultative, et ne promet rien sur le paiement", () => {
+    // La promesse de paiement est celle du bloc qui précède, et elle dépend du
+    // genre de demande et de l'acompte : cette section n'en dit rien, pour ne
+    // pas la contredire.
     const { texte } = genererEmailDemande(DETAILS);
-    expect(texte).toContain("rien n'est payé maintenant");
+    expect(texte).toContain("Facultatif");
+    const suite = texte.slice(texte.indexOf("Complétez votre séjour"));
+    expect(suite).not.toMatch(/payé|paiement|gratuit/i);
   });
 
   it("disparaît quand il n'y a pas de logement à raccompagner", () => {

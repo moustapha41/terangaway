@@ -21,7 +21,8 @@ async function exporter() {
       .setTitle("Teranga Way — API")
       .setDescription(
         "Logements et transports vérifiés pour les JOJ Dakar 2026. " +
-          "Aucun paiement en ligne : le paiement a lieu sur place.",
+          "Aucune passerelle de paiement en ligne : un éventuel acompte est réglé par virement ou Mobile Money " +
+          "et vérifié manuellement par l'équipe.",
       )
       .setVersion("0.1.0")
       .build(),

@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import type { Demande, Logement } from "@teranga/contracts";
 import {
+  AcomptePasPaye,
+  OffreDejaConfirmee,
   annulerDemande,
   confirmerDemande,
   envoyerDemande,
@@ -20,6 +22,7 @@ import {
   type BrouillonDemande,
 } from "@/features/demande/brouillon";
 import { visiteurConnecte } from "@/features/compte/session";
+import { poserRecapitulatif, recapitulatifDe } from "@/features/demande/recapitulatif";
 import {
   coordonneesDemande,
   ouvrirSessionDemo,
@@ -27,6 +30,7 @@ import {
 } from "@/features/demande/coordonnees";
 import { resoudreDestination } from "@/features/compte/destination";
 import { estLangue, type Langue } from "@/lib/i18n/langues";
+import type { DemandeEnvoyee } from "@/lib/api/ecriture";
 
 /**
  * Actions serveur de l'écran 6.
@@ -36,9 +40,27 @@ import { estLangue, type Langue } from "@/lib/i18n/langues";
  */
 export async function confirmer(formData: FormData) {
   const id = String(formData.get("id"));
-  await confirmerDemande(id);
+  const brut = String(formData.get("locale") ?? "fr");
+  const langue: Langue = estLangue(brut) ? brut : "fr";
+
+  let paiementAttendu = false;
+  let offrePrise = false;
+  try {
+    await confirmerDemande(id);
+  } catch (erreur) {
+    // Deux refus que le visiteur doit lire : la demande reste « acceptée », et il
+    // l'apprend au lieu de voir un bouton qui ne fait rien.
+    //   - un acompte demandé et non vérifié ;
+    //   - l'offre confirmée entre-temps par une autre réservation aux mêmes dates.
+    if (erreur instanceof AcomptePasPaye) paiementAttendu = true;
+    else if (erreur instanceof OffreDejaConfirmee) offrePrise = true;
+    else throw erreur;
+  }
   revalidatePath("/[locale]/mes-demandes/[id]", "page");
   revalidatePath("/[locale]/mes-demandes", "page");
+  // Hors du `try` : `redirect` lève, et le `catch` l'avalerait.
+  if (offrePrise) redirect(`/${langue}/mes-demandes/${encodeURIComponent(id)}?confirmation=offre-prise`);
+  if (paiementAttendu) redirect(`/${langue}/mes-demandes/${encodeURIComponent(id)}?paiement=attendu`);
 }
 
 export async function annuler(formData: FormData) {
@@ -105,6 +127,10 @@ export async function creerDemandeLogementAction(
 
     if (!sessionActive) await ouvrirSessionDemo(envoyeur?.email);
 
+    // Le récapitulatif de la confirmation vient de la réponse de l'API. S'il ne
+    // peut pas être posé, la demande n'en reste pas moins enregistrée.
+    await poserRecapitulatif(recapitulatifDe(demande, demande.emailEnvoye, demande.acompteAnnonce)).catch(() => {});
+
     revalidatePath("/[locale]/mes-demandes", "page");
     revalidatePath("/[locale]/compte", "page");
 
@@ -124,7 +150,7 @@ export async function creerDemandeLogementAction(
 /* ──────────────────── Création de demande de transport ──────────────────── */
 
 export type ResultatDemandeTransport =
-  | { succes: true; demande: Demande }
+  | { succes: true; demande: DemandeEnvoyee }
   | {
       succes: false;
       erreur: "delai_trop_court" | "validation" | "serveur";

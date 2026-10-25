@@ -1,6 +1,30 @@
 /** À quoi sert ce code ? Un code d'inscription ne connecte pas, et inversement. */
 export type FinaliteOtp = "connexion_visiteur" | "inscription";
 
+/**
+ * Préfixe de `OtpChallenge.finalite` pour un lien d'accès à une demande ; la
+ * suite est l'identifiant de la demande. Aucune colonne en plus : la finalité
+ * porte déjà « à quoi ça sert », et ici « pour quelle demande ».
+ */
+export const PREFIXE_LIEN_DEMANDE = "lien_demande:";
+
+export interface NouveauLienDemande {
+  email: string;
+  compteId: string;
+  demandeId: string;
+  /** Empreinte SHA-256 du jeton : le jeton lui-même n'est jamais stocké. */
+  empreinte: string;
+  expireLe: string;
+  ipAddress?: string;
+}
+
+export type ResultatLienDemande =
+  | {
+      etat: "valide";
+      lien: { compteId: string; email: string; demandeId: string; expireLe: string };
+    }
+  | { etat: "inconnu" | "expire" | "utilise" };
+
 export interface CodeOtp {
   id?: string;
   destination: string;
@@ -89,6 +113,10 @@ export interface DepotComptes {
   otpPour(destination: string, finalite?: FinaliteOtp): Promise<CodeOtp | null>;
   incrementerTentatives?(destination: string): Promise<number>;
   consommerOtp(idOuDestination: string): Promise<boolean | void>;
+  /** Mémorise un lien d'accès à une demande, sans toucher aux codes de connexion. */
+  enregistrerLienDemande(lien: NouveauLienDemande): Promise<void>;
+  /** Consomme le lien d'un seul coup s'il est valide ; dit pourquoi sinon. */
+  consommerLienDemande(empreinte: string): Promise<ResultatLienDemande>;
   verifierRateLimit?(destination: string, ipAddress?: string): Promise<VerificationRateLimit>;
   creerSessionVisiteur(destination: string): Promise<SessionVisiteur>;
   sessionVisiteur(id: string): Promise<SessionVisiteur | null>;

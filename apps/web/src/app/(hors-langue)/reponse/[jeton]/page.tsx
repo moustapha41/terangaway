@@ -56,8 +56,9 @@ export default async function Reponse({ params }: { params: Promise<{ jeton: str
       <Details demande={vue.demande} />
 
       <Bandeau variante="information" className="mt-5">
-        Le visiteur paie sur place. Ne demandez jamais d'acompte : c'est l'un des
-        engagements de la charte que vous avez signée.
+        Ne demandez et n'encaissez jamais d'acompte vous-même. Si un acompte est dû, Teranga Way
+        le demande au visiteur avec ses propres coordonnées et en vérifie la réception : c'est
+        l'un des engagements de la charte.
       </Bandeau>
 
       <div className="mt-8 space-y-3">

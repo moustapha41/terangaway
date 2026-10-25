@@ -1,9 +1,10 @@
 import { notFound, redirect } from "next/navigation";
-import type { CoordonneesLogement, Demande, StatutDemande } from "@teranga/contracts";
+import type { Demande, StatutDemande } from "@teranga/contracts";
 import { STATUTS_TERMINAUX } from "@teranga/contracts";
 import { BadgeStatut, Bandeau, Bouton, Carte, FriseStatut, Icone, type EtapeFrise } from "@teranga/ui";
 import { EnTeteSession } from "@/components/layout/en-tete-session";
 import { annuler, confirmer } from "@/features/demande/actions";
+import { vueCoordonnees, type VueCoordonnees } from "@/features/demande/coordonnees-affichage";
 import { Lien } from "@/lib/i18n/lien";
 import { estLangue, type Langue } from "@/lib/i18n/langues";
 import { traducteurPour } from "@/lib/i18n/messages";
@@ -22,16 +23,19 @@ import { titreOffre } from "@/lib/i18n/titre-logement";
  * le statut.
  *
  * C'est aussi l'écran de l'étape 7 : le jour venu, le visiteur y retrouve tout,
- * avec le rappel que le paiement se fait sur place.
+ * avec le rappel qu'aucun paiement n'est demandé à l'envoi (acompte éventuel après acceptation).
  */
 const ORDRE: StatutDemande[] = ["envoyee", "acceptee", "confirmee", "terminee"];
 
 export default async function DetailDemande({
   params,
+  searchParams,
 }: {
   params: Promise<{ locale: string; id: string }>;
+  searchParams: Promise<{ paiement?: string; confirmation?: string }>;
 }) {
   const { locale, id } = await params;
+  const { paiement, confirmation } = await searchParams;
   const langue: Langue = estLangue(locale) ? locale : "fr";
   const t = traducteurPour(langue);
 
@@ -86,16 +90,27 @@ export default async function DetailDemande({
           <Recapitulatif demande={demande} langue={langue} t={t} />
         </section>
 
-        {/* Après confirmation seulement. Ailleurs, ces champs n'existent même pas. */}
-        {demande.coordonnees ? (
-          <Coordonnees coordonnees={demande.coordonnees as CoordonneesLogement} t={t} />
-        ) : (
-          <div className="mt-6">
-            <Bandeau variante="information">{t("fiche.adresseMasquee")}</Bandeau>
-          </div>
+        {/* L'API ne les rend qu'après confirmation, et seulement si l'équipe
+            les a saisies : chaque cas a son texte, aucun ne promet à tort. */}
+        <Coordonnees vue={vueCoordonnees(demande)} t={t} />
+
+        {confirmation === "offre-prise" && demande.statut === "acceptee" && (
+          // La confirmation a été refusée : une autre réservation occupe déjà cette offre
+          // sur des dates qui recouvrent les vôtres. La demande n'est pas confirmée.
+          <Bandeau variante="avertissement" className="mt-6">
+            {t("detailDemande.offrePrise")}
+          </Bandeau>
         )}
 
-        <Actions demande={demande} t={t} />
+        {paiement === "attendu" && demande.statut === "acceptee" && (
+          // La confirmation a été refusée : un acompte est demandé et sa réception
+          // n'est pas encore vérifiée par l'équipe. Une déclaration de paiement ne suffit pas.
+          <Bandeau variante="avertissement" className="mt-6">
+            {t("detailDemande.paiementAttendu")}
+          </Bandeau>
+        )}
+
+        <Actions demande={demande} langue={langue} t={t} />
       </div>
     </main>
   );
@@ -211,22 +226,51 @@ function Recapitulatif({
   );
 }
 
-function Coordonnees({ coordonnees, t }: { coordonnees: CoordonneesLogement; t: Traducteur }) {
+function Coordonnees({ vue, t }: { vue: VueCoordonnees; t: Traducteur }) {
+  if (vue.type === "aucune") return null;
+  if (vue.type === "apres_confirmation" || vue.type === "en_preparation") {
+    return (
+      <div className="mt-6">
+        <Bandeau variante="information">
+          {vue.type === "en_preparation"
+            ? t("detailDemande.coordonneesEnPreparation")
+            : t("fiche.adresseMasquee")}
+        </Bandeau>
+      </div>
+    );
+  }
+
   return (
     <section className="mt-8">
-      <h2 className="mb-3 text-titre-2 text-encre">{t("detailDemande.coordonnees")}</h2>
+      <h2 className="mb-3 text-titre-2 text-encre">
+        {vue.type === "vehicule" ? t("detailDemande.priseEnCharge") : t("detailDemande.coordonnees")}
+      </h2>
       <Carte className="space-y-4 p-5">
-        <Detail icone="repere" terme={t("detailDemande.adresse")}>
-          {coordonnees.adresseExacte}
-        </Detail>
-        <Detail icone="telephone" terme={t("detailDemande.telephone")}>
-          <a href={`tel:${coordonnees.telephone.replace(/\s/g, "")}`} className="underline underline-offset-2">
-            {coordonnees.telephone}
+        {vue.type === "logement" ? (
+          <Detail icone="repere" terme={t("detailDemande.adresse")}>
+            {vue.adresse}
+          </Detail>
+        ) : (
+          <Detail icone="information" terme={t("detailDemande.immatriculation")}>
+            {vue.immatriculation}
+          </Detail>
+        )}
+        <Detail
+          icone="telephone"
+          terme={vue.type === "vehicule" ? t("detailDemande.telephoneChauffeur") : t("detailDemande.telephone")}
+        >
+          <a href={vue.lienTelephone} className="underline underline-offset-2">
+            {vue.telephone}
           </a>
         </Detail>
-        {coordonnees.consignesArrivee && (
+        {vue.type === "logement" && vue.consignes && (
           <Detail icone="information" terme={t("detailDemande.consignes")}>
-            {coordonnees.consignesArrivee}
+            {vue.consignes}
+          </Detail>
+        )}
+        {vue.type === "vehicule" && vue.lieuDeRendezVous && (
+          <Detail icone="repere" terme={t("detailDemande.rendezVous")}>
+            {vue.lieuDeRendezVous}
           </Detail>
         )}
       </Carte>
@@ -235,12 +279,13 @@ function Coordonnees({ coordonnees, t }: { coordonnees: CoordonneesLogement; t: 
 }
 
 /** Les boutons dépendent du statut : un statut terminal ne propose plus d'action. */
-function Actions({ demande, t }: { demande: Demande; t: Traducteur }) {
+function Actions({ demande, langue, t }: { demande: Demande; langue: Langue; t: Traducteur }) {
   if (demande.statut === "acceptee") {
     return (
       <div className="mt-8 flex flex-col gap-3 sm:flex-row">
         <form action={confirmer} className="flex-1">
           <input type="hidden" name="id" value={demande.id} />
+          <input type="hidden" name="locale" value={langue} />
           <Bouton type="submit" variante="confirmation" largeur="pleine">
             {t("detailDemande.confirmer")}
           </Bouton>

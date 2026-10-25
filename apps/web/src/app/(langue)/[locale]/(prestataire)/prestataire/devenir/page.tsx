@@ -9,7 +9,7 @@ import { traducteurPour } from "@/lib/i18n/messages";
  *
  * Page publique : c'est la porte d'entrée des partenaires. Elle ne demande rien
  * et ne promet rien d'autre que ce que le produit fait — pas de « gagnez plus »,
- * puisque la plateforme ne touche à aucun paiement.
+ * puisque les revenus dépendent des réservations, pas de la plateforme.
  */
 const AVANTAGES: { cle: string; icone: NomIcone }[] = [
   { cle: "avantageVisibilite", icone: "recherche" },

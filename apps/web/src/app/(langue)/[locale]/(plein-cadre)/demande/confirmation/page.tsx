@@ -3,13 +3,15 @@ import { ArrowRight } from "lucide-react";
 import { RetourAccueil } from "@/components/layout/retour-accueil";
 import { SelecteurLangue } from "@/components/layout/selecteur-langue";
 import { IndicateurEtapes } from "@/features/demande/indicateur-etapes";
-import { SuiteDuSejour } from "@/features/demande/suite-du-sejour";
 import { visiteurConnecte } from "@/features/compte/session";
+import { lireRecapitulatif, type Recapitulatif } from "@/features/demande/recapitulatif";
+import { SuiteDuSejour } from "@/features/demande/suite-du-sejour";
+import { jourValide, lieuDeSejour } from "@teranga/contracts";
+import { logementParId } from "@/mocks/api";
+import { formaterDateComplete } from "@/lib/dates";
 import { Lien } from "@/lib/i18n/lien";
 import { estLangue, type Langue } from "@/lib/i18n/langues";
 import { traducteurPour } from "@/lib/i18n/messages";
-import { jourValide, lieuDeSejour } from "@teranga/contracts";
-import { logementParId } from "@/mocks/api";
 
 /**
  * Écran 11 · Confirmation — dernière étape du tunnel de demande.
@@ -22,35 +24,12 @@ export default async function Confirmation({
   searchParams,
 }: {
   params: Promise<{ locale: string }>;
-  searchParams: Promise<{
-    reference?: string;
-    logement?: string;
-    debut?: string;
-    fin?: string;
-    personnes?: string;
-  }>;
+  searchParams: Promise<{ reference?: string }>;
 }) {
   const { locale } = await params;
   const langue: Langue = estLangue(locale) ? locale : "fr";
-  const { reference, logement: idLogement, debut, fin, personnes } = await searchParams;
+  const { reference } = await searchParams;
   const t = traducteurPour(langue);
-
-  /**
-   * La suite du séjour, quand on sait de quoi il s'agit.
-   *
-   * Ces valeurs arrivent par l'adresse, que n'importe qui peut écrire : le
-   * logement doit exister, les dates doivent être de vraies dates, le nombre de
-   * personnes est borné. Au moindre doute la section disparaît et l'écran
-   * redevient ce qu'il était — une proposition qui se trompe de trajet est pire
-   * que pas de proposition.
-   */
-  const jourDebut = jourValide(debut);
-  const jourFin = jourValide(fin);
-  const logementSejour =
-    idLogement && jourDebut && jourFin && jourFin >= jourDebut
-      ? await logementParId(idLogement.slice(0, 40), langue).catch(() => null)
-      : null;
-  const voyageurs = Math.min(Math.max(Math.round(Number(personnes) || 2), 1), 50);
 
   /**
    * « Voir ma demande » n'a de sens que pour qui a un compte.
@@ -61,6 +40,32 @@ export default async function Confirmation({
    * sous les yeux, et la réponse qui arrive par courriel.
    */
   const visiteur = await visiteurConnecte();
+
+  // Le récapitulatif vient de la réponse de l'API, relue dans un cookie posé à
+  // l'envoi. Absent (page rouverte plus tard, autre appareil), on ne montre que
+  // la référence : rien ne se reconstitue à partir de l'URL.
+  const recap = await lireRecapitulatif();
+  const referenceAffichee = recap?.reference ?? reference;
+  const emailPart = recap?.emailEnvoye === true;
+  // Sans acompte annoncé, aucune instruction de paiement n'est à attendre.
+  const paiementAnnonce = recap?.acompteAnnonce === true;
+  const cibleDemande = recap ? `/mes-demandes/${encodeURIComponent(recap.id)}` : "/mes-demandes";
+
+  /**
+   * La suite du séjour : l'arrivée, ce qui se passe sur place, le retour.
+   *
+   * Elle se lit dans le récapitulatif, donc dans la réponse de l'API — jamais
+   * dans l'adresse de la page, qui ne porte que la référence. Absent (page
+   * rouverte plus tard, autre appareil), un logement introuvable ou des dates
+   * douteuses, la section disparaît : une proposition qui se trompe de trajet
+   * est pire que pas de proposition.
+   */
+  const jourDebut = jourValide(recap?.debut);
+  const jourFin = jourValide(recap?.fin);
+  const logementSejour =
+    recap?.logementId && jourDebut && jourFin && jourFin >= jourDebut
+      ? await logementParId(recap.logementId, langue).catch(() => null)
+      : null;
 
   return (
     <main className="relative flex min-h-screen flex-col overflow-x-hidden bg-primaire">
@@ -125,55 +130,93 @@ export default async function Confirmation({
                 {t("confirmation.titre")}
               </h1>
 
-              {reference && (
+              {referenceAffichee && (
                 <p className="mt-1.5 text-[13.5px] font-semibold text-primaire chiffres-tabulaires">
-                  {t("confirmation.reference", { reference })}
+                  {t("confirmation.reference", { reference: referenceAffichee })}
                 </p>
               )}
 
-              <p className="mx-auto mt-2.5 max-w-[40ch] text-[14px] sm:text-[14.5px] leading-relaxed text-encre-douce">
-                {t("confirmation.prochaineEtape")}
+              {/* On ne dit « un e-mail vous sera envoyé » que si le service
+                  d'envoi l'a accepté ; sinon le visiteur sait qu'il doit
+                  passer par la connexion. */}
+              <p
+                role={emailPart ? undefined : "status"}
+                className="mx-auto mt-3 max-w-[44ch] text-[14px] sm:text-[14.5px] leading-relaxed text-encre-douce"
+              >
+                {emailPart ? t("confirmation.message") : t("confirmation.messageSansEmail")}
               </p>
+            </div>
 
-              {/* L'e-mail est le vrai fil : il porte la référence, et les
-                  identifiants quand le compte vient d'être ouvert. Le dire
-                  ici évite d'attendre devant un écran qui ne bouge plus. */}
-              <p className="mx-auto mt-2.5 max-w-[40ch] text-[13px] leading-relaxed text-encre-douce">
-                {t("confirmation.emailEnvoye")}
-                {!visiteur && ` ${t("confirmation.emailIdentifiants")}`}
-              </p>
-
-              {logementSejour && jourDebut && jourFin && (
-                <SuiteDuSejour
-                  t={t}
-                  lieu={lieuDeSejour(logementSejour)}
-                  debut={jourDebut}
-                  fin={jourFin}
-                  personnes={voyageurs}
-                />
-              )}
-
-              <div className="mt-6 space-y-2.5 sm:mx-auto sm:max-w-[320px]">
-                {visiteur && (
-                  <Lien href="/mes-demandes" className="block">
+            <div className="mt-5 rounded-2xl border border-contour bg-surface p-4 text-left">
+              <h2 className="text-[14px] font-bold text-encre">{t("confirmation.etapesTitre")}</h2>
+              <ol className="mt-2.5 space-y-2.5">
+                {(emailPart
+                  ? [
+                      "confirmation.etape1",
+                      "confirmation.etape2",
+                      paiementAnnonce ? "confirmation.etape3" : "confirmation.etape3SansPaiement",
+                    ]
+                  : [
+                      "confirmation.etapeSans1",
+                      "confirmation.etapeSans2",
+                      paiementAnnonce ? "confirmation.etapeSans3" : "confirmation.etape3SansPaiement",
+                    ]
+                ).map((cle, index) => (
+                  <li key={cle} className="flex gap-3 text-[13.5px] leading-snug text-encre-douce">
                     <span
-                      className={
-                        "group relative flex h-[48px] sm:h-[50px] w-full items-center justify-center gap-2.5 rounded-pill " +
-                        "border border-transparent bg-primaire text-[15.5px] sm:text-[16px] font-semibold text-white " +
-                        "shadow-[0_4px_16px_-4px_rgb(0_29_53/0.4)] transition-all duration-200 " +
-                        "hover:border-jaune-vif hover:bg-[#072c4e] hover:shadow-[0_6px_24px_-4px_rgba(244,185,66,0.35)] " +
-                        "hover:ring-2 hover:ring-jaune-vif/50 focus-visible:outline-2 focus-visible:outline-offset-2 " +
-                        "focus-visible:outline-primaire active:scale-[0.99]"
-                      }
+                      aria-hidden="true"
+                      className="mt-px flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primaire text-[11.5px] font-bold text-white"
                     >
-                      <span>{t("confirmation.voirMaDemande")}</span>
-                      <ArrowRight
-                        strokeWidth={2.2}
-                        className="h-5 w-5 transition-transform duration-200 group-hover:translate-x-1"
-                      />
+                      {index + 1}
                     </span>
-                  </Lien>
-                )}
+                    <span>{t(cle)}</span>
+                  </li>
+                ))}
+              </ol>
+            </div>
+
+            {recap && <Resume recap={recap} langue={langue} t={t} />}
+
+            {logementSejour && recap && jourDebut && jourFin && (
+              <SuiteDuSejour
+                t={t}
+                lieu={lieuDeSejour(logementSejour)}
+                debut={jourDebut}
+                fin={jourFin}
+                personnes={Math.min(Math.max(Math.round(recap.personnes) || 2, 1), 50)}
+              />
+            )}
+
+            <p
+              role="note"
+              className="mt-4 rounded-xl border border-[#E8A33D]/60 bg-[#FBE3B4]/50 px-3.5 py-2.5 text-left text-[12.5px] leading-relaxed text-encre"
+            >
+              {t("confirmation.avertissement")}
+            </p>
+
+            <div className="mt-5 text-center">
+              <div className="space-y-2.5 sm:mx-auto sm:max-w-[320px]">
+                <Lien
+                  href={visiteur ? cibleDemande : `/connexion?suite=${encodeURIComponent(cibleDemande)}`}
+                  className="block"
+                >
+                  <span
+                    className={
+                      "group relative flex h-[48px] sm:h-[50px] w-full items-center justify-center gap-2.5 rounded-pill " +
+                      "border border-transparent bg-primaire text-[15.5px] sm:text-[16px] font-semibold text-white " +
+                      "shadow-[0_4px_16px_-4px_rgb(0_29_53/0.4)] transition-all duration-200 " +
+                      "hover:border-jaune-vif hover:bg-[#072c4e] hover:shadow-[0_6px_24px_-4px_rgba(244,185,66,0.35)] " +
+                      "hover:ring-2 hover:ring-jaune-vif/50 focus-visible:outline-2 focus-visible:outline-offset-2 " +
+                      "focus-visible:outline-primaire active:scale-[0.99]"
+                    }
+                  >
+                    <span>{t("confirmation.voirMaDemande")}</span>
+                    <ArrowRight
+                      strokeWidth={2.2}
+                      className="h-5 w-5 transition-transform duration-200 group-hover:translate-x-1"
+                    />
+                  </span>
+                </Lien>
 
                 <Lien
                   href="/"
@@ -204,6 +247,46 @@ export default async function Confirmation({
         </div>
       </div>
     </main>
+  );
+}
+
+/**
+ * Le récapitulatif de ce qui a été enregistré, et seulement cela : une ligne
+ * absente de la demande (heure d'arrivée, montant) n'est pas affichée.
+ */
+function Resume({
+  recap,
+  langue,
+  t,
+}: {
+  recap: Recapitulatif;
+  langue: Langue;
+  t: ReturnType<typeof traducteurPour>;
+}) {
+  const lignes: Array<[string, string]> = [
+    [t("confirmation.logement"), recap.titre],
+    [t("confirmation.arrivee"), formaterDateComplete(new Date(recap.debut), langue)],
+    [t("confirmation.depart"), formaterDateComplete(new Date(recap.fin), langue)],
+    [t("confirmation.voyageurs"), String(recap.personnes)],
+  ];
+  if (recap.heureArrivee) lignes.push([t("confirmation.heureArrivee"), recap.heureArrivee]);
+  if (recap.total !== undefined) {
+    const montant = new Intl.NumberFormat(langue).format(recap.total).replace(/[\u202f\u00a0]/g, " ");
+    lignes.push([t("confirmation.total"), `${montant} ${t("confirmation.devise")}`]);
+  }
+
+  return (
+    <div className="mt-4 rounded-2xl border border-contour bg-surface p-4 text-left">
+      <h2 className="text-[14px] font-bold text-encre">{t("confirmation.recapTitre")}</h2>
+      <dl className="mt-2.5 space-y-1.5">
+        {lignes.map(([etiquette, valeur]) => (
+          <div key={etiquette} className="flex justify-between gap-4 text-[13.5px]">
+            <dt className="text-encre-douce">{etiquette}</dt>
+            <dd className="text-right font-semibold text-encre chiffres-tabulaires">{valeur}</dd>
+          </div>
+        ))}
+      </dl>
+    </div>
   );
 }
 

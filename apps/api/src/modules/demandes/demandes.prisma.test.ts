@@ -1,11 +1,13 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { PrismaService } from "../../base-de-donnees/prisma.service";
+import { creerPrismaDeTest } from "../../base-de-donnees/base-de-test.test-utils";
 import { ErreurMetier } from "../../commun/erreurs";
 import { DepotLogementsFixtures } from "../offres/logements/logements.fixtures";
 import { DepotVehiculesFixtures } from "../offres/vehicules/vehicules.fixtures";
 import { DepotDemandesPrisma } from "./demandes.prisma";
 import { ServiceDemandes } from "./demandes.service";
+import { fenetreUnique, reserverFenetres } from "./fenetres-uniques.test-utils";
 
 describe("Persistance PostgreSQL — Module Demandes & Prévention IDOR", () => {
   let service: ServiceDemandes;
@@ -13,8 +15,9 @@ describe("Persistance PostgreSQL — Module Demandes & Prévention IDOR", () => 
   let depot: DepotDemandesPrisma;
 
   beforeAll(async () => {
-    prisma = new PrismaService();
+    prisma = creerPrismaDeTest();
     await prisma.$connect();
+    await reserverFenetres(prisma);
     const depotLogements = new DepotLogementsFixtures();
     const depotVehicules = new DepotVehiculesFixtures();
     depot = new DepotDemandesPrisma(prisma, depotLogements, depotVehicules);
@@ -28,8 +31,7 @@ describe("Persistance PostgreSQL — Module Demandes & Prévention IDOR", () => 
   it("crée et persiste une demande dans PostgreSQL avec prix figé et coordonnées masquées", async () => {
     const creee = await service.creerLogement({
       logementId: "l-001",
-      debut: "2026-11-10",
-      fin: "2026-11-14",
+      ...fenetreUnique(4),
       personnes: 2,
       visiteurId: "visiteur-test-01",
     });
@@ -50,11 +52,10 @@ describe("Persistance PostgreSQL — Module Demandes & Prévention IDOR", () => 
     expect(enBase!.coordonnees).toBeNull();
   });
 
-  it("révèle et persiste les coordonnées uniquement au statut confirmée", async () => {
+  it("ne révèle jamais des coordonnées non vérifiées, même confirmée", async () => {
     const creee = await service.creerLogement({
       logementId: "l-002",
-      debut: "2026-12-01",
-      fin: "2026-12-04",
+      ...fenetreUnique(3),
       personnes: 3,
       visiteurId: "visiteur-test-02",
     });
@@ -64,17 +65,24 @@ describe("Persistance PostgreSQL — Module Demandes & Prévention IDOR", () => 
     expect(acceptee.statut).toBe("acceptee");
     expect(acceptee.coordonnees).toBeUndefined();
 
-    // Confirmation visiteur
+    // Coordonnées saisies par l'équipe : gardées en base, jamais rendues au
+    // visiteur tant qu'une seconde personne ne les a pas vérifiées — ce que
+    // la base ne sait pas encore enregistrer (migration en attente).
+    const saisies = { adresseExacte: "ADRESSE-DE-TEST", telephone: "TELEPHONE-DE-TEST" };
+    await prisma.demand.update({ where: { id: creee.id }, data: { coordonnees: saisies } });
+    expect((await service.obtenir(creee.id)).coordonnees).toBeUndefined();
+
+    // Confirmation visiteur : rien n'est fabriqué, rien de non vérifié ne sort
     const confirmee = await service.confirmer(creee.id);
     expect(confirmee.statut).toBe("confirmee");
-    expect(confirmee.coordonnees).toBeDefined();
+    expect(confirmee.coordonnees).toBeUndefined();
 
-    // Vérification en base PostgreSQL
+    // Vérification en base PostgreSQL : la saisie est intacte
     const enBase = await prisma.demand.findUnique({
       where: { id: creee.id },
     });
     expect(enBase!.statut).toBe("confirmee");
-    expect(enBase!.coordonnees).not.toBeNull();
+    expect(enBase!.coordonnees).toEqual(saisies);
   });
 
   it("empêche un visiteur tiers d'accéder ou de modifier la demande d'un autre visiteur (protection IDOR/BOLA)", async () => {
@@ -83,8 +91,7 @@ describe("Persistance PostgreSQL — Module Demandes & Prévention IDOR", () => 
 
     const demande = await service.creerLogement({
       logementId: "l-001",
-      debut: "2026-11-20",
-      fin: "2026-11-23",
+      ...fenetreUnique(3),
       personnes: 2,
       visiteurId: visiteurLegitime,
     });
@@ -110,8 +117,7 @@ describe("Persistance PostgreSQL — Module Demandes & Prévention IDOR", () => 
   it("émet le jeton de réponse une fois, en clair, et garde l'empreinte", async () => {
     const demande = await service.creerLogement({
       logementId: "l-001",
-      debut: "2026-11-24",
-      fin: "2026-11-27",
+      ...fenetreUnique(3),
       personnes: 2,
       visiteurId: "visiteur-jeton",
     });
@@ -135,20 +141,43 @@ describe("Persistance PostgreSQL — Module Demandes & Prévention IDOR", () => 
   it("ne propose à la relance que les demandes en souffrance, et une seule fois", async () => {
     const demande = await service.creerLogement({
       logementId: "l-001",
-      debut: "2026-11-28",
-      fin: "2026-12-01",
+      ...fenetreUnique(3),
       personnes: 2,
       visiteurId: "visiteur-relance",
     });
 
     // Seuil dans le futur : la demande est en souffrance quoi qu'il arrive.
     const seuils = { logement: new Date(Date.now() + 60_000) };
-    const premier = await depot.aRelancer(seuils, 50);
+
+    /**
+     * La page à demander pour être sûr d'y voir sa propre demande.
+     *
+     * `aRelancer` rend une page ordonnée par date de création **croissante**,
+     * et la demande qu'on vient de créer est la plus récente : elle est donc
+     * la dernière. Une limite fixe — 50 — la laissait hors de la page dès que
+     * la base comptait plus de candidates que cela, et le test échouait sans
+     * que rien n'ait changé dans le code. On dimensionne donc la page sur les
+     * données présentes, en comptant les candidates avec la même condition que
+     * le dépôt : statut « envoyée », jamais relancée, du genre visé, créée
+     * avant le seuil.
+     */
+    const candidates = () =>
+      prisma.demand.count({
+        where: {
+          statut: "envoyee",
+          relanceeLe: null,
+          genre: "logement",
+          creeLe: { lte: seuils.logement },
+        },
+      });
+
+    const premier = await depot.aRelancer(seuils, await candidates());
     expect(premier.map((d) => d.id)).toContain(demande.id);
 
     await depot.marquerRelancees([demande.id]);
 
-    const second = await depot.aRelancer(seuils, 50);
+    // Une de moins : c'est la marque qui l'a retirée, pas un effet de page.
+    const second = await depot.aRelancer(seuils, (await candidates()) + 1);
     expect(second.map((d) => d.id)).not.toContain(demande.id);
 
     // Un genre absent de la table des seuils n'est jamais relancé.

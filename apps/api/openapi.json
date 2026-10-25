@@ -1507,7 +1507,7 @@
   },
   "info": {
     "title": "Teranga Way — API",
-    "description": "Logements et transports vérifiés pour les JOJ Dakar 2026. Aucun paiement en ligne : le paiement a lieu sur place.",
+    "description": "Logements et transports vérifiés pour les JOJ Dakar 2026. Aucune passerelle de paiement en ligne : un éventuel acompte est réglé par virement ou Mobile Money et vérifié manuellement par l'équipe.",
     "version": "0.1.0",
     "contact": {}
   },

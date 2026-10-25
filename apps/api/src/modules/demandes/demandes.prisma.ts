@@ -1,6 +1,6 @@
 import { HttpStatus, Inject, Injectable } from "@nestjs/common";
-import type { Demand } from "@prisma/client";
-import { totalSejour, type Demande } from "@teranga/contracts";
+import { Prisma, type Demand } from "@prisma/client";
+import { totalSejour, type Demande, type StatutDemande } from "@teranga/contracts";
 
 import { randomBytes } from "node:crypto";
 import { PrismaService } from "../../base-de-donnees/prisma.service";
@@ -26,7 +26,24 @@ import type {
   DemandeARelancer,
   JetonReponse,
 } from "./demandes.depot";
-import { expireLePour } from "./machine-a-etats/delais";
+import { transitionConcurrente } from "./demandes.depot";
+import { coordonneesAEffacer, coordonneesDivulguables } from "./coordonnees";
+
+/**
+ * La vérification des coordonnées n'a pas encore de colonne en base
+ * (`coordonneesVerifieesLe`, migration en attente de validation). Tant que
+ * c'est le cas, rien n'est vérifié : la lecture se ferme. À remplacer par
+ * `row.coordonneesVerifieesLe !== null` le jour de la migration.
+ */
+const VERIFICATION_PERSISTEE = false;
+import { acompteNonPaye } from "../acomptes/erreurs";
+import {
+  autreDemandeConfirmeeEnConflit,
+  genreAGarde,
+  offreDejaConfirmee,
+  verrouillerOffre,
+} from "./occupation";
+import { expireLePour, type GenreService } from "./machine-a-etats/delais";
 
 @Injectable()
 export class DepotDemandesPrisma implements DepotDemandes {
@@ -49,6 +66,24 @@ export class DepotDemandesPrisma implements DepotDemandes {
       where: { id },
     });
     return row ? demandToDemande(row) : null;
+  }
+
+  /**
+   * Contrôle rapide, **sans verrou** : refuse tôt, avec le bon message, une
+   * confirmation qui ne pourra pas aboutir. Il ne garantit rien — seule la garde
+   * de `enregistrer`, sous verrou, fait foi.
+   */
+  async exigerOffreLibre(demandeId: string): Promise<void> {
+    const demande = await this.prisma.demand.findUnique({
+      where: { id: demandeId },
+      select: { id: true, offreId: true, genre: true, dateDebut: true, dateFin: true },
+    });
+    if (demande && (await autreDemandeConfirmeeEnConflit(this.prisma, demande))) throw offreDejaConfirmee();
+  }
+
+  async genreDe(demandeId: string): Promise<GenreService | undefined> {
+    const ligne = await this.prisma.demand.findUnique({ where: { id: demandeId }, select: { genre: true } });
+    return ligne?.genre;
   }
 
   async creerLogement(entree: EntreeCreationLogement): Promise<Demande> {
@@ -302,18 +337,66 @@ export class DepotDemandesPrisma implements DepotDemandes {
     return demandToDemande(created);
   }
 
-  async enregistrer(demande: Demande): Promise<Demande> {
-    const updated = await this.prisma.demand.update({
-      where: { id: demande.id },
-      data: {
-        statut: demande.statut as any,
-        expireLe: demande.expireLe ? new Date(demande.expireLe) : null,
-        motifRefus: demande.motifRefus ?? null,
-        coordonnees: demande.coordonnees ? (demande.coordonnees as any) : undefined,
-        frise: demande.frise as any,
-      },
+  async enregistrer(demande: Demande, statutLu: StatutDemande): Promise<Demande> {
+    // Un seul `UPDATE … WHERE id = ? AND statut = ?` : la condition et
+    // l'écriture sont le même ordre SQL, il n'y a pas de fenêtre entre les
+    // deux. Relire puis écrire sans condition ne fermerait pas la course.
+    //
+    // La relecture partage la transaction : la ligne reste verrouillée par
+    // notre écriture jusqu'au commit, on rend donc exactement ce qu'on a écrit,
+    // pas une transition arrivée juste après.
+    return this.prisma.$transaction(async (tx) => {
+      // Confirmer exige un acompte payé et vérifié — **sous verrou**. Le service
+      // a déjà refusé en amont, mais entre cette lecture et cette écriture, une
+      // décision de remboursement pouvait passer. `FOR SHARE` tient le dossier
+      // jusqu'au commit : une décision (`FOR UPDATE`) attend notre fin, ou est
+      // passée avant et nous la voyons. Même verrou que les réceptions, aucun
+      // mécanisme de plus. Sans dossier, rien n'a été demandé : rien n'est exigé.
+      if (demande.statut === "confirmee") {
+        // L'offre d'abord : verrou par offre, puis recherche d'une autre demande
+        // confirmée aux dates qui se recouvrent, puis écriture — dans cette même
+        // transaction. Deux confirmations de la même offre s'ordonnent ici ; la
+        // seconde voit la première et refuse. Indépendant de l'acompte et de
+        // `ACOMPTE_ACTIF` : une offre ne se double-réserve pas, payée ou non.
+        const occupante = await tx.demand.findUnique({
+          where: { id: demande.id },
+          select: { id: true, offreId: true, genre: true, dateDebut: true, dateFin: true },
+        });
+        if (occupante?.offreId && genreAGarde(occupante.genre)) {
+          await verrouillerOffre(tx, occupante.offreId);
+          if (await autreDemandeConfirmeeEnConflit(tx, occupante)) throw offreDejaConfirmee();
+        }
+
+        const dossiers = await tx.$queryRaw<{ statut: string }[]>`
+          SELECT "statut"::text AS statut
+          FROM "deposit_payments"
+          WHERE "demandeId" = ${demande.id}
+          FOR SHARE`;
+        if (dossiers.length > 0 && dossiers[0].statut !== "paye") throw acompteNonPaye();
+      }
+
+      const { count } = await tx.demand.updateMany({
+        where: { id: demande.id, statut: statutLu as Demand["statut"] },
+        data: {
+          statut: demande.statut as any,
+          expireLe: demande.expireLe ? new Date(demande.expireLe) : null,
+          motifRefus: demande.motifRefus ?? null,
+          // Une transition n'écrit les coordonnées que pour les **effacer** —
+          // `DbNull`, parce qu'une colonne JSON n'accepte pas `null` tel quel,
+          // et que `undefined` laisserait la valeur en place. Sinon, la colonne
+          // n'est pas touchée : l'objet reçu a été lu à travers le filtre de
+          // divulgation, et l'écrire effacerait des coordonnées saisies par
+          // l'équipe avant la confirmation.
+          ...(coordonneesAEffacer(demande.statut) ? { coordonnees: Prisma.DbNull } : {}),
+          frise: demande.frise as any,
+        },
+      });
+
+      const ligne = await tx.demand.findUnique({ where: { id: demande.id } });
+      if (!ligne) throw introuvable("Demande");
+      if (count === 0) throw transitionConcurrente(demande.id, statutLu, ligne.statut as StatutDemande);
+      return demandToDemande(ligne);
     });
-    return demandToDemande(updated);
   }
 
   async visiteurDe(demandeId: string): Promise<string | null> {
@@ -455,6 +538,13 @@ export function demandToDemande(row: Demand): Demande {
     frise,
     expireLe: row.expireLe ? row.expireLe.toISOString() : undefined,
     motifRefus: (row.motifRefus as any) ?? undefined,
-    coordonnees: (row.coordonnees as any) ?? undefined,
+    // Filtré ici, à la source de toutes les lectures, et pas seulement à
+    // l'écran : il faut un statut qui l'autorise **et** une vérification
+    // enregistrée par une seconde personne. La colonne de vérification
+    // attend sa migration : d'ici là, aucune coordonnée n'est réputée
+    // vérifiée, et aucune ne sort — historiques comprises.
+    coordonnees: coordonneesDivulguables(row.statut as StatutDemande, VERIFICATION_PERSISTEE)
+      ? ((row.coordonnees as any) ?? undefined)
+      : undefined,
   };
 }

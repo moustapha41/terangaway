@@ -6,6 +6,7 @@ import { describe, expect, it } from "vitest";
 import { DEPOT_DEMANDES } from "../../commun/depots/depot";
 import { ErreurMetier } from "../../commun/erreurs";
 import { DepotDemandesFixtures } from "./demandes.fixtures";
+import type { GenreService } from "./machine-a-etats/delais";
 import { ServiceDemandes } from "./demandes.service";
 
 describe("ServiceDemandes", () => {
@@ -19,7 +20,7 @@ describe("ServiceDemandes", () => {
     return module.get(ServiceDemandes);
   }
 
-  it("parcours nominal : acceptation puis confirmation révèle les coordonnées", async () => {
+  it("parcours nominal : acceptation puis confirmation, sans coordonnées inventées", async () => {
     const service = await creerService();
     const creee = await service.creerLogement({
       logementId: "l-001",
@@ -36,9 +37,11 @@ describe("ServiceDemandes", () => {
     expect(acceptee.expireLe).toBeDefined();
     expect(acceptee.coordonnees).toBeUndefined();
 
+    // Les coordonnées sont saisies par l'équipe : la confirmation n'en
+    // fabrique aucune, et réussit sans elles.
     const confirmee = await service.confirmer(creee.id);
     expect(confirmee.statut).toBe("confirmee");
-    expect(confirmee.coordonnees).toBeDefined();
+    expect(confirmee.coordonnees).toBeUndefined();
     expect(confirmee.expireLe).toBeUndefined();
   });
 
@@ -69,5 +72,55 @@ describe("ServiceDemandes", () => {
     });
 
     await expect(service.confirmer(creee.id)).rejects.toBeInstanceOf(ErreurMetier);
+  });
+
+  describe("fenêtre de confirmation d'un véhicule accepté", () => {
+    const HEURE = 3_600_000;
+
+    /**
+     * Une demande de véhicule acceptée. `genreFin` force ce que le dépôt répond ;
+     * `"naturel"` laisse le dépôt en mémoire lire le genre qu'il a lui-même
+     * enregistré ; `"aucun"` simule un dépôt qui ne sait pas le lire.
+     */
+    async function accepter(genreFin: GenreService | undefined | "naturel" | "aucun", prestation: "journee" | "trajet" | "taxi" = "journee") {
+      class Depot extends DepotDemandesFixtures {}
+      if (genreFin === "aucun") (Depot.prototype as { genreDe?: unknown }).genreDe = undefined;
+      else if (genreFin !== "naturel") (Depot.prototype as { genreDe?: unknown }).genreDe = async () => genreFin;
+      const module = await Test.createTestingModule({
+        providers: [ServiceDemandes, { provide: DEPOT_DEMANDES, useClass: Depot }],
+      }).compile();
+      const service = module.get(ServiceDemandes);
+      const demande = await service.creerVehicule({
+        vehiculeId: "v-001",
+        prestation,
+        depart: "Dakar",
+        arrivee: "Saly",
+        quand: "2026-11-10T09:00",
+        passagers: 2,
+        bagages: 0,
+        visiteurId: "visiteur-demo",
+      });
+      const acceptee = await service.accepterParPartenaire(demande.id);
+      const accepteeLe = Date.parse(acceptee.frise.at(-1)!.horodatage);
+      return (Date.parse(acceptee.expireLe!) - accepteeLe) / HEURE;
+    }
+
+    it("donne douze heures à une location avec chauffeur", async () => {
+      expect(Math.round(await accepter("location"))).toBe(12);
+    });
+
+    it.each(["trajet", "taxi", "service"] as const)("garde trois heures pour « %s » : son délai ne change pas", async (genre) => {
+      expect(Math.round(await accepter(genre))).toBe(3);
+    });
+
+    it("garde trois heures quand le dépôt ne sait pas lire le genre fin (comportement d'avant)", async () => {
+      expect(Math.round(await accepter("aucun"))).toBe(3);
+      expect(Math.round(await accepter(undefined))).toBe(3);
+    });
+
+    it("le dépôt en mémoire lit le genre qu'il a enregistré, comme Prisma : 12 h pour une location, 3 h pour un trajet", async () => {
+      expect(Math.round(await accepter("naturel", "journee"))).toBe(12);
+      expect(Math.round(await accepter("naturel", "trajet"))).toBe(3);
+    });
   });
 });

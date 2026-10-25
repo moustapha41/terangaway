@@ -13,6 +13,8 @@
  *   l'adresse — s'en servir, c'est avoir relevé cette boîte.
  */
 
+import type { MoyenAcompte } from "@teranga/contracts";
+
 export interface IdentifiantsDemande {
   email: string;
   motDePasse: string;
@@ -31,6 +33,20 @@ export interface DetailsDemande {
   /** Présents une seule fois : à la création du compte. */
   identifiants?: IdentifiantsDemande;
   /**
+   * Présent quand cette demande donnera lieu à un acompte si elle est
+   * acceptée : acompte ouvert, genre éligible, prix connu.
+   *
+   * Absent, l'e-mail garde l'ancienne promesse — rien avant la prestation —
+   * parce qu'elle reste vraie : pour un taxi, un trajet, un service, ou tant
+   * que l'acompte est fermé.
+   */
+  acompte?: AnnonceAcompte;
+  /**
+   * Lien personnel et à usage unique vers cette demande, sans mot de passe.
+   * Absent quand il n'a pas pu être émis : l'e-mail ne promet alors rien.
+   */
+  lienAcces?: { url: string; validiteHeures: number };
+  /**
    * La suite du séjour, en adresses complètes.
    *
    * Seulement pour un logement : c'est lui qui appelle un transfert. Les mêmes
@@ -38,6 +54,30 @@ export interface DetailsDemande {
    * retrouver le trajet que l'écran lui annonçait.
    */
   suite?: { lieu: string; arrivee: string; depart: string; services: string };
+}
+
+export interface AnnonceAcompte {
+  pourcentage: number;
+  delaiHeures: number;
+  /**
+   * Les moyens réellement configurés. Absent = le virement seul, comme avant
+   * Mobile Money : l'e-mail n'annonce jamais un moyen que l'instruction
+   * d'après n'offrirait pas.
+   */
+  moyens?: readonly MoyenAcompte[];
+}
+
+const LIBELLE_MOYEN: Record<MoyenAcompte, string> = {
+  virement: "virement bancaire",
+  wave: "Wave",
+  "orange-money": "Orange Money",
+};
+
+/** « par virement bancaire », « par Wave ou Orange Money »… */
+function parMoyens(moyens: readonly MoyenAcompte[] | undefined): string {
+  const libelles = (moyens && moyens.length > 0 ? moyens : (["virement"] as const)).map((m) => LIBELLE_MOYEN[m]);
+  const liste = libelles.length === 1 ? libelles[0] : `${libelles.slice(0, -1).join(", ")} ou ${libelles.at(-1)}`;
+  return `par ${liste}`;
 }
 
 export interface ContenuEmail {
@@ -80,8 +120,28 @@ export function genererEmailDemande(details: DetailsDemande): ContenuEmail {
     ...(details.sejour ? [`Séjour : ${details.sejour}`] : []),
     ...(details.total ? [`Total annoncé : ${details.total}`] : []),
     "",
-    "Rien n'est payé, rien n'est bloqué : le paiement se fait sur place, auprès du",
-    "propriétaire, et jamais avant la prestation.",
+    ...(details.lienAcces
+      ? [
+          "Retrouvez votre demande et son récapitulatif grâce à ce lien sécurisé :",
+          details.lienAcces.url,
+          `Il est personnel, ne fonctionne qu'une fois et expire sous ${details.lienAcces.validiteHeures} heures.`,
+          "Ne le transférez à personne. Votre demande n'est pas une réservation confirmée tant que",
+          "les conditions de confirmation ne sont pas remplies.",
+          "",
+        ]
+      : []),
+    ...(details.acompte
+      ? [
+          "Rien n'est payé pour l'instant. Si le propriétaire accepte, un acompte de",
+          `${details.acompte.pourcentage} % du total vous sera demandé ${parMoyens(details.acompte.moyens)}, à régler sous`,
+          `${details.acompte.delaiHeures} heures : les instructions vous arriveront par e-mail. Il se règle à`,
+          "Teranga Way, uniquement avec les coordonnées de cet e-mail d'instructions. Votre acompte",
+          "n'est considéré comme reçu qu'après vérification de notre compte par notre équipe.",
+        ]
+      : [
+          "Rien n'est payé, rien n'est bloqué : le paiement se fait sur place, auprès du",
+          "propriétaire, et jamais avant la prestation.",
+        ]),
   ];
 
   if (details.suite) {
@@ -89,7 +149,7 @@ export function genererEmailDemande(details: DetailsDemande): ContenuEmail {
       "",
       "— Complétez votre séjour —",
       "",
-      "Facultatif, et rien n'est payé maintenant.",
+      "Facultatif : à ajouter dès maintenant, ou plus tard.",
       "",
       `Votre transfert depuis l'aéroport, de l'aéroport AIBD à ${details.suite.lieu} :`,
       details.suite.arrivee,
@@ -131,7 +191,7 @@ export function genererEmailDemande(details: DetailsDemande): ContenuEmail {
   const blocSuite = details.suite
     ? `
       <h3 class="sous-titre">Complétez votre séjour</h3>
-      <p class="text">Facultatif, et rien n'est payé maintenant.</p>
+      <p class="text">Facultatif : à ajouter dès maintenant, ou plus tard.</p>
       <table role="presentation" style="width: 100%; border-collapse: collapse; margin: 0 0 8px;">
         ${[
           ["✈️", "Votre transfert depuis l'aéroport", `De l'aéroport AIBD à ${details.suite.lieu}`, details.suite.arrivee],
@@ -176,6 +236,35 @@ export function genererEmailDemande(details: DetailsDemande): ContenuEmail {
         le demandera.
       </p>`
     : "";
+
+  const blocLien = details.lienAcces
+    ? `
+      <p style="text-align: center; margin: 24px 0 8px;">
+        <a class="bouton" href="${echapper(details.lienAcces.url)}">Accéder à ma demande</a>
+      </p>
+      <p class="warning">
+        🔒 Ce lien est personnel, ne fonctionne qu'une fois et expire sous
+        ${details.lienAcces.validiteHeures}&nbsp;heures. Ne le transférez à personne.
+        Votre demande n'est pas une réservation confirmée tant que les conditions de
+        confirmation ne sont pas remplies.
+      </p>`
+    : "";
+
+  // Jamais « payé » ni « reçu » ici : à l'envoi d'une demande, rien ne l'est,
+  // et un virement ne le sera qu'une fois vu sur le compte par l'équipe.
+  const blocPaiement = details.acompte
+    ? `
+          💳 <strong>Rien n'est payé pour l'instant.</strong> Si le propriétaire accepte, un
+          acompte de ${details.acompte.pourcentage}&nbsp;% du total vous sera demandé
+          ${parMoyens(details.acompte.moyens)}, à régler sous ${details.acompte.delaiHeures}&nbsp;heures&nbsp;: les
+          instructions vous arriveront par e-mail. Il se règle à Teranga Way, uniquement avec les
+          coordonnées de cet e-mail d'instructions. Votre acompte n'est considéré comme reçu qu'après
+          vérification de notre compte par notre équipe.
+        `
+    : `
+          💳 <strong>Aucun paiement :</strong> rien n'est bloqué ni prélevé. Le règlement
+          se fait sur place, auprès du propriétaire, et jamais avant la prestation.
+        `;
 
   const html = `<!DOCTYPE html>
 <html lang="fr">
@@ -340,12 +429,9 @@ export function genererEmailDemande(details: DetailsDemande): ContenuEmail {
               )}</span></p>`
             : ""
         }
-      </div>
+      </div>${blocLien}
       <div class="notice">
-        <p class="notice-text">
-          💳 <strong>Aucun paiement :</strong> rien n'est bloqué ni prélevé. Le règlement
-          se fait sur place, auprès du propriétaire, et jamais avant la prestation.
-        </p>
+        <p class="notice-text">${blocPaiement}</p>
       </div>${blocSuite}${blocIdentifiants}
     </div>
     <div class="footer">

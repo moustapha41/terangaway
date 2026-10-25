@@ -5,7 +5,10 @@ du 31 octobre au 13 novembre 2026.
 
 - **V1** : logement, transport privé (trajet avec chauffeur, location avec chauffeur,
   taxi réservé) et l'espace où les prestataires déposent leurs produits.
-- **Pas de paiement sur la plateforme** : le visiteur paie le prestataire sur place.
+- **Pas de passerelle de paiement** : aucune carte bancaire, aucun paiement en ligne. Un acompte éventuel,
+  demandé par Teranga Way après acceptation d'une demande éligible (logement, location avec chauffeur), se règle
+  par virement ou Mobile Money et n'est compté qu'après vérification manuelle de l'équipe. Le reste se règle
+  selon les indications de la demande.
 - **Trois langues** : français, anglais, espagnol.
 - **Un seul code** : application web installable (PWA), empaquetée ensuite pour les stores.
 
@@ -42,7 +45,9 @@ pnpm dev
 ## Règles qui ne se négocient pas
 
 1. Rien n'est affiché au visiteur sans avoir été vérifié par l'équipe.
-2. Aucun paiement, aucun acompte, jamais par transfert à distance — rappelé sur chaque écran.
+2. Aucun paiement à l'envoi d'une demande, aucune carte bancaire. Un acompte n'est demandé que par Teranga Way, avec
+   ses propres coordonnées, et jamais par un partenaire. Il n'est compté qu'après vérification manuelle de la
+   réception, et ne confirme pas à lui seul une réservation.
 3. Les coordonnées du prestataire n'apparaissent **qu'après** confirmation de la demande.
 4. Une offre est publiée par une personne différente de celle qui l'a saisie.
 5. Les pièces justificatives restent hors de la plateforme ; la fiche ne porte que « vérifié le… ».

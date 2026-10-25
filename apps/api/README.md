@@ -67,7 +67,9 @@ Prisma et Postgres, PostGIS, l'envoi réel de SMS, le back-office.
 
 Deux règles produit que le code doit tenir, et qui ne se négocient pas :
 
-- **Aucun paiement en ligne**, à aucun moment. Le paiement a lieu sur place.
+- **Aucune passerelle de paiement en ligne** (ni webhook, ni intégration Wave ou Orange Money). Un acompte
+  éventuel est demandé par Teranga Way après acceptation (logement et location seulement), réglé par virement
+  ou Mobile Money, et constaté à la main par un administrateur. Il ne confirme jamais seul une demande.
 - **L'adresse exacte et les téléphones ne sortent pas de l'API avant
   confirmation** (§D.4). Les contrats le garantissent déjà : `Logement` et
   `CoordonneesLogement` sont deux types distincts. Ne les réunissez pas.

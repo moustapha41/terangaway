@@ -1,17 +1,30 @@
 import { Body, Controller, Headers, Post } from "@nestjs/common";
 import { ApiHeader, ApiOperation, ApiTags } from "@nestjs/swagger";
-import { jourValide, lieuDeSejour, lienTransfert, type Demande } from "@teranga/contracts";
+import { jourValide, lieuDeSejour, lienTransfert, type Demande, type GenreDemande } from "@teranga/contracts";
 
 import { ServiceEmail } from "../../commun/email/email.service";
 import { ErreurMetier } from "../../commun/erreurs";
 import { config } from "../../config/configuration";
 import { extraireJetonRequete } from "../../commun/securite/hachage";
-import { ServiceComptes, type VisiteurDeDemande } from "../comptes/comptes.service";
+import { delaiAcompteHeures } from "../acomptes/calcul";
+import { coordonneesPaiement } from "../acomptes/paiement";
+import { DUREE_LIEN_DEMANDE_HEURES, ServiceComptes, type VisiteurDeDemande } from "../comptes/comptes.service";
 import { ServiceLogements } from "../offres/logements/logements.service";
 import { CreerDemandeLogementDto } from "./dto/creer-demande-logement.dto";
 import { CreerDemandeServiceDto } from "./dto/creer-demande-service.dto";
 import { CreerDemandeVehiculeDto } from "./dto/creer-demande-vehicule.dto";
 import { ServiceDemandes } from "./demandes.service";
+
+/** Ce qui est réellement parti après l'enregistrement d'une demande. */
+export interface NotificationDemande {
+  emailEnvoye: boolean;
+  /**
+   * L'e-mail annonce-t-il un acompte à venir ? Faux tant que `ACOMPTE_ACTIF`
+   * est fermé : l'écran de confirmation ne doit alors laisser attendre aucune
+   * instruction de paiement.
+   */
+  acompteAnnonce: boolean;
+}
 
 @ApiTags("demandes")
 @Controller("demandes")
@@ -44,8 +57,8 @@ export class ControleurDemandes {
       message: corps.message,
       visiteurId: visiteur.compteId,
     });
-    await this.previenir(visiteur, demande, corps.contact);
-    return { donnees: demande };
+    const notification = await this.previenir(visiteur, demande, corps.contact, "logement");
+    return { donnees: demande, notification };
   }
 
   @Post("vehicule")
@@ -84,8 +97,8 @@ export class ControleurDemandes {
       message: corps.message,
       visiteurId: visiteur.compteId,
     });
-    await this.previenir(visiteur, demande, corps.contact);
-    return { donnees: demande };
+    const notification = await this.previenir(visiteur, demande, corps.contact, genreDeVehicule(corps.prestation));
+    return { donnees: demande, notification };
   }
 
   @Post("service")
@@ -119,8 +132,8 @@ export class ControleurDemandes {
       message: corps.message,
       visiteurId: visiteur.compteId,
     });
-    await this.previenir(visiteur, demande, corps.contact);
-    return { donnees: demande };
+    const notification = await this.previenir(visiteur, demande, corps.contact, "service");
+    return { donnees: demande, notification };
   }
 
   /**
@@ -138,8 +151,9 @@ export class ControleurDemandes {
   private async previenir(
     visiteur: VisiteurDeDemande,
     demande: Demande,
-    contact?: { nom?: string; email?: string; telephone?: string },
-  ): Promise<void> {
+    contact: { nom?: string; email?: string; telephone?: string } | undefined,
+    genre: GenreDemande,
+  ): Promise<NotificationDemande> {
     // Le jeton d'abord : c'est lui qui décide à qui va le pouvoir de répondre,
     // et donc ce que contiendra chacun des deux e-mails.
     const equipe = await this.comptes.adressesEquipe();
@@ -155,8 +169,8 @@ export class ControleurDemandes {
     const proprietaireDistinct =
       adresseProprietaire !== undefined && !equipe.includes(adresseProprietaire);
 
-    await Promise.all([
-      this.confirmerParEmail(visiteur, demande),
+    const [emailVisiteur] = await Promise.all([
+      this.confirmerParEmail(visiteur, demande, genre),
       this.alerterEquipe(visiteur, demande, equipe, contact, { lienReponse }),
       proprietaireDistinct && lienReponse
         ? this.email.envoyerDemandeAuPartenaire(adresseProprietaire, {
@@ -171,6 +185,13 @@ export class ControleurDemandes {
           })
         : Promise.resolve(),
     ]);
+
+    // Ce que l'écran de confirmation peut affirmer, et rien de plus : le
+    // visiteur ne doit pas attendre un e-mail qui n'est pas parti.
+    return {
+      emailEnvoye: emailVisiteur.envoye,
+      acompteAnnonce: emailVisiteur.acompteAnnonce,
+    };
   }
 
   /**
@@ -180,17 +201,53 @@ export class ControleurDemandes {
    * C'est le seul moment où le mot de passe engendré existe en clair, et il ne
    * va qu'à l'adresse saisie.
    */
-  private async confirmerParEmail(visiteur: VisiteurDeDemande, demande: Demande): Promise<void> {
-    if (!visiteur.email) return;
+  private async confirmerParEmail(
+    visiteur: VisiteurDeDemande,
+    demande: Demande,
+    genre: GenreDemande,
+  ): Promise<{ envoye: boolean; acompteAnnonce: boolean }> {
+    if (!visiteur.email) return { envoye: false, acompteAnnonce: false };
 
-    await this.email.envoyerConfirmationDemande(visiteur.email, {
+    // Le lien qui ramène le visiteur à **sa** demande, sans mot de passe. Un
+    // lien qu'on n'a pas pu mémoriser ne part pas : mieux vaut un e-mail sans
+    // lien qu'un lien qui ne mène nulle part.
+    const lien = await this.comptes
+      .emettreLienDemande({
+        compteId: visiteur.compteId,
+        email: visiteur.email,
+        demandeId: demande.id,
+      })
+      .catch(() => null);
+
+    // L'acompte n'est annoncé que s'il sera réellement demandé à
+    // l'acceptation : verrou ouvert, genre éligible, prix connu.
+    //
+    // Le délai est celui **du genre**, lu dans la même table que l'éligibilité.
+    // Un délai unique annonçait douze heures à une location qui n'en a que
+    // trois : l'e-mail promettait alors un délai que le dossier ne donnerait pas.
+    const { actif, pourcentage } = config.acompte;
+    const delaiHeures = delaiAcompteHeures(genre);
+    const annonceAcompte =
+      actif && pourcentage !== undefined && delaiHeures !== undefined && demande.prix.total > 0
+        ? { pourcentage, delaiHeures, moyens: coordonneesPaiement(config.acompte)?.moyens }
+        : undefined;
+
+    const { envoye } = await this.email.envoyerConfirmationDemande(visiteur.email, {
       reference: demande.reference,
       titre: demande.offre.titre,
       sejour: periode(demande),
       total: demande.prix.total > 0 ? formaterFrancs(demande.prix.total) : undefined,
       identifiants: visiteur.identifiants,
+      acompte: annonceAcompte,
       suite: await this.suiteDuSejour(demande),
+      lienAcces: lien
+        ? {
+            url: `${config.appUrl.replace(/\/$/, "")}/fr/acces-demande/${lien.jeton}`,
+            validiteHeures: DUREE_LIEN_DEMANDE_HEURES,
+          }
+        : undefined,
     });
+    return { envoye, acompteAnnonce: annonceAcompte !== undefined };
   }
 
   /**
@@ -261,6 +318,11 @@ export class ControleurDemandes {
       lienReponse: liens.lienReponse,
     });
   }
+}
+
+/** Le genre que le dépôt écrira en base pour cette prestation. */
+function genreDeVehicule(prestation: "trajet" | "journee" | "taxi"): GenreDemande {
+  return prestation === "journee" ? "location" : prestation;
 }
 
 /** L'écran de réponse du partenaire, hors langue et sans connexion. */

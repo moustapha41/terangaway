@@ -49,5 +49,5 @@ structure de la fiche. **Un champ obligatoire manquant bloque la publication.**
 
 ## Rappel de la charte signée par chaque partenaire (PAR-05)
 
-Prix affichés respectés · réponse dans les délais · **aucun acompte demandé au visiteur** ·
+Prix affichés respectés · réponse dans les délais · **aucune demande de paiement hors procédure Teranga Way** (les acomptes éventuels sont demandés par Teranga Way seule) ·
 signalement immédiat d'un bien qui n'est plus libre.

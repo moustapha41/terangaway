@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { PrismaService } from "../../base-de-donnees/prisma.service";
+import { creerPrismaDeTest } from "../../base-de-donnees/base-de-test.test-utils";
 import { ErreurMetier } from "../../commun/erreurs";
 import { enProduction } from "../../commun/securite/posture.test-utils";
 import { DepotComptesPrisma } from "./comptes.prisma";
@@ -14,7 +15,7 @@ describe("Persistance PostgreSQL — Module Comptes & Authentification", () => {
   const genererTel = () => `77${Math.floor(1000000 + Math.random() * 9000000)}`;
 
   beforeAll(async () => {
-    prisma = new PrismaService();
+    prisma = creerPrismaDeTest();
     await prisma.$connect();
     depot = new DepotComptesPrisma(prisma);
     service = new ServiceComptes(depot);

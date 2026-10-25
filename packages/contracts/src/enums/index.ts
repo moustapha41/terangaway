@@ -44,7 +44,8 @@ export type MoyenDePaiement = (typeof MOYENS_DE_PAIEMENT)[number];
 
 /**
  * Les 7 statuts d'une demande. L'ordre compte : il est celui de la frise.
- * Le paiement n'en fait jamais partie — il a lieu sur place, hors plateforme.
+ * Le paiement n'en fait pas partie : un acompte a son propre cycle (`STATUTS_ACOMPTE`),
+ * distinct du statut de la demande — l'acompte payé ne la confirme pas.
  */
 export const STATUTS_DEMANDE = [
   "envoyee",
@@ -74,3 +75,78 @@ export const SERVICES_A_LA_DEMANDE = [
   "internet",
 ] as const;
 export type ServiceALaDemande = (typeof SERVICES_A_LA_DEMANDE)[number];
+
+/**
+ * Les états d'un acompte réglé par virement bancaire.
+ *
+ * **Volontairement séparés des sept statuts de demande.** Ceux-ci décrivent
+ * l'accord entre le visiteur et le partenaire, ils sont montrés dans la frise
+ * et le paiement « n'en fait jamais partie » — c'est écrit plus haut et c'est
+ * toujours vrai. L'acompte est un cycle *parallèle* : une demande acceptée
+ * peut attendre son virement, l'avoir reçu en partie, ou l'avoir reçu après
+ * son échéance, sans que son propre statut change. Les mêler aurait obligé à
+ * rouvrir la table des transitions, la frise et les vingt-et-une clés de
+ * traduction des statuts — et aurait fait voir au visiteur un état de
+ * paiement là où il attend l'état de sa réservation.
+ *
+ * Sans agrégateur de paiement, aucun de ces états ne s'obtient en écoutant la
+ * banque : `paye` est toujours le constat d'un humain qui a vérifié le compte.
+ */
+export const STATUTS_ACOMPTE = [
+  /** Instructions de virement envoyées, rien reçu à ce jour. */
+  "en_attente",
+  /** Reçu, mais strictement moins que le montant attendu. */
+  "partiel",
+  /** Reçu en totalité, et confirmé par un administrateur. */
+  "paye",
+  /** Échéance dépassée sans réception confirmée. */
+  "expire",
+  /** La demande est morte avant le paiement : il ne faut plus virer. */
+  "annule",
+  /** Reçu alors qu'il ne fallait plus, ou reçu en trop : à rendre. */
+  "a_rembourser",
+  /**
+   * Rendu. Posé seulement quand une personne a constaté que le remboursement
+   * est parti du compte — jamais au moment où on décide de rembourser.
+   */
+  "rembourse",
+] as const;
+export type StatutAcompte = (typeof STATUTS_ACOMPTE)[number];
+
+/**
+ * Ce qu'une ligne du journal d'acompte raconte.
+ *
+ * Le journal est **append-only** : une étape nouvelle est une ligne nouvelle,
+ * jamais la correction d'une ancienne. Un champ `montantRecu` seul ne peut pas
+ * raconter deux versements successifs, un doublon, ni qui a vérifié quoi.
+ *
+ * Une `preuve_declaree` n'est **pas** une réception : c'est ce que quelqu'un
+ * affirme avoir viré. Seule une `reception_confirmee`, posée par une personne
+ * qui a regardé le compte, compte dans le montant reçu.
+ */
+export const TYPES_EVENEMENT_ACOMPTE = [
+  /** Le dossier est ouvert : montant figé, échéance posée. */
+  "preparation",
+  "instructions_envoyees",
+  "rappel_envoye",
+  /** Le visiteur dit avoir payé, avec ou sans justificatif. Rien n'est constaté. */
+  "preuve_declaree",
+  /** Une personne a relevé le compte ; le commentaire dit ce qu'elle a vu. */
+  "verification",
+  /** Un versement constaté sur le compte. Seul à faire bouger le montant reçu. */
+  "reception_confirmee",
+  /** Un versement qui fait double emploi avec un autre. */
+  "doublon_signale",
+  /** Montant incorrect, virement sans référence, ou tout autre écart. */
+  "anomalie_signalee",
+  "expiration_prononcee",
+  "annulation",
+  "remboursement_decide",
+  "remboursement_effectue",
+  /**
+   * Les instructions de virement ne sont pas parties, toutes tentatives
+   * épuisées. Le dossier reste sans `instructionsEnvoyeesLe` : il se renvoie.
+   */
+  "envoi_echoue",
+] as const;
+export type TypeEvenementAcompte = (typeof TYPES_EVENEMENT_ACOMPTE)[number];

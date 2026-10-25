@@ -1,6 +1,7 @@
 import { Module } from "@nestjs/common";
 
 import { DEPOT_DEMANDES } from "../../commun/depots/depot";
+import { ModuleAcomptes } from "../acomptes/acomptes.module";
 import { ModuleComptes } from "../comptes/comptes.module";
 import { ModuleOffres } from "../offres/offres.module";
 import { ControleurDemandes } from "./demandes.controller";
@@ -9,7 +10,7 @@ import { ServiceDemandes } from "./demandes.service";
 import { VeilleurDemandes } from "./veilleur.service";
 
 @Module({
-  imports: [ModuleComptes, ModuleOffres],
+  imports: [ModuleAcomptes, ModuleComptes, ModuleOffres],
   controllers: [ControleurDemandes],
   providers: [
     ServiceDemandes,

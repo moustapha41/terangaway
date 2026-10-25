@@ -1,10 +1,11 @@
-import { HttpStatus, Inject, Injectable } from "@nestjs/common";
+import { HttpStatus, Inject, Injectable, Logger, Optional } from "@nestjs/common";
 import type { Demande, MotifRefus, StatutDemande } from "@teranga/contracts";
 
 import { DEPOT_DEMANDES } from "../../commun/depots/depot";
 import { ErreurMetier, introuvable } from "../../commun/erreurs";
 import { estIdentiteDemo } from "../../commun/securite/identites-demo";
 import { config } from "../../config/configuration";
+import { ServiceAcomptes } from "../acomptes/acomptes.service";
 import type {
   DepotDemandes,
   EntreeCreationLogement,
@@ -20,7 +21,16 @@ import {
 
 @Injectable()
 export class ServiceDemandes {
-  constructor(@Inject(DEPOT_DEMANDES) private readonly depot: DepotDemandes) {}
+  private readonly logger = new Logger(ServiceDemandes.name);
+
+  constructor(
+    @Inject(DEPOT_DEMANDES) private readonly depot: DepotDemandes,
+    /**
+     * Facultatif : les tests et les dépôts en mémoire s'en passent. Sans lui,
+     * une acceptation reste une acceptation — simplement sans acompte.
+     */
+    @Optional() private readonly acomptes?: ServiceAcomptes,
+  ) {}
 
   listerPourVisiteur(visiteurId: string): Promise<Demande[]> {
     return this.depot.listerPourVisiteur(visiteurId).then((liste) => {
@@ -113,6 +123,7 @@ export class ServiceDemandes {
       );
     }
 
+    const horodatage = new Date();
     const miseAJour: Demande = {
       ...demande,
       statut: vers,
@@ -120,33 +131,21 @@ export class ServiceDemandes {
         ...demande.frise,
         {
           statut: vers,
-          horodatage: new Date().toISOString(),
+          horodatage: horodatage.toISOString(),
           origine: par === "equipe" ? "equipe" : par,
         },
       ],
     };
 
     if (vers === "acceptee") {
-      const genre =
-        demande.offre.genre === "logement"
-          ? "logement"
-          : "trajet";
-      miseAJour.expireLe = expireConfirmationPour(genre);
+      // Depuis l'instant d'acceptation inscrit dans la frise, pas depuis « maintenant » :
+      // l'échéance de l'acompte part du même instant, et les deux restent d'accord.
+      miseAJour.expireLe = expireConfirmationPour(await this.genreDeConfirmation(demande), horodatage);
     } else if (vers === "confirmee") {
+      // Aucune coordonnée n'est fabriquée ici : elles sont saisies et
+      // vérifiées par l'équipe. Une demande se confirme sans elles, et la
+      // lecture les révèle quand elles existent.
       miseAJour.expireLe = undefined;
-      miseAJour.coordonnees =
-        demande.offre.genre === "logement"
-          ? {
-              adresseExacte: "12, route de la Corniche Ouest, Fann, Dakar",
-              telephone: "+221 77 123 45 67",
-              consignesArrivee:
-                "Sonnez à l'interphone « Résidence », deuxième étage à droite.",
-            }
-          : {
-              immatriculation: "DK-2026-AB",
-              telephoneChauffeur: "+221 77 987 65 43",
-              lieuDeRendezVous: "Aéroport AIBD — sortie arrivées internationales",
-            };
     } else if (vers === "refusee") {
       miseAJour.expireLe = undefined;
       miseAJour.motifRefus = options.motifRefus ?? "autre";
@@ -156,7 +155,68 @@ export class ServiceDemandes {
       if (vers !== "terminee") miseAJour.coordonnees = undefined;
     }
 
-    return this.depot.enregistrer(miseAJour);
+    // Un acompte demandé doit être payé et vérifié avant toute confirmation. La
+    // table n'autorise que le visiteur à confirmer ; ce contrôle s'applique à
+    // lui, et à quiconque pourrait un jour le faire.
+    if (vers === "confirmee") {
+      // L'offre d'abord : dire « déjà confirmée » à qui n'a pas payé vaut mieux que
+      // « payez d'abord ». Indépendant de l'acompte, qui peut être fermé.
+      await this.depot.exigerOffreLibre?.(id);
+      if (this.acomptes) await this.acomptes.exigerPaiementVerifie(id);
+    }
+
+    // Conditionnelle au statut lu : si une autre transition est passée entre
+    // la lecture et ici, `enregistrer` lève et rien de ce qui suit — acompte
+    // compris — ne s'exécute.
+    const enregistree = await this.depot.enregistrer(miseAJour, demande.statut);
+
+    // L'acompte se prépare **après** que l'acceptation est écrite, et il ne
+    // peut pas la défaire : `preparer` ne lève pas, et ce `catch` est là pour
+    // le jour où quelqu'un l'oubliera. Le partenaire et l'équipe passent par
+    // ici tous les deux — c'est le seul point d'acceptation.
+    if (vers === "acceptee" && this.acomptes) {
+      await this.acomptes.preparer(enregistree, horodatage).catch((erreur: unknown) => {
+        this.logger.error(
+          `Acompte de ${enregistree.reference} : ${(erreur as Error)?.message ?? "erreur inconnue"}`,
+        );
+      });
+    }
+
+    // Une demande qui meurt emporte son acompte : annulé s'il n'a rien reçu,
+    // à rembourser s'il a reçu en partie. Même contrat que la préparation —
+    // la transition est écrite, rien ici ne peut la défaire.
+    if ((vers === "expiree" || vers === "annulee" || vers === "refusee") && this.acomptes) {
+      await this.acomptes.synchroniserFinDeDemande(enregistree.id, vers).catch((erreur: unknown) => {
+        this.logger.error(
+          `Acompte de ${enregistree.reference} : ${(erreur as Error)?.message ?? "erreur inconnue"}`,
+        );
+      });
+    }
+
+    return enregistree;
+  }
+
+  /**
+   * Le genre dont la demande acceptée reçoit la fenêtre de confirmation.
+   *
+   * Le contrat visiteur ne distingue que `logement` et `vehicule` ; la base
+   * porte le genre fin. **Seule la location avec chauffeur** a sa propre
+   * fenêtre (12 h, `DELAIS.location`) : un véhicule loué à la journée se
+   * confirme comme un logement, pas à la course.
+   *
+   * Tout le reste reçoit **le délai du trajet (3 h)**, et deux de ces cas
+   * s'écartent de `DELAIS` — voir « Écarts connus » dans `delais.ts` : le taxi
+   * (15 min déclarées) et le service (12 h déclarées). Ils sont laissés tels
+   * quels tant que leur règle n'est pas tranchée, et un test fige cet état.
+   *
+   * Le véhicule n'est bloqué par aucun code ici : la fenêtre ne fait qu'allonger
+   * le temps avant l'expiration de la demande, donc celui pendant lequel le
+   * partenaire doit garder le véhicule libre.
+   */
+  private async genreDeConfirmation(demande: Demande): Promise<"logement" | "location" | "trajet"> {
+    if (demande.offre.genre === "logement") return "logement";
+    const fin = await this.depot.genreDe?.(demande.id);
+    return fin === "location" ? "location" : "trajet";
   }
 
   confirmer(id: string): Promise<Demande> {

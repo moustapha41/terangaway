@@ -108,6 +108,14 @@ export function genererJetonSession(): string {
 }
 
 /**
+ * Génère le jeton d'un lien d'accès à une demande (`twl_...`) : 256 bits
+ * aléatoires, donc imprévisible. Seule son empreinte SHA-256 est conservée.
+ */
+export function genererJetonLienDemande(): string {
+  return `twl_${randomBytes(32).toString("hex")}`;
+}
+
+/**
  * Génère un jeton de réponse partenaire non prédictible (`twp_...`).
  */
 export function genererJetonPartenaire(): string {

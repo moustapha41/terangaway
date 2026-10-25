@@ -1,5 +1,7 @@
 import type { MotifRefus, ServiceALaDemande, StatutDemande } from "../enums";
 import type { Demande } from "./demande";
+import type { CoordonneesLogement } from "./logement";
+import type { CoordonneesVehicule } from "./vehicule";
 
 /**
  * Les genres d'offre, vus du backoffice.
@@ -113,4 +115,61 @@ export interface CompteAdministrateur {
   id: string;
   email?: string;
   nom?: string;
+}
+
+/**
+ * Les coordonnées d'une réservation, vues de l'équipe.
+ *
+ * Elles sont saisies puis vérifiées par deux personnes différentes de
+ * l'équipe : c'est la seule preuve qu'une adresse ou un numéro a été relu par
+ * quelqu'un d'autre que la personne qui l'a tapé. Le visiteur ne les reçoit
+ * qu'une fois vérifiées, et seulement à « confirmee » ou « terminee ».
+ *
+ * `absentes` : rien n'est saisi ; `saisies` : saisies, pas encore vérifiées —
+ * jamais montrées au visiteur ; `verifiees` : vérifiées par une seconde
+ * personne, preuve enregistrée en base.
+ */
+export const ETATS_COORDONNEES = ["absentes", "saisies", "verifiees"] as const;
+export type EtatCoordonnees = (typeof ETATS_COORDONNEES)[number];
+
+/** La forme attendue dépend de la réservation : un logement ou un véhicule. */
+export type FamilleCoordonnees = "logement" | "vehicule";
+
+/** Qui a fait quoi, et quand. */
+export interface TraceCoordonnees {
+  le: string;
+  par: { id: string; nom?: string; email?: string };
+}
+
+export interface CoordonneesAdmin {
+  demandeId: string;
+  statut: StatutDemande;
+  /** `undefined` pour un service à la demande : pas de coordonnées prévues. */
+  famille?: FamilleCoordonnees;
+  etat: EtatCoordonnees;
+  coordonnees?: CoordonneesLogement | CoordonneesVehicule;
+  /** La dernière saisie. Sa date sert de version à la vérification. */
+  saisie?: TraceCoordonnees;
+  /** Absente tant qu'une seconde personne n'a pas vérifié la dernière saisie. */
+  verification?: TraceCoordonnees;
+  /** La saisie est-elle permise au statut actuel ? */
+  saisissable: boolean;
+  /**
+   * La personne qui consulte peut-elle vérifier ? Jamais celle qui a saisi :
+   * principe des quatre yeux.
+   */
+  peutVerifier: boolean;
+}
+
+/**
+ * Ce que l'équipe envoie. Les champs attendus dépendent de la famille ;
+ * l'API refuse ceux de l'autre famille et tout champ inconnu.
+ */
+export interface SaisieCoordonneesAdmin {
+  adresseExacte?: string;
+  telephone?: string;
+  consignesArrivee?: string;
+  immatriculation?: string;
+  telephoneChauffeur?: string;
+  lieuDeRendezVous?: string;
 }

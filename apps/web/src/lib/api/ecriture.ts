@@ -6,7 +6,7 @@
  */
 import type { Demande, MotifRefus, ServiceALaDemande } from "@teranga/contracts";
 
-import { appelerApi } from "./http";
+import { appelerApi, appelerApiEnveloppe, type NotificationApi } from "./http";
 
 /**
  * Les coordonnées qui accompagnent une demande envoyée sans compte.
@@ -29,8 +29,41 @@ export async function apiCreerDemandeLogement(corps: {
   heureArrivee?: string;
   message?: string;
   contact?: ContactDemande;
-}): Promise<Demande> {
-  return appelerApi<Demande>("/demandes/logement", { method: "POST", corps });
+}): Promise<DemandeEnvoyee> {
+  const { donnees, notification } = await appelerApiEnveloppe<Demande>("/demandes/logement", {
+    method: "POST",
+    corps,
+  });
+  return avecNotification(donnees, notification);
+}
+
+/**
+ * Une demande qu'on vient d'enregistrer, et ce qu'on sait de son e-mail.
+ * `acompteAnnonce` n'est vrai que si l'e-mail annonce réellement un acompte.
+ */
+export type DemandeEnvoyee = Demande & { emailEnvoye: boolean; acompteAnnonce: boolean };
+
+/**
+ * Absent = on ne sait pas, donc on ne prétend rien : l'écran traite cela comme
+ * un e-mail non parti et un paiement non annoncé.
+ */
+function avecNotification(demande: Demande, notification?: NotificationApi): DemandeEnvoyee {
+  return {
+    ...demande,
+    emailEnvoye: notification?.emailEnvoye === true,
+    acompteAnnonce: notification?.acompteAnnonce === true,
+  };
+}
+
+/**
+ * Échange le lien reçu par e-mail contre une session visiteur.
+ * Le jeton part dans le corps de la requête, jamais dans une URL de l'API.
+ */
+export async function apiOuvrirLienDemande(jeton: string) {
+  return appelerApi<{ visiteurId: string; token: string; demandeId: string }>(
+    "/comptes/lien-demande/ouvrir",
+    { method: "POST", corps: { jeton } },
+  );
 }
 
 export async function apiCreerDemandeVehicule(corps: {
@@ -44,8 +77,12 @@ export async function apiCreerDemandeVehicule(corps: {
   vol?: string;
   message?: string;
   contact?: ContactDemande;
-}): Promise<Demande> {
-  return appelerApi<Demande>("/demandes/vehicule", { method: "POST", corps });
+}): Promise<DemandeEnvoyee> {
+  const { donnees, notification } = await appelerApiEnveloppe<Demande>("/demandes/vehicule", {
+    method: "POST",
+    corps,
+  });
+  return avecNotification(donnees, notification);
 }
 
 export async function apiListerDemandes(visiteurId?: string): Promise<Demande[]> {
@@ -240,6 +277,10 @@ export async function apiCreerDemandeService(corps: {
   details: Record<string, string>;
   message?: string;
   contact?: ContactDemande;
-}): Promise<Demande> {
-  return appelerApi<Demande>("/demandes/service", { method: "POST", corps });
+}): Promise<DemandeEnvoyee> {
+  const { donnees, notification } = await appelerApiEnveloppe<Demande>("/demandes/service", {
+    method: "POST",
+    corps,
+  });
+  return avecNotification(donnees, notification);
 }

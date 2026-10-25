@@ -1,15 +1,17 @@
 import { Injectable } from "@nestjs/common";
-import { totalSejour, type Demande } from "@teranga/contracts";
+import { totalSejour, type Demande, type StatutDemande } from "@teranga/contracts";
 import { DEMANDES, LOGEMENTS, VEHICULES } from "@teranga/fixtures";
 
 import { ErreurMetier, introuvable } from "../../commun/erreurs";
-import { expireLePour } from "./machine-a-etats/delais";
+import { expireLePour, type GenreService } from "./machine-a-etats/delais";
 import type {
   DepotDemandes,
   EntreeCreationLogement,
   EntreeCreationService,
   EntreeCreationVehicule,
 } from "./demandes.depot";
+import { transitionConcurrente } from "./demandes.depot";
+import { coordonneesAEffacer, coordonneesDivulguables } from "./coordonnees";
 
 /**
  * Catalogue en mémoire, mutable pour le temps du processus.
@@ -25,15 +27,85 @@ export class DepotDemandesFixtures implements DepotDemandes {
     this.demandes.map((d) => [d.id, "visiteur-demo"]),
   );
 
+  /** Le genre fin de chaque demande créée ici, comme la colonne `genre` de la base. */
+  private readonly genres = new Map<string, GenreService>();
+
+  async genreDe(demandeId: string): Promise<GenreService | undefined> {
+    return this.genres.get(demandeId);
+  }
+
   async listerPourVisiteur(visiteurId: string): Promise<Demande[]> {
     const ids = [...this.parVisiteur.entries()]
       .filter(([, v]) => v === visiteurId)
       .map(([id]) => id);
-    return this.demandes.filter((d) => ids.includes(d.id));
+    return this.demandes.filter((d) => ids.includes(d.id)).map((d) => vue(d, this.verifiee(d.id)));
   }
 
   async parId(id: string): Promise<Demande | null> {
-    return this.demandes.find((d) => d.id === id) ?? null;
+    const demande = this.demandes.find((d) => d.id === id);
+    return demande ? vue(demande, this.verifiee(id)) : null;
+  }
+
+  /**
+   * Qui a saisi et vérifié les coordonnées de chaque demande — l'équivalent
+   * des quatre colonnes de traçabilité, en mémoire.
+   */
+  private readonly traces = new Map<string, TracesCoordonnees>();
+
+  private verifiee(id: string): boolean {
+    return this.traces.get(id)?.verification !== undefined;
+  }
+
+  /** Lecture brute, pour le dépôt des coordonnées : sans filtre de divulgation. */
+  coordonneesInternes(id: string): { demande: Demande; traces: TracesCoordonnees } | null {
+    const demande = this.demandes.find((d) => d.id === id);
+    if (!demande) return null;
+    return { demande: structuredClone(demande), traces: structuredClone(this.traces.get(id) ?? {}) };
+  }
+
+  /**
+   * Pose une saisie et annule la vérification précédente — si le statut est
+   * encore `statutLu`. `false` sinon : rien n'est écrit.
+   */
+  poserSaisieCoordonnees(
+    id: string,
+    statutLu: StatutDemande,
+    coordonnees: NonNullable<Demande["coordonnees"]>,
+    saisie: TraceInterne,
+  ): boolean {
+    const demande = this.demandes.find((d) => d.id === id);
+    if (!demande || demande.statut !== statutLu) return false;
+    demande.coordonnees = structuredClone(coordonnees);
+    this.traces.set(id, { saisie: { ...saisie } });
+    return true;
+  }
+
+  /**
+   * Pose la vérification de **la** saisie lue — mêmes conditions que la
+   * future écriture SQL : statut inchangé, saisie inchangée, coordonnées
+   * présentes, pas encore vérifiée, et vérificateur différent du saisissant.
+   */
+  poserVerificationCoordonnees(
+    id: string,
+    statutLu: StatutDemande,
+    saisieLe: string,
+    verification: TraceInterne,
+  ): boolean {
+    const demande = this.demandes.find((d) => d.id === id);
+    const traces = this.traces.get(id);
+    if (
+      !demande ||
+      demande.statut !== statutLu ||
+      !demande.coordonnees ||
+      !traces?.saisie ||
+      traces.saisie.le !== saisieLe ||
+      traces.saisie.parId === verification.parId ||
+      traces.verification
+    ) {
+      return false;
+    }
+    traces.verification = { ...verification };
+    return true;
   }
 
   async creerLogement(entree: EntreeCreationLogement): Promise<Demande> {
@@ -83,6 +155,7 @@ export class DepotDemandesFixtures implements DepotDemandes {
 
     this.demandes.unshift(demande);
     this.parVisiteur.set(demande.id, entree.visiteurId);
+    this.genres.set(demande.id, "logement");
     return structuredClone(demande);
   }
 
@@ -123,6 +196,7 @@ export class DepotDemandesFixtures implements DepotDemandes {
 
     this.demandes.unshift(demande);
     this.parVisiteur.set(demande.id, entree.visiteurId);
+    this.genres.set(demande.id, genre);
     return structuredClone(demande);
   }
 
@@ -149,18 +223,50 @@ export class DepotDemandesFixtures implements DepotDemandes {
 
     this.demandes.unshift(demande);
     this.parVisiteur.set(demande.id, entree.visiteurId);
+    this.genres.set(demande.id, "service");
     return structuredClone(demande);
   }
 
-  async enregistrer(demande: Demande): Promise<Demande> {
+  async enregistrer(demande: Demande, statutLu: StatutDemande): Promise<Demande> {
     const index = this.demandes.findIndex((d) => d.id === demande.id);
     if (index < 0) throw introuvable("Demande");
-    this.demandes[index] = structuredClone(demande);
-    return structuredClone(demande);
+    const actuel = this.demandes[index].statut;
+    if (actuel !== statutLu) throw transitionConcurrente(demande.id, statutLu, actuel);
+
+    // Même règle que le dépôt Prisma : une transition n'écrit les coordonnées
+    // que pour les effacer. Sinon, celles déjà rangées sont gardées — l'objet
+    // reçu a été lu à travers le filtre, il ne les porte pas forcément.
+    const efface = coordonneesAEffacer(demande.statut);
+    const coordonnees = efface ? undefined : this.demandes[index].coordonnees;
+    // Effacer les coordonnées remet leur traçabilité à zéro.
+    if (efface) this.traces.delete(demande.id);
+    this.demandes[index] = structuredClone({ ...demande, coordonnees });
+    return vue(this.demandes[index], this.verifiee(demande.id));
   }
 
   /** Réservé aux réponses partenaire : rattachement interne. */
   visiteurDe(demandeId: string): string | undefined {
     return this.parVisiteur.get(demandeId);
   }
+}
+
+export interface TraceInterne {
+  le: string;
+  parId: string;
+}
+
+export interface TracesCoordonnees {
+  saisie?: TraceInterne;
+  verification?: TraceInterne;
+}
+
+/**
+ * Ce qu'une lecture rend : une copie, sans les coordonnées hors des statuts qui
+ * les autorisent ou tant qu'elles ne sont pas vérifiées — la même règle que
+ * `demandToDemande`.
+ */
+function vue(demande: Demande, verifiee: boolean): Demande {
+  const copie = structuredClone(demande);
+  if (!coordonneesDivulguables(copie.statut, verifiee)) copie.coordonnees = undefined;
+  return copie;
 }

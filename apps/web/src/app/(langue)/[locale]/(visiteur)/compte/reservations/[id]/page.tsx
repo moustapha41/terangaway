@@ -1,8 +1,9 @@
 import { notFound } from "next/navigation";
 import Image from "next/image";
-import type { CoordonneesLogement, Demande } from "@teranga/contracts";
+import type { Demande } from "@teranga/contracts";
 import { BadgeStatut, Bandeau, Bouton, Carte, Icone } from "@teranga/ui";
 import { OngletsReservation } from "@/features/client/onglets-reservation";
+import { vueCoordonnees } from "@/features/demande/coordonnees-affichage";
 import { Lien } from "@/lib/i18n/lien";
 import { estLangue, type Langue } from "@/lib/i18n/langues";
 import { traducteurPour } from "@/lib/i18n/messages";
@@ -190,34 +191,52 @@ function Details({
   );
 }
 
-/** Le contact du prestataire n'apparaît qu'une fois la demande confirmée. */
+/**
+ * Le contact du prestataire : rendu par l'API après confirmation, et seulement
+ * quand l'équipe l'a saisi. Logement et véhicule n'ont pas les mêmes champs.
+ */
 function Prestataire({ demande, langue }: { demande: Demande; langue: Langue }) {
   const t = traducteurPour(langue);
-  const coordonnees = demande.coordonnees as CoordonneesLogement | undefined;
+  const vue = vueCoordonnees(demande);
 
-  if (!coordonnees) {
+  if (vue.type === "aucune") return null;
+  if (vue.type === "apres_confirmation") {
     return <Bandeau variante="information">{t("client.prestataireApres")}</Bandeau>;
+  }
+  if (vue.type === "en_preparation") {
+    return <Bandeau variante="information">{t("detailDemande.coordonneesEnPreparation")}</Bandeau>;
   }
 
   return (
     <Carte className="space-y-4 p-5">
-      <Detail icone="repere" terme={t("detailDemande.adresse")}>
-        {coordonnees.adresseExacte}
-      </Detail>
-      <Detail icone="telephone" terme={t("detailDemande.telephone")}>
-        <a
-          href={`tel:${coordonnees.telephone.replace(/\s/g, "")}`}
-          className="underline underline-offset-2"
-        >
-          {coordonnees.telephone}
-        </a>
-      </Detail>
-      {coordonnees.consignesArrivee && (
-        <Detail icone="information" terme={t("detailDemande.consignes")}>
-          {coordonnees.consignesArrivee}
+      {vue.type === "logement" ? (
+        <Detail icone="repere" terme={t("detailDemande.adresse")}>
+          {vue.adresse}
+        </Detail>
+      ) : (
+        <Detail icone="information" terme={t("detailDemande.immatriculation")}>
+          {vue.immatriculation}
         </Detail>
       )}
-      <a href={`tel:${coordonnees.telephone.replace(/\s/g, "")}`} className="block pt-1">
+      <Detail
+        icone="telephone"
+        terme={vue.type === "vehicule" ? t("detailDemande.telephoneChauffeur") : t("detailDemande.telephone")}
+      >
+        <a href={vue.lienTelephone} className="underline underline-offset-2">
+          {vue.telephone}
+        </a>
+      </Detail>
+      {vue.type === "logement" && vue.consignes && (
+        <Detail icone="information" terme={t("detailDemande.consignes")}>
+          {vue.consignes}
+        </Detail>
+      )}
+      {vue.type === "vehicule" && vue.lieuDeRendezVous && (
+        <Detail icone="repere" terme={t("detailDemande.rendezVous")}>
+          {vue.lieuDeRendezVous}
+        </Detail>
+      )}
+      <a href={vue.lienTelephone} className="block pt-1">
         <Bouton variante="principal" largeur="pleine" icone="telephone">
           {t("client.contacterPrestataire")}
         </Bouton>

@@ -9,11 +9,16 @@
 import type {
   CompteAdministrateur,
   ContactAdmin,
+  CoordonneesAdmin,
   DemandeAdmin,
   FiltresDemandesAdmin,
   MiseAJourDemandeAdmin,
   PageDemandesAdmin,
+  ResultatReceptionAcompte,
+  SaisieCoordonneesAdmin,
+  SaisieReceptionAcompte,
   TableauDeBordAdmin,
+  VueAcompteAdmin,
 } from "@teranga/contracts";
 
 import { appelerApi } from "./http";
@@ -74,6 +79,115 @@ export function apiAdminTraiter(
   return appelerApi<DemandeAdmin>(`/administration/demandes/${encodeURIComponent(id)}`, {
     method: "PATCH",
     corps: maj,
+    headers: entetes(jeton),
+  });
+}
+
+/**
+ * Les coordonnées d'une réservation : la seule lecture qui les rend à l'équipe,
+ * avec qui les a saisies et vérifiées. Jamais mises en cache (`no-store` côté
+ * API comme côté `appelerApi`).
+ */
+export function apiAdminCoordonnees(jeton: string, id: string): Promise<CoordonneesAdmin> {
+  return appelerApi<CoordonneesAdmin>(`/administration/demandes/${encodeURIComponent(id)}/coordonnees`, {
+    headers: entetes(jeton),
+  });
+}
+
+export function apiAdminSaisirCoordonnees(
+  jeton: string,
+  id: string,
+  saisie: SaisieCoordonneesAdmin,
+): Promise<CoordonneesAdmin> {
+  return appelerApi<CoordonneesAdmin>(`/administration/demandes/${encodeURIComponent(id)}/coordonnees`, {
+    method: "PUT",
+    corps: saisie,
+    headers: entetes(jeton),
+  });
+}
+
+/** `saisieLe` : la version relue. Une saisie plus récente fait refuser la vérification. */
+export function apiAdminVerifierCoordonnees(
+  jeton: string,
+  id: string,
+  saisieLe: string,
+): Promise<CoordonneesAdmin> {
+  return appelerApi<CoordonneesAdmin>(
+    `/administration/demandes/${encodeURIComponent(id)}/coordonnees/verification`,
+    { method: "POST", corps: { saisieLe }, headers: entetes(jeton) },
+  );
+}
+
+/* ─────────────────────────────── Acompte ─────────────────────────────── */
+
+/**
+ * L'acompte d'une demande, tel que l'API le calcule. Aucun montant n'est
+ * recalculé ici : l'écran affiche ce que le serveur a décidé.
+ */
+const cheminAcompte = (id: string) => `/administration/demandes/${encodeURIComponent(id)}/acompte`;
+
+export function apiAdminAcompte(jeton: string, id: string): Promise<VueAcompteAdmin> {
+  return appelerApi<VueAcompteAdmin>(cheminAcompte(id), { headers: entetes(jeton) });
+}
+
+export function apiAdminPreparerAcompte(jeton: string, id: string) {
+  return appelerApi<{ issue: { etat: string }; vue: VueAcompteAdmin }>(`${cheminAcompte(id)}/preparation`, {
+    method: "POST",
+    headers: entetes(jeton),
+  });
+}
+
+export function apiAdminReceptionAcompte(jeton: string, id: string, saisie: SaisieReceptionAcompte) {
+  return appelerApi<{ resultat: ResultatReceptionAcompte; vue: VueAcompteAdmin }>(`${cheminAcompte(id)}/reception`, {
+    method: "POST",
+    corps: saisie,
+    headers: entetes(jeton),
+  });
+}
+
+export function apiAdminRenvoyerInstructions(jeton: string, id: string) {
+  return appelerApi<{ issue: string; vue: VueAcompteAdmin }>(`${cheminAcompte(id)}/instructions/renvoi`, {
+    method: "POST",
+    headers: entetes(jeton),
+  });
+}
+
+export function apiAdminDeciderRemboursement(jeton: string, id: string, commentaire: string) {
+  return appelerApi<{ vue: VueAcompteAdmin }>(`${cheminAcompte(id)}/remboursement/decision`, {
+    method: "POST",
+    corps: { commentaire },
+    headers: entetes(jeton),
+  });
+}
+
+/** Consigne un remboursement déjà exécuté hors plateforme : aucun transfert n'est lancé. */
+export function apiAdminConstaterRemboursement(
+  jeton: string,
+  id: string,
+  constat: { montant: number; referenceTransaction?: string; commentaire?: string },
+) {
+  return appelerApi<{ vue: VueAcompteAdmin }>(`${cheminAcompte(id)}/remboursement/effectue`, {
+    method: "POST",
+    corps: constat,
+    headers: entetes(jeton),
+  });
+}
+
+export function apiAdminPaiementTardif(
+  jeton: string,
+  id: string,
+  decision: { issue: "accepter" | "rembourser"; commentaire: string },
+) {
+  return appelerApi<{ vue: VueAcompteAdmin }>(`${cheminAcompte(id)}/paiement-tardif`, {
+    method: "POST",
+    corps: decision,
+    headers: entetes(jeton),
+  });
+}
+
+export function apiAdminRenvoyerConfirmation(jeton: string, id: string) {
+  return appelerApi<{ etat: string; vue: VueAcompteAdmin }>(`${cheminAcompte(id)}/reception/confirmation/renvoi`, {
+    method: "POST",
     headers: entetes(jeton),
   });
 }

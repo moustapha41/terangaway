@@ -1,0 +1,761 @@
+import { HttpStatus, Inject, Injectable } from "@nestjs/common";
+import { Prisma } from "@prisma/client";
+import type { DepositPayment, DepositPaymentEvent } from "@prisma/client";
+import type { Acompte, EvenementAcompte } from "@teranga/contracts";
+
+import { PrismaService } from "../../base-de-donnees/prisma.service";
+import { ErreurMetier, introuvable } from "../../commun/erreurs";
+import { autreDemandeConfirmeeEnConflit } from "../demandes/occupation";
+import type {
+  ContexteAcompte,
+  DepotAcomptes,
+  EntreeEvenementAcompte,
+  EntreeARembourser,
+  EntreePreparationAcompte,
+  EntreeReceptionAcompte,
+  LectureDemandePourAcompte,
+  ResultatPreparationAcompte,
+  ResultatReceptionDepot,
+  SensReception,
+  TransitionAcompte,
+} from "./acomptes.depot";
+import { STATUTS_DEMANDE_PAYABLES, transitionAcompteAutorisee } from "./acomptes.depot";
+import {
+  echeanceAcompte,
+  genreEligibleAcompte,
+  montantAcompte,
+  pourcentageValide,
+} from "./calcul";
+
+/**
+ * Ce qu'il faut lire avec un dossier pour en faire un `Acompte`.
+ *
+ * Le motif de virement est `Demand.reference`, pas une copie. Qui a confirmé,
+ * quand et avec quelle référence bancaire se lit sur la dernière réception du
+ * journal : des colonnes sur le dossier seraient écrasées par un second
+ * versement, le journal ne l'est pas.
+ */
+const INCLUSION_ACOMPTE = {
+  demande: { select: { reference: true } },
+  evenements: {
+    where: { type: "reception_confirmee" },
+    orderBy: [{ creeLe: "desc" }, { id: "desc" }],
+    take: 1,
+  },
+} satisfies Prisma.DepositPaymentInclude;
+
+type LigneAcompte = DepositPayment & {
+  demande: { reference: string };
+  evenements: DepositPaymentEvent[];
+};
+
+type Transaction = Prisma.TransactionClient;
+
+function versAcompte(ligne: LigneAcompte): Acompte {
+  const reception = ligne.evenements[0];
+  return {
+    id: ligne.id,
+    demandeId: ligne.demandeId,
+    referenceVirement: ligne.demande.reference,
+    statut: ligne.statut,
+    pourcentageApplique: ligne.pourcentageApplique,
+    montantTotal: ligne.montantTotal,
+    montantAttendu: ligne.montantAttendu,
+    montantRecu: ligne.montantRecu,
+    // Toute la plateforme compte en francs CFA : `prixTotal` n'a pas de
+    // devise non plus. Une colonne qui vaudrait toujours « XOF » ne dirait rien.
+    devise: "XOF",
+    echeanceLe: ligne.echeanceLe.toISOString(),
+    instructionsEnvoyeesLe: ligne.instructionsEnvoyeesLe?.toISOString(),
+    rappeleLe: ligne.rappeleLe?.toISOString(),
+    confirmeParId: reception?.acteurId ?? undefined,
+    confirmeLe: reception?.creeLe.toISOString(),
+    referenceTransaction: reception?.referenceTransaction ?? undefined,
+    creeLe: ligne.creeLe.toISOString(),
+    misAJourLe: ligne.misAJourLe.toISOString(),
+  };
+}
+
+function versEvenement(ligne: DepositPaymentEvent): EvenementAcompte {
+  return {
+    id: ligne.id,
+    acompteId: ligne.acompteId,
+    type: ligne.type,
+    statutAvant: ligne.statutAvant ?? undefined,
+    statutApres: ligne.statutApres ?? undefined,
+    montant: ligne.montant ?? undefined,
+    acteurId: ligne.acteurId ?? undefined,
+    referenceTransaction: ligne.referenceTransaction ?? undefined,
+    commentaire: ligne.commentaire ?? undefined,
+    creeLe: ligne.creeLe.toISOString(),
+  };
+}
+
+const evenementInvalide = (message: string) =>
+  new ErreurMetier("ACOMPTE_EVENEMENT_INVALIDE", message);
+
+/**
+ * Les seuls événements que `consigner` accepte : ceux qui ne changent ni le montant
+ * reçu ni le statut. Une vérification y figure comme simple note d'examen ; ce qui
+ * *décide* — payé, à rembourser, remboursé — passe par une transition.
+ */
+const TYPES_CONSIGNABLES: readonly string[] = [
+  "instructions_envoyees",
+  "rappel_envoye",
+  "preuve_declaree",
+  "verification",
+  "doublon_signale",
+  "anomalie_signalee",
+  "envoi_echoue",
+];
+
+/** Les événements qui engagent de l'argent ou une vérification : une personne, et un montant. */
+const EXIGE_ACTEUR: readonly string[] = [
+  "reception_confirmee",
+  "verification",
+  "remboursement_decide",
+  "remboursement_effectue",
+];
+const EXIGE_MONTANT: readonly string[] = ["reception_confirmee", "remboursement_decide", "remboursement_effectue"];
+
+/**
+ * Un événement se refuse avant d'atteindre la base, quand il ne raconte rien
+ * de vérifiable.
+ *
+ * Une réception sans montant ou sans personne pour l'avoir constatée n'en est
+ * pas une : le système ne voit pas la banque, il ne peut rien confirmer seul.
+ * Le statut ne se pose que par `changerStatut`, jamais par un événement nu.
+ */
+function verifierEvenement(evenement: EntreeEvenementAcompte): void {
+  if (
+    evenement.montant !== undefined &&
+    (!Number.isInteger(evenement.montant) || evenement.montant <= 0)
+  ) {
+    throw evenementInvalide("Le montant d'un événement est un entier strictement positif.");
+  }
+  if (evenement.type === "preparation") {
+    throw evenementInvalide("La préparation ne se consigne que par `preparer`.");
+  }
+  // Mêmes exigences que les contraintes de `20261024100000_acomptes_garde_fous` :
+  // le refus vient ici d'abord, avec son message, avant que la base ne le fasse.
+  if (EXIGE_MONTANT.includes(evenement.type) && evenement.montant === undefined) {
+    throw evenementInvalide(`Un événement « ${evenement.type} » porte un montant.`);
+  }
+  if (EXIGE_ACTEUR.includes(evenement.type) && !evenement.acteurId) {
+    throw evenementInvalide(
+      `Un événement « ${evenement.type} » est constaté par une personne nommée, jamais par le système.`,
+    );
+  }
+}
+
+/**
+ * Les conditions d'un franchissement que la table seule ne dit pas.
+ *
+ * Une preuve déclarée ne fait jamais passer un acompte à « payé » : seul ce
+ * qu'une personne a constaté sur le compte le peut. Et l'argent rendu ne se
+ * déclare pas sur une intention.
+ */
+function verifierFranchissement(transition: TransitionAcompte, evenement: EntreeEvenementAcompte): void {
+  if (transition.vers === "paye") {
+    if (!evenement.acteurId) {
+      throw evenementInvalide("Un acompte n'est déclaré payé que par une personne nommée.");
+    }
+    if (evenement.type !== "reception_confirmee" && evenement.type !== "verification") {
+      throw evenementInvalide(
+        "Un acompte ne passe à « payé » que sur une réception constatée ou une vérification.",
+      );
+    }
+    if (transition.de === "expire" && (evenement.type !== "verification" || !evenement.commentaire?.trim())) {
+      throw evenementInvalide(
+        "Un paiement tardif ne s'accepte qu'après un examen consigné : vérification signée et commentée.",
+      );
+    }
+  }
+  if (transition.vers === "rembourse") {
+    if (
+      evenement.type !== "remboursement_effectue" ||
+      !evenement.acteurId ||
+      evenement.montant === undefined
+    ) {
+      throw evenementInvalide(
+        "« Remboursé » exige un remboursement effectué, chiffré et constaté par une personne.",
+      );
+    }
+  }
+}
+
+/**
+ * Traduit un refus d'intégrité de la **base** en erreur métier.
+ *
+ * Les contraintes et le déclencheur de `20261024100000_acomptes_garde_fous`
+ * doublent les contrôles du dépôt pour les écritures qui le contourneraient.
+ * Quand c'est le dépôt lui-même qui est pris en défaut — une transition mal
+ * calculée, un cumul incohérent —, la base refuse la première : on rend alors
+ * la même erreur métier que celle que `verifierCoherence` aurait levée, plutôt
+ * qu'une erreur brute de Prisma. Les autres erreurs (unicité, réseau…) ne sont
+ * pas touchées : seules celles qui nomment ces garde-fous le sont.
+ */
+export function traduireRefusDeLaBase(erreur: unknown): ErreurMetier | undefined {
+  if (erreur instanceof ErreurMetier) return undefined;
+  const message = erreur instanceof Error ? erreur.message : "";
+  if (!/deposit_payment/.test(message)) return undefined;
+
+  if (/passage de .* interdit/.test(message)) {
+    return new ErreurMetier(
+      "ACOMPTE_TRANSITION_INTERDITE",
+      "Ce changement de statut n'est pas permis par la base : rien n'a été enregistré.",
+      HttpStatus.CONFLICT,
+    );
+  }
+  if (/n'a pas son événement de journal/.test(message)) {
+    return evenementInvalide("Le statut posé n'a pas son événement de journal : rien n'a été enregistré.");
+  }
+  if (/figés à la préparation|ne diminue pas/.test(message)) {
+    return evenementInvalide("Les montants figés et le cumul reçu ne se réécrivent pas : rien n'a été enregistré.");
+  }
+  const contrainte = message.match(/check constraint\W*(deposit_payments?_[a-z_]+_check)/i)?.[1];
+  if (contrainte) {
+    const texte: Record<string, string> = {
+      deposit_payments_paye_check: "Payé exige que le montant reçu atteigne le montant attendu.",
+      deposit_payments_partiel_check: "Partiel exige un montant reçu entre 1 FCFA et le montant attendu exclu.",
+      deposit_payments_en_attente_check: "Un acompte en attente n'a rien reçu.",
+      deposit_payments_annule_check: "Un acompte annulé n'a rien reçu.",
+      deposit_payment_events_acteur_requis_check: "Cet événement exige une personne nommée.",
+      deposit_payment_events_montant_requis_check: "Cet événement exige un montant.",
+    };
+    return evenementInvalide(
+      `${texte[contrainte] ?? "L'écriture contredit une règle d'intégrité de l'acompte."} Rien n'a été enregistré.`,
+    );
+  }
+  return undefined;
+}
+
+/** Un versement unique reste très en deçà des 2 147 483 647 de la colonne entière. */
+const MONTANT_MAXIMAL = 1_000_000_000;
+
+function estViolationUnicite(erreur: unknown): boolean {
+  return erreur instanceof Prisma.PrismaClientKnownRequestError && erreur.code === "P2002";
+}
+
+@Injectable()
+export class DepotAcomptesPrisma implements DepotAcomptes {
+  constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
+
+  async preparer(entree: EntreePreparationAcompte): Promise<ResultatPreparationAcompte> {
+    const existant = await this.parDemande(entree.demandeId);
+    if (existant) return { acompte: existant, cree: false };
+
+    if (!pourcentageValide(entree.pourcentage)) {
+      throw new ErreurMetier(
+        "ACOMPTE_TAUX_INVALIDE",
+        "Le taux d'acompte doit être un entier de 1 à 100.",
+      );
+    }
+    // Lue, jamais écrite : le dossier vit à côté de la demande, il ne la
+    // touche pas — ni son statut, ni son `expireLe`, ni sa date de mise à jour.
+    const demande = await this.prisma.demand.findUnique({
+      where: { id: entree.demandeId },
+      select: { genre: true, prixTotal: true, expireLe: true },
+    });
+    if (!demande) throw introuvable("Demande");
+
+    if (!genreEligibleAcompte(demande.genre)) {
+      throw new ErreurMetier(
+        "ACOMPTE_GENRE_NON_ELIGIBLE",
+        `Une demande de genre « ${demande.genre} » ne donne pas lieu à un acompte.`,
+      );
+    }
+
+    // L'échéance se déduit **ici**, du genre que seule la base porte : douze
+    // heures pour un logement, trois pour une location, et jamais au-delà de
+    // l'expiration de la demande. Le calcul est celui de `calcul.ts`, pur ; on
+    // ne fait que traduire son refus en erreur métier.
+    let echeanceLe: Date;
+    try {
+      echeanceLe = new Date(
+        echeanceAcompte(demande.genre, entree.accepteeLe, demande.expireLe?.toISOString()),
+      );
+    } catch (erreur) {
+      throw new ErreurMetier(
+        "ACOMPTE_ECHEANCE_INVALIDE",
+        (erreur as Error)?.message ?? "L'échéance de l'acompte est invalide.",
+      );
+    }
+
+    const montantAttendu = montantAcompte(demande.prixTotal, entree.pourcentage);
+    if (montantAttendu <= 0) {
+      throw new ErreurMetier(
+        "ACOMPTE_MONTANT_NUL",
+        "Le total de la demande est nul : il n'y a pas d'acompte à demander.",
+      );
+    }
+
+    try {
+      const id = await this.prisma.$transaction(async (tx) => {
+        const cree = await tx.depositPayment.create({
+          data: {
+            demandeId: entree.demandeId,
+            pourcentageApplique: entree.pourcentage,
+            montantTotal: demande.prixTotal,
+            montantAttendu,
+            echeanceLe,
+          },
+        });
+        await tx.depositPaymentEvent.create({
+          data: {
+            acompteId: cree.id,
+            type: "preparation",
+            statutApres: cree.statut,
+            montant: montantAttendu,
+          },
+        });
+        return cree.id;
+      });
+      return { acompte: (await this.parId(id))!, cree: true };
+    } catch (erreur) {
+      // Une préparation concurrente a gagné la course : la contrainte
+      // d'unicité sur `demandeId` a fait son travail, on rend son dossier.
+      if (estViolationUnicite(erreur)) {
+        const gagnant = await this.parDemande(entree.demandeId);
+        if (gagnant) return { acompte: gagnant, cree: false };
+      }
+      throw erreur;
+    }
+  }
+
+  async offreDejaConfirmee(demandeId: string): Promise<boolean> {
+    const demande = await this.prisma.demand.findUnique({
+      where: { id: demandeId },
+      select: { id: true, offreId: true, genre: true, dateDebut: true, dateFin: true },
+    });
+    return demande ? autreDemandeConfirmeeEnConflit(this.prisma, demande) : false;
+  }
+
+  async nomsActeurs(ids: readonly string[]): Promise<Record<string, string>> {
+    if (ids.length === 0) return {};
+    const comptes = await this.prisma.account.findMany({
+      where: { id: { in: [...ids] } },
+      select: { id: true, nom: true, email: true },
+    });
+    return Object.fromEntries(comptes.map((c) => [c.id, c.nom?.trim() || c.email?.trim() || c.id]));
+  }
+
+  async declarerARembourser(entree: EntreeARembourser): Promise<Acompte> {
+    if (entree.type === "remboursement_decide" && !entree.acteurId) {
+      throw evenementInvalide("Un remboursement se décide par une personne nommée.");
+    }
+
+    await this.prisma
+      .$transaction(async (tx) => {
+        // Même verrou qu'une réception : les deux s'attendent, aucune ne lit un
+        // cumul que l'autre est en train de changer.
+        const lignes = await tx.$queryRaw<{ statut: string; recu: number }[]>`
+          SELECT "statut"::text AS statut, "montantRecu" AS recu
+          FROM "deposit_payments"
+          WHERE "id" = ${entree.acompteId}
+          FOR UPDATE`;
+        if (lignes.length === 0) throw introuvable("Acompte");
+
+        const { statut, recu } = lignes[0];
+        if (!(entree.depuisStatuts as readonly string[]).includes(statut) || recu <= 0) {
+          throw new ErreurMetier(
+            "ACOMPTE_RIEN_A_REMBOURSER",
+            `L'acompte est « ${statut} » avec ${recu} FCFA reçus : il n'y a rien à rembourser.`,
+            HttpStatus.CONFLICT,
+          );
+        }
+
+        await tx.depositPayment.update({ where: { id: entree.acompteId }, data: { statut: "a_rembourser" } });
+        await tx.depositPaymentEvent.create({
+          data: {
+            ...this.donneesEvenement(entree.acompteId, {
+              type: entree.type,
+              montant: recu,
+              acteurId: entree.acteurId,
+              commentaire: entree.commentaire,
+            }),
+            statutAvant: statut as DepositPayment["statut"],
+            statutApres: "a_rembourser",
+          },
+        });
+      })
+      .catch((erreur: unknown) => {
+        throw traduireRefusDeLaBase(erreur) ?? erreur;
+      });
+
+    return (await this.parId(entree.acompteId))!;
+  }
+
+  async lireDemande(demandeId: string): Promise<LectureDemandePourAcompte | null> {
+    const ligne = await this.prisma.demand.findUnique({
+      where: { id: demandeId },
+      select: { statut: true, genre: true, prixTotal: true, reference: true },
+    });
+    return ligne
+      ? { statutDemande: ligne.statut, genre: ligne.genre, prixTotal: ligne.prixTotal, reference: ligne.reference }
+      : null;
+  }
+
+  async enregistrerReception(entree: EntreeReceptionAcompte): Promise<ResultatReceptionDepot> {
+    verifierEvenement({ type: "reception_confirmee", montant: entree.montant, acteurId: entree.acteurId });
+    if (entree.montant > MONTANT_MAXIMAL) {
+      throw evenementInvalide(`Un versement ne dépasse pas ${MONTANT_MAXIMAL} FCFA.`);
+    }
+    if (!Number.isInteger(entree.montantRecuAvant) || entree.montantRecuAvant < 0) {
+      throw evenementInvalide("Le cumul reçu lu par l'écran est un entier positif ou nul.");
+    }
+    const reference = entree.referenceTransaction?.trim() || undefined;
+    const commentaire = entree.commentaire?.trim() || undefined;
+
+    const issue = await this.prisma.$transaction(async (tx) => {
+      // Verrou du dossier (écriture) et de la demande (lecture) : une seconde
+      // validation attend ici, puis lit le cumul que la première a posé.
+      const lignes = await tx.$queryRaw<
+        { statut: string; recu: number; attendu: number; demande: string }[]
+      >`
+        SELECT p."statut"::text AS statut, p."montantRecu" AS recu,
+               p."montantAttendu" AS attendu, d."statut"::text AS demande
+        FROM "deposit_payments" p
+        JOIN "demands" d ON d."id" = p."demandeId"
+        WHERE p."id" = ${entree.acompteId}
+        FOR UPDATE OF p FOR SHARE OF d`;
+      if (lignes.length === 0) throw introuvable("Acompte");
+      const { statut, recu, attendu, demande } = lignes[0];
+
+      const tardive = statut === "expire";
+      if (statut !== "en_attente" && statut !== "partiel" && !tardive) {
+        throw new ErreurMetier(
+          "ACOMPTE_NON_ATTENDU",
+          `L'acompte est « ${statut} » : aucune réception ne s'y enregistre.`,
+          HttpStatus.CONFLICT,
+        );
+      }
+      // Un acompte vivant ne se règle que pour une demande vivante. Un acompte
+      // expiré, lui, consigne l'argent arrivé en retard sans rien décider.
+      if (!tardive && !(STATUTS_DEMANDE_PAYABLES as readonly string[]).includes(demande)) {
+        throw new ErreurMetier(
+          "ACOMPTE_DEMANDE_CLOSE",
+          `La demande est « ${demande} » : aucune réception ne s'y enregistre.`,
+          HttpStatus.CONFLICT,
+        );
+      }
+
+      if (recu !== entree.montantRecuAvant) {
+        throw new ErreurMetier(
+          "ACOMPTE_CUMUL_CONCURRENT",
+          `Le cumul reçu est désormais ${recu} FCFA (vous aviez lu ${entree.montantRecuAvant}) : ` +
+            "rien n'a été enregistré. Relisez le dossier.",
+          HttpStatus.CONFLICT,
+        );
+      }
+
+      if (reference) {
+        const doublon = await tx.depositPaymentEvent.findFirst({
+          where: { acompteId: entree.acompteId, type: "reception_confirmee", referenceTransaction: reference },
+          select: { id: true },
+        });
+        if (doublon) {
+          throw new ErreurMetier(
+            "ACOMPTE_RECEPTION_DOUBLON",
+            "Cette référence de transaction est déjà consignée sur ce dossier : rien n'a été enregistré.",
+            HttpStatus.CONFLICT,
+          );
+        }
+      }
+
+      const reste = Math.max(attendu - recu, 0);
+      const sens: SensReception =
+        entree.montant === reste ? "exact" : entree.montant < reste ? "inferieur" : "superieur";
+      const ecart = entree.montant - reste;
+
+      if (sens !== "exact" && (!entree.ecartConfirme || !commentaire)) {
+        throw new ErreurMetier(
+          "ACOMPTE_ECART_A_CONFIRMER",
+          `Il reste ${reste} FCFA dus et ${entree.montant} FCFA sont déclarés reçus (écart ${ecart} FCFA) : ` +
+            "reconnaissez l'écart et dites pourquoi pour l'enregistrer.",
+          HttpStatus.UNPROCESSABLE_ENTITY,
+        );
+      }
+
+      const cumul = recu + entree.montant;
+      const statutApres = tardive ? "expire" : cumul >= attendu ? "paye" : "partiel";
+
+      const apres = await tx.depositPayment.update({
+        where: { id: entree.acompteId },
+        data: { statut: statutApres, montantRecu: { increment: entree.montant } },
+      });
+      this.verifierCoherence(apres);
+
+      await tx.depositPaymentEvent.create({
+        data: {
+          ...this.donneesEvenement(entree.acompteId, {
+            type: "reception_confirmee",
+            montant: entree.montant,
+            acteurId: entree.acteurId,
+            referenceTransaction: reference,
+            commentaire,
+          }),
+          statutAvant: statut as DepositPayment["statut"],
+          statutApres,
+        },
+      });
+
+      if (sens !== "exact") {
+        await tx.depositPaymentEvent.create({
+          data: {
+            ...this.donneesEvenement(entree.acompteId, {
+              type: "anomalie_signalee",
+              montant: Math.abs(ecart),
+              acteurId: entree.acteurId,
+              referenceTransaction: reference,
+              commentaire:
+                `Écart reconnu (${sens}) : reste dû ${reste} FCFA, reçu ${entree.montant} FCFA, ` +
+                `écart ${ecart > 0 ? "+" : ""}${ecart} FCFA. ${commentaire}`,
+            }),
+          },
+        });
+      }
+      return { sens, ecart, tardive };
+    }).catch((erreur: unknown) => {
+      throw traduireRefusDeLaBase(erreur) ?? erreur;
+    });
+
+    return { ...issue, acompte: (await this.parId(entree.acompteId))! };
+  }
+
+  async parId(id: string): Promise<Acompte | null> {
+    const ligne = await this.prisma.depositPayment.findUnique({
+      where: { id },
+      include: INCLUSION_ACOMPTE,
+    });
+    return ligne ? versAcompte(ligne) : null;
+  }
+
+  async parDemande(demandeId: string): Promise<Acompte | null> {
+    const ligne = await this.prisma.depositPayment.findUnique({
+      where: { demandeId },
+      include: INCLUSION_ACOMPTE,
+    });
+    return ligne ? versAcompte(ligne) : null;
+  }
+
+  async changerStatut(
+    acompteId: string,
+    transition: TransitionAcompte,
+    evenement: EntreeEvenementAcompte,
+  ): Promise<Acompte> {
+    verifierEvenement(evenement);
+    if (!transitionAcompteAutorisee(transition.de, transition.vers)) {
+      throw new ErreurMetier(
+        "ACOMPTE_TRANSITION_INTERDITE",
+        `Un acompte ne passe pas de « ${transition.de} » à « ${transition.vers} ».`,
+        HttpStatus.CONFLICT,
+      );
+    }
+    verifierFranchissement(transition, evenement);
+
+    try {
+      await this.ecrireTransition(acompteId, transition, evenement);
+    } catch (erreur) {
+      throw traduireRefusDeLaBase(erreur) ?? erreur;
+    }
+
+    return (await this.parId(acompteId))!;
+  }
+
+  private async ecrireTransition(
+    acompteId: string,
+    transition: TransitionAcompte,
+    evenement: EntreeEvenementAcompte,
+  ): Promise<void> {
+    await this.prisma.$transaction(async (tx) => {
+      if (transition.vers === "paye") await this.exigerDemandePayable(tx, acompteId);
+
+      // Comparer-et-poser : l'écriture n'aboutit que si le statut est encore
+      // celui qu'on a lu. Deux administrateurs qui confirment en même temps
+      // ne s'écrasent pas — le second reçoit un conflit.
+      const { count } = await tx.depositPayment.updateMany({
+        where: { id: acompteId, statut: transition.de },
+        data: {
+          statut: transition.vers,
+          ...this.incrementRecu(evenement),
+        },
+      });
+      if (count === 0) await this.expliquerEchec(tx, acompteId);
+
+      const apres = await tx.depositPayment.findUniqueOrThrow({ where: { id: acompteId } });
+      this.verifierCoherence(apres);
+
+      await tx.depositPaymentEvent.create({
+        data: {
+          ...this.donneesEvenement(acompteId, evenement),
+          statutAvant: transition.de,
+          statutApres: transition.vers,
+        },
+      });
+    });
+  }
+
+  async consigner(
+    acompteId: string,
+    evenement: EntreeEvenementAcompte,
+  ): Promise<EvenementAcompte> {
+    // `consigner` n'écrit qu'une ligne de journal : il ne déplace ni argent ni statut.
+    // Une réception, une décision de remboursement ou un changement d'état ont leur
+    // voie — `enregistrerReception`, `declarerARembourser`, `changerStatut` — qui
+    // verrouille le dossier, juge les montants et écrit le statut avec l'événement.
+    if (!TYPES_CONSIGNABLES.includes(evenement.type)) {
+      throw evenementInvalide(
+        `Un événement « ${evenement.type} » change le cumul reçu ou le statut : il s'enregistre par ` +
+          "la voie qui les vérifie (enregistrerReception, declarerARembourser, changerStatut).",
+      );
+    }
+    verifierEvenement(evenement);
+
+    const ligne = await this.ecrireEvenement(acompteId, evenement).catch((erreur: unknown) => {
+      throw traduireRefusDeLaBase(erreur) ?? erreur;
+    });
+
+    return versEvenement(ligne);
+  }
+
+  private async ecrireEvenement(acompteId: string, evenement: EntreeEvenementAcompte) {
+    return this.prisma.$transaction(async (tx) => {
+      if (!(await tx.depositPayment.findUnique({ where: { id: acompteId }, select: { id: true } }))) {
+        throw introuvable("Acompte");
+      }
+      return tx.depositPaymentEvent.create({ data: this.donneesEvenement(acompteId, evenement) });
+    });
+  }
+
+  async journal(acompteId: string): Promise<EvenementAcompte[]> {
+    const lignes = await this.prisma.depositPaymentEvent.findMany({
+      where: { acompteId },
+      orderBy: [{ creeLe: "asc" }, { id: "asc" }],
+    });
+    return lignes.map(versEvenement);
+  }
+
+  async contexte(acompteId: string): Promise<ContexteAcompte | null> {
+    const ligne = await this.prisma.depositPayment.findUnique({
+      where: { id: acompteId },
+      include: {
+        ...INCLUSION_ACOMPTE,
+        demande: {
+          select: {
+            reference: true,
+            offreTitre: true,
+            statut: true,
+            visiteur: { select: { email: true } },
+          },
+        },
+      },
+    });
+    if (!ligne) return null;
+    return {
+      acompte: versAcompte(ligne),
+      reference: ligne.demande.reference,
+      titre: ligne.demande.offreTitre,
+      statutDemande: ligne.demande.statut,
+      emailVisiteur: ligne.demande.visiteur.email ?? undefined,
+    };
+  }
+
+  async marquerInstructionsEnvoyees(acompteId: string): Promise<boolean> {
+    return this.prisma.$transaction(async (tx) => {
+      // Posé une fois : le second appel, concurrent ou rejoué, ne trouve plus
+      // de ligne à marquer et n'écrit rien au journal.
+      const { count } = await tx.depositPayment.updateMany({
+        where: { id: acompteId, instructionsEnvoyeesLe: null },
+        data: { instructionsEnvoyeesLe: new Date() },
+      });
+      if (count === 0) {
+        const existe = await tx.depositPayment.findUnique({ where: { id: acompteId }, select: { id: true } });
+        if (!existe) throw introuvable("Acompte");
+        return false;
+      }
+      await tx.depositPaymentEvent.create({
+        data: { acompteId, type: "instructions_envoyees" },
+      });
+      return true;
+    });
+  }
+
+  /** Seule une réception confirmée fait bouger le cumul reçu. */
+  private incrementRecu(evenement: EntreeEvenementAcompte): { montantRecu?: { increment: number } } {
+    return evenement.type === "reception_confirmee" && evenement.montant !== undefined
+      ? { montantRecu: { increment: evenement.montant } }
+      : {};
+  }
+
+  private donneesEvenement(acompteId: string, evenement: EntreeEvenementAcompte) {
+    return {
+      acompteId,
+      type: evenement.type,
+      montant: evenement.montant ?? null,
+      acteurId: evenement.acteurId ?? null,
+      referenceTransaction: evenement.referenceTransaction ?? null,
+      commentaire: evenement.commentaire ?? null,
+    };
+  }
+
+  /**
+   * Refuse « payé » si la demande n'est plus vivante.
+   *
+   * `FOR SHARE` tient la ligne de la demande jusqu'à la fin de la transaction :
+   * une expiration qui arriverait pendant ce temps attend, et ne se glisse pas
+   * entre la lecture et l'écriture. Si elle était en cours, c'est son résultat
+   * qu'on lit.
+   */
+  private async exigerDemandePayable(tx: Transaction, acompteId: string): Promise<void> {
+    const lignes = await tx.$queryRaw<{ statut: string }[]>`
+      SELECT d."statut"::text AS statut
+      FROM "deposit_payments" p
+      JOIN "demands" d ON d."id" = p."demandeId"
+      WHERE p."id" = ${acompteId}
+      FOR SHARE OF d`;
+    if (lignes.length === 0) throw introuvable("Acompte");
+
+    const statut = lignes[0].statut;
+    if (!(STATUTS_DEMANDE_PAYABLES as readonly string[]).includes(statut)) {
+      throw new ErreurMetier(
+        "ACOMPTE_DEMANDE_CLOSE",
+        `La demande est « ${statut} » : l'acompte ne peut plus être déclaré payé, seulement remboursé.`,
+        HttpStatus.CONFLICT,
+      );
+    }
+  }
+
+  /** Lève toujours : introuvable, ou statut changé entre-temps. */
+  private async expliquerEchec(tx: Transaction, acompteId: string): Promise<never> {
+    const actuel = await tx.depositPayment.findUnique({
+      where: { id: acompteId },
+      select: { statut: true },
+    });
+    if (!actuel) throw introuvable("Acompte");
+    throw new ErreurMetier(
+      "ACOMPTE_STATUT_CONCURRENT",
+      `Le statut de l'acompte est désormais « ${actuel.statut} » : rien n'a été modifié.`,
+      HttpStatus.CONFLICT,
+    );
+  }
+
+  /**
+   * Le statut doit dire la vérité sur les montants, sans quoi la transaction
+   * est annulée : `paye` sans le compte, ou `partiel` sans rien ou avec tout,
+   * seraient des mensonges qu'un e-mail recopierait ensuite.
+   */
+  private verifierCoherence(ligne: DepositPayment): void {
+    const { statut, montantRecu, montantAttendu } = ligne;
+    if (statut === "paye" && montantRecu < montantAttendu) {
+      throw evenementInvalide(
+        `Payé exige ${montantAttendu} FCFA reçus ; ${montantRecu} FCFA seulement sont constatés.`,
+      );
+    }
+    if (statut === "partiel" && (montantRecu <= 0 || montantRecu >= montantAttendu)) {
+      throw evenementInvalide(
+        `Partiel exige un montant reçu entre 1 et ${montantAttendu - 1} FCFA ; ${montantRecu} FCFA constatés.`,
+      );
+    }
+  }
+}
