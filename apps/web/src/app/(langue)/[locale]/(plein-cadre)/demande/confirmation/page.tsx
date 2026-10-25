@@ -3,10 +3,13 @@ import { ArrowRight } from "lucide-react";
 import { RetourAccueil } from "@/components/layout/retour-accueil";
 import { SelecteurLangue } from "@/components/layout/selecteur-langue";
 import { IndicateurEtapes } from "@/features/demande/indicateur-etapes";
+import { SuiteDuSejour } from "@/features/demande/suite-du-sejour";
 import { visiteurConnecte } from "@/features/compte/session";
 import { Lien } from "@/lib/i18n/lien";
 import { estLangue, type Langue } from "@/lib/i18n/langues";
 import { traducteurPour } from "@/lib/i18n/messages";
+import { jourValide, lieuDeSejour } from "@teranga/contracts";
+import { logementParId } from "@/mocks/api";
 
 /**
  * Écran 11 · Confirmation — dernière étape du tunnel de demande.
@@ -19,12 +22,35 @@ export default async function Confirmation({
   searchParams,
 }: {
   params: Promise<{ locale: string }>;
-  searchParams: Promise<{ reference?: string }>;
+  searchParams: Promise<{
+    reference?: string;
+    logement?: string;
+    debut?: string;
+    fin?: string;
+    personnes?: string;
+  }>;
 }) {
   const { locale } = await params;
   const langue: Langue = estLangue(locale) ? locale : "fr";
-  const { reference } = await searchParams;
+  const { reference, logement: idLogement, debut, fin, personnes } = await searchParams;
   const t = traducteurPour(langue);
+
+  /**
+   * La suite du séjour, quand on sait de quoi il s'agit.
+   *
+   * Ces valeurs arrivent par l'adresse, que n'importe qui peut écrire : le
+   * logement doit exister, les dates doivent être de vraies dates, le nombre de
+   * personnes est borné. Au moindre doute la section disparaît et l'écran
+   * redevient ce qu'il était — une proposition qui se trompe de trajet est pire
+   * que pas de proposition.
+   */
+  const jourDebut = jourValide(debut);
+  const jourFin = jourValide(fin);
+  const logementSejour =
+    idLogement && jourDebut && jourFin && jourFin >= jourDebut
+      ? await logementParId(idLogement.slice(0, 40), langue).catch(() => null)
+      : null;
+  const voyageurs = Math.min(Math.max(Math.round(Number(personnes) || 2), 1), 50);
 
   /**
    * « Voir ma demande » n'a de sens que pour qui a un compte.
@@ -116,6 +142,16 @@ export default async function Confirmation({
                 {t("confirmation.emailEnvoye")}
                 {!visiteur && ` ${t("confirmation.emailIdentifiants")}`}
               </p>
+
+              {logementSejour && jourDebut && jourFin && (
+                <SuiteDuSejour
+                  t={t}
+                  lieu={lieuDeSejour(logementSejour)}
+                  debut={jourDebut}
+                  fin={jourFin}
+                  personnes={voyageurs}
+                />
+              )}
 
               <div className="mt-6 space-y-2.5 sm:mx-auto sm:max-w-[320px]">
                 {visiteur && (

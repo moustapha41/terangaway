@@ -1,4 +1,4 @@
-import type { Logement } from "@teranga/contracts";
+import { QUARTIER_INCONNU, type Logement } from "@teranga/contracts";
 import type { Traducteur } from "@/lib/i18n/traducteur";
 
 /**
@@ -12,8 +12,10 @@ import type { Traducteur } from "@/lib/i18n/traducteur";
  *
  * Dans ce cas la vignette ne garde que la ville. Elle en dit moins, et c'est
  * exactement ce que nous savons.
+ *
+ * La valeur « Non précisé » vit dans les contrats : les transferts en ont
+ * besoin aussi, et deux copies de cette chaîne auraient fini par diverger.
  */
-const QUARTIER_INCONNU = "Non précisé";
 
 /**
  * Les quartiers qui sont des mots et non des noms propres.

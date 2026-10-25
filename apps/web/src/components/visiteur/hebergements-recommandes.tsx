@@ -83,13 +83,14 @@ export async function HebergementsRecommandes({ langue }: { langue: Langue }) {
             <span className="mt-2 block h-[3px] w-[48px] rounded-full bg-jaune-vif" />
           </div>
 
-          {/* `?tri=note` et non `/logements` tout court : sans critère, cette
-              adresse est l'accueil du parcours (écran 01) et ne montre que
-              quatre offres. Un lien qui annonce « voir tous les logements »
-              doit mener aux vingt-quatre, triées comme la sélection qu'on
-              vient de quitter. L'écran 01 pointe déjà là pour la même raison. */}
+          {/* `?tri=prix-croissant` et non `/logements` tout court : sans
+              critère, cette adresse est l'accueil du parcours (écran 01) et ne
+              montre que quatre offres. Un lien qui annonce « voir tous les
+              logements » doit mener au catalogue entier — et il nomme le tri
+              par défaut, du moins cher au plus cher. L'écran 01 pointe déjà là
+              pour la même raison. */}
           <Lien
-            href="/logements?tri=note"
+            href="/logements?tri=prix-croissant"
             className="inline-flex items-center gap-2 text-[15px] font-semibold text-nuit underline decoration-nuit/30 underline-offset-4 transition-colors hover:decoration-nuit"
           >
             {t("logements.voirTous")}

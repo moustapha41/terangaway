@@ -776,6 +776,7 @@
     "debut": "Start",
     "fin": "End",
     "aucunPaiement": "No online payment",
+    "transfertDes": "Airport transfer from {prix}",
     "localisationTexte": "The area is shown; the exact address is given to you after you confirm.",
     "aucunAvis": "No reviews for this place yet.",
     "noteSur": "{note} out of 5",
@@ -845,6 +846,14 @@
     "prochaineEtape": "Your host usually replies within the hour. You will be told at every change.",
     "emailEnvoye": "A confirmation email has just been sent to your address, with your reference number.",
     "emailIdentifiants": "If you did not have an account yet, it also contains your login details for following your requests.",
+    "suiteTitre": "Complete your stay",
+    "suiteTexte": "Optional. Nothing is paid now.",
+    "arriveeTitre": "Your airport transfer",
+    "arriveeTexte": "From AIBD airport to {lieu}, with a driver.",
+    "sejourTitre": "During your stay",
+    "sejourTexte": "SIM card, guides, restaurants: tell us what you need.",
+    "departTitre": "Your ride back to the airport",
+    "departTexte": "From {lieu} to AIBD airport, bookable right now.",
     "voirMaDemande": "See my request",
     "retourAccueil": "Back to the home page"
   },
@@ -1988,7 +1997,10 @@
       "dates-impossibles": "Dates not possible",
       "capacite": "Not enough room",
       "autre": "Other"
-    }
+    },
+    "dernieresDemandes": "Latest requests",
+    "dernieresDemandesTexte": "The six most recent, whatever their status.",
+    "voirTout": "View all"
   },
   "titreLogement": {
     "l-001": "Villa with pool in Gandiagal",

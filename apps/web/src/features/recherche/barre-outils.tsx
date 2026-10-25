@@ -18,16 +18,26 @@ const CLE_TRI: Record<string, string> = {
   places: "resultats.triPlaces",
 };
 
-const TRIS_LOGEMENT = ["pertinence", "prix-croissant", "prix-decroissant", "capacite", "note"];
+// Le premier de la liste est celui qui s'applique sans consigne.
+const TRIS_LOGEMENT = ["prix-croissant", "prix-decroissant", "pertinence", "capacite", "note"];
 
 export function BarreOutils({
   vue,
   tris = TRIS_LOGEMENT,
+  triParDefaut = TRIS_LOGEMENT[0],
   avecCarte = true,
 }: {
   vue: "liste" | "carte";
   /** Les tris proposés ; par défaut ceux des logements. */
   tris?: string[];
+  /**
+   * Celui qui s'applique quand l'adresse n'en nomme aucun.
+   *
+   * Les logements se classent du moins cher au plus cher ; les transports
+   * gardent leur pertinence. Les deux listes n'ayant pas les mêmes tris, le
+   * défaut se dit ici plutôt que de se deviner.
+   */
+  triParDefaut?: string;
   /** La vue carte n'a pas de sens partout : on peut ne proposer que la liste. */
   avecCarte?: boolean;
 }) {
@@ -48,8 +58,11 @@ export function BarreOutils({
       <label className="flex items-center gap-2 text-petit text-encre-douce">
         {t("resultats.trier")}
         <select
-          value={params.get("tri") ?? "pertinence"}
-          onChange={(e) => poser("tri", e.target.value === "pertinence" ? null : e.target.value)}
+          value={params.get("tri") ?? triParDefaut}
+          // Toujours écrit dans l'adresse, même quand c'est le tri par défaut :
+          // l'effacer rendrait la page sans critère, et `/logements` montrerait
+          // alors sa vitrine au lieu des résultats qu'on vient de trier.
+          onChange={(e) => poser("tri", e.target.value)}
           className="min-h-[var(--size-touch)] rounded-control border border-contour-champ bg-surface px-3 text-[16px] text-encre"
         >
           {tris.map((tri) => (

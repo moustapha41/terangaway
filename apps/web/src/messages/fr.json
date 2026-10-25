@@ -776,6 +776,7 @@
     "debut": "Début",
     "fin": "Fin",
     "aucunPaiement": "Aucun paiement en ligne",
+    "transfertDes": "Transfert depuis l'aéroport dès {prix}",
     "localisationTexte": "Le quartier est indiqué ; l'adresse exacte vous est donnée après votre confirmation.",
     "aucunAvis": "Pas encore d'avis pour ce logement.",
     "noteSur": "{note} sur 5",
@@ -845,6 +846,14 @@
     "prochaineEtape": "Votre hôte répond en général en moins d'une heure. Vous serez prévenu à chaque changement.",
     "emailEnvoye": "Un e-mail de confirmation vient de partir vers votre adresse, avec votre référence.",
     "emailIdentifiants": "Si vous n'aviez pas encore de compte, il contient aussi vos identifiants pour suivre vos demandes.",
+    "suiteTitre": "Complétez votre séjour",
+    "suiteTexte": "Facultatif. Rien n'est payé maintenant.",
+    "arriveeTitre": "Votre transfert depuis l'aéroport",
+    "arriveeTexte": "De l'aéroport AIBD à {lieu}, avec chauffeur.",
+    "sejourTitre": "Pendant votre séjour",
+    "sejourTexte": "Carte SIM, guides, restaurants : dites-nous ce qu'il vous faut.",
+    "departTitre": "Votre retour à l'aéroport",
+    "departTexte": "De {lieu} à l'aéroport AIBD, à réserver dès maintenant.",
     "voirMaDemande": "Voir ma demande",
     "retourAccueil": "Revenir à l'accueil"
   },
@@ -1988,7 +1997,10 @@
       "dates-impossibles": "Dates impossibles",
       "capacite": "Capacité insuffisante",
       "autre": "Autre"
-    }
+    },
+    "dernieresDemandes": "Dernières demandes",
+    "dernieresDemandesTexte": "Les six plus récentes, quel que soit leur état.",
+    "voirTout": "Voir tout"
   },
   "titreLogement": {
     "l-001": "Villa avec piscine à Gandiagal",

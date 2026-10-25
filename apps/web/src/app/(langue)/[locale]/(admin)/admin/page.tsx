@@ -17,10 +17,17 @@ import {
   Download,
   ShieldCheck,
 } from "lucide-react";
-import { STATUTS_DEMANDE, GENRES_DEMANDE, type StatutDemande, type GenreDemande } from "@teranga/contracts";
+import {
+  STATUTS_DEMANDE,
+  GENRES_DEMANDE,
+  type DemandeAdmin,
+  type StatutDemande,
+  type GenreDemande,
+} from "@teranga/contracts";
+import { BadgeStatut } from "@/components/admin/badge-statut";
 import { ServeurInjoignable } from "@/features/admin/serveur-injoignable";
 import { jetonAdmin, urlConnexionAdmin } from "@/features/admin/session";
-import { apiAdminTableauDeBord } from "@/lib/api/administration";
+import { apiAdminDemandes, apiAdminTableauDeBord } from "@/lib/api/administration";
 import { ErreurApi } from "@/lib/api/http";
 import { estLangue, type Langue } from "@/lib/i18n/langues";
 import { traducteurPour } from "@/lib/i18n/messages";
@@ -48,6 +55,24 @@ export default async function TableauDeBord({
       redirect(urlConnexionAdmin(langue));
     }
     return <ServeurInjoignable langue={langue} />;
+  }
+
+  /**
+   * Les dernières demandes, tous statuts confondus.
+   *
+   * Les quatre compteurs ne disent que ce qui reste à faire : un matin où tout
+   * a été traité — ou expiré —, ils affichent quatre zéros, et le tableau de
+   * bord paraît vide alors que la base ne l'est pas. Cette liste montre ce qui
+   * est arrivé, et pas seulement ce qui attend.
+   *
+   * Si elle échoue, le reste de l'écran tient : elle complète les compteurs,
+   * elle ne les remplace pas.
+   */
+  let dernieres: DemandeAdmin[] = [];
+  try {
+    dernieres = (await apiAdminDemandes(jeton, { parPage: 6 })).demandes;
+  } catch (erreur) {
+    console.error("[admin] dernières demandes indisponibles", erreur);
   }
 
   const kpis = [
@@ -176,6 +201,46 @@ export default async function TableauDeBord({
           );
         })}
       </div>
+
+      {/* Les dernières demandes reçues */}
+      {dernieres.length > 0 && (
+        <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
+            <div>
+              <h2 className="text-base font-bold text-slate-900">{t("admin.dernieresDemandes")}</h2>
+              <p className="mt-0.5 text-xs text-slate-500">{t("admin.dernieresDemandesTexte")}</p>
+            </div>
+            <Link
+              href={avecLangue(langue, "/admin/demandes")}
+              className="text-xs font-semibold text-[#001D35] hover:underline"
+            >
+              {t("admin.voirTout")}
+            </Link>
+          </div>
+
+          <ul className="divide-y divide-slate-100">
+            {dernieres.map((demande) => (
+              <li key={demande.id}>
+                <Link
+                  href={avecLangue(langue, `/admin/demandes/${demande.id}`)}
+                  className="flex flex-wrap items-center gap-x-4 gap-y-2 px-6 py-3.5 transition hover:bg-slate-50"
+                >
+                  <span className="font-mono text-xs font-bold text-slate-900">
+                    {demande.reference}
+                  </span>
+                  <span className="min-w-0 flex-1 truncate text-sm font-semibold text-slate-800">
+                    {demande.offre.titre}
+                  </span>
+                  <span className="truncate text-xs text-slate-500">
+                    {demande.visiteur.nom || demande.visiteur.email || "—"}
+                  </span>
+                  <BadgeStatut statut={demande.statut} libelle={t(`statut.${demande.statut}`)} />
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {/* Section Graphiques & Répartitions */}
       <div className="grid gap-6 lg:grid-cols-2">

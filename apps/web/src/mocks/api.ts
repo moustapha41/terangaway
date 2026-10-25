@@ -67,20 +67,29 @@ export class ErreurServeur extends Error {
 
 const attendre = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+/**
+ * Le tri des résultats.
+ *
+ * Sans consigne, c'est **le prix croissant** : le visiteur des Jeux compare
+ * d'abord ce qu'il va payer, et la pertinence — qui classait par note —
+ * mettait en tête des logements plus chers sans le dire. Elle reste proposée
+ * dans la liste déroulante, mais elle ne s'impose plus à qui n'a rien demandé.
+ */
 function trier(logements: Logement[], tri: CriteresLogement["tri"]): Logement[] {
   const copie = [...logements];
   switch (tri) {
-    case "prix-croissant":
-      return copie.sort((a, b) => prixSemaine(a) - prixSemaine(b));
     case "prix-decroissant":
       return copie.sort((a, b) => prixSemaine(b) - prixSemaine(a));
     case "capacite":
       return copie.sort((a, b) => b.capacite - a.capacite);
     case "note":
       return copie.sort((a, b) => (b.note ?? 0) - (a.note ?? 0));
-    default:
-      // Pertinence : les mieux notés d'abord, à prix comparable.
+    case "pertinence":
+      // Les mieux notés d'abord, à prix comparable.
       return copie.sort((a, b) => (b.note ?? 0) - (a.note ?? 0) || prixSemaine(a) - prixSemaine(b));
+    default:
+      // Le moins cher d'abord, à la semaine — l'unité qui s'affiche.
+      return copie.sort((a, b) => prixSemaine(a) - prixSemaine(b));
   }
 }
 

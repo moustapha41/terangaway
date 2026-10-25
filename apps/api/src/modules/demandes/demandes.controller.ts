@@ -1,12 +1,13 @@
 import { Body, Controller, Headers, Post } from "@nestjs/common";
 import { ApiHeader, ApiOperation, ApiTags } from "@nestjs/swagger";
-import type { Demande } from "@teranga/contracts";
+import { jourValide, lieuDeSejour, lienTransfert, type Demande } from "@teranga/contracts";
 
 import { ServiceEmail } from "../../commun/email/email.service";
 import { ErreurMetier } from "../../commun/erreurs";
 import { config } from "../../config/configuration";
 import { extraireJetonRequete } from "../../commun/securite/hachage";
 import { ServiceComptes, type VisiteurDeDemande } from "../comptes/comptes.service";
+import { ServiceLogements } from "../offres/logements/logements.service";
 import { CreerDemandeLogementDto } from "./dto/creer-demande-logement.dto";
 import { CreerDemandeServiceDto } from "./dto/creer-demande-service.dto";
 import { CreerDemandeVehiculeDto } from "./dto/creer-demande-vehicule.dto";
@@ -19,6 +20,7 @@ export class ControleurDemandes {
     private readonly demandes: ServiceDemandes,
     private readonly comptes: ServiceComptes,
     private readonly email: ServiceEmail,
+    private readonly logements: ServiceLogements,
   ) {}
 
   @Post("logement")
@@ -187,7 +189,42 @@ export class ControleurDemandes {
       sejour: periode(demande),
       total: demande.prix.total > 0 ? formaterFrancs(demande.prix.total) : undefined,
       identifiants: visiteur.identifiants,
+      suite: await this.suiteDuSejour(demande),
     });
+  }
+
+  /**
+   * Où mènent, depuis l'e-mail, l'arrivée, le séjour et le retour.
+   *
+   * Les mêmes adresses que l'écran de confirmation — elles viennent du même
+   * module des contrats : un visiteur arrivé par l'e-mail doit retrouver le
+   * trajet que l'écran lui annonçait.
+   *
+   * Seulement pour un logement, et seulement si on sait de quoi on parle : un
+   * lieu introuvable ou des dates douteuses suppriment la section plutôt que de
+   * proposer un trajet faux. Jamais d'erreur ici — l'accusé de réception part
+   * de toute façon.
+   */
+  private async suiteDuSejour(demande: Demande) {
+    if (demande.offre.genre !== "logement") return undefined;
+
+    const debut = jourValide(demande.dates.debut);
+    const fin = jourValide(demande.dates.fin);
+    if (!debut || !fin) return undefined;
+
+    const logement = await this.logements.parId(demande.offre.logementId).catch(() => null);
+    if (!logement) return undefined;
+
+    const lieu = lieuDeSejour(logement);
+    const base = `${config.appUrl.replace(/\/$/, "")}/fr`;
+    const sejour = { lieu, debut, fin, personnes: demande.personnes };
+
+    return {
+      lieu,
+      arrivee: `${base}${lienTransfert({ sens: "arrivee", ...sejour })}`,
+      depart: `${base}${lienTransfert({ sens: "depart", ...sejour })}`,
+      services: `${base}/services`,
+    };
   }
 
   /**

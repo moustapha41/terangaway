@@ -152,6 +152,7 @@ export default async function Resultats({
               <BarreOutils
                 vue={vue}
                 tris={["pertinence", "prix-croissant", "prix-decroissant", "places"]}
+                triParDefaut="pertinence"
               />
             </Suspense>
 

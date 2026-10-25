@@ -12,7 +12,7 @@ import { estLangue, type Langue } from "@/lib/i18n/langues";
 import { traducteurPour } from "@/lib/i18n/messages";
 import { titreLogement } from "@/lib/i18n/titre-logement";
 import { SEJOUR_DEFAUT } from "@/lib/dates/sejour";
-import { avisLogement, obtenirLogement } from "@/mocks/api";
+import { avisLogement, chercherVehicules, obtenirLogement } from "@/mocks/api";
 
 /**
  * Écran 3 · Fiche logement — maquette du parcours logement, écran 03.
@@ -42,6 +42,21 @@ export default async function FicheLogement({
   const debut = recherche.debut ?? SEJOUR_DEFAUT.debut;
   const fin = recherche.fin ?? SEJOUR_DEFAUT.fin;
   const personnes = Number(recherche.personnes ?? 2);
+
+  /**
+   * Le prix à partir duquel on vient chercher le visiteur à l'aéroport.
+   *
+   * « À partir de » et rien de plus : le prix d'un trajet est celui du
+   * véhicule, pas encore celui de la destination, et annoncer le plus bas des
+   * tarifs comme « le prix » ferait mentir la fiche. Si le catalogue des
+   * véhicules ne répond pas, la ligne disparaît — la fiche ne dépend pas de lui.
+   */
+  const transfertDes = await chercherVehicules("trajet", {})
+    .then((vehicules) => {
+      const prix = vehicules.map((v) => v.prixParTrajet).filter((p): p is number => !!p && p > 0);
+      return prix.length > 0 ? Math.min(...prix) : undefined;
+    })
+    .catch(() => undefined);
   const avis = await avisLogement(slug, logement.nombreAvis ?? 0);
 
   const visiteSeule =
@@ -138,6 +153,7 @@ export default async function FicheLogement({
               debut={debut}
               fin={fin}
               personnes={personnes}
+              transfertDes={transfertDes}
             />
             <CarteHote partenaire={logement.partenaire} logementId={logement.id} langue={langue} />
           </div>

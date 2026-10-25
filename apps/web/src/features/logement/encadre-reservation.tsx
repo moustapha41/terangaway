@@ -1,13 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import type { Logement } from "@teranga/contracts";
+import { lieuDeSejour, lienTransfert, type Logement } from "@teranga/contracts";
 import { Bouton, Compteur, FeuilleBasse, Icone, SelecteurDates, type Plage } from "@teranga/ui";
 import { useLangue, useT } from "@/lib/i18n/contexte";
 import { etiquettesDates } from "@/features/transport/etiquettes-dates";
 import { FENETRE_JEUX } from "@/lib/dates/sejour";
 import { formaterDateComplete, nombreDeNuits } from "@/lib/dates";
 import { formaterPrixVisiteur, prixAffiche, totalSejour } from "@/lib/prix";
+import { Lien } from "@/lib/i18n/lien";
 import { useNaviguer } from "@/lib/i18n/naviguer";
 
 /**
@@ -25,11 +26,14 @@ export function EncadreReservation({
   debut,
   fin,
   personnes,
+  transfertDes,
 }: {
   logement: Logement;
   debut: string;
   fin: string;
   personnes: number;
+  /** Le plus bas prix de transfert, en francs, quand le catalogue le dit. */
+  transfertDes?: number;
 }) {
   const t = useT();
   const langue = useLangue();
@@ -130,6 +134,29 @@ export function EncadreReservation({
           <Icone nom="information" taille={16} />
           {t("fiche.aucunPaiement")}
         </p>
+
+        {/* L'arrivée, avant même la décision. Le lien suit les dates et les
+            voyageurs **courants** de l'encadré, pas ceux de l'adresse : le
+            visiteur qui vient de les changer ne doit pas être envoyé chercher
+            un chauffeur pour un autre jour. Sous `lg` l'encadré est une barre
+            d'action sans dates modifiables : la ligne n'y a pas sa place, et
+            l'écran de confirmation prend le relais. */}
+        {transfertDes !== undefined && plage.debut && plage.fin && (
+          <Lien
+            href={lienTransfert({
+              sens: "arrivee",
+              lieu: lieuDeSejour(logement),
+              debut: plage.debut,
+              fin: plage.fin,
+              personnes: voyageurs,
+            })}
+            data-umami-event="fiche-transfert"
+            className="mt-3 hidden items-center justify-center gap-1.5 rounded-control border border-contour px-3 py-2 text-legende font-semibold text-encre transition-colors hover:border-primaire/40 hover:bg-champ lg:flex"
+          >
+            <Icone nom="avion" taille={16} className="text-primaire" />
+            {t("fiche.transfertDes", { prix: formaterPrixVisiteur(transfertDes, langue) })}
+          </Lien>
+        )}
       </div>
 
       <FeuilleBasse

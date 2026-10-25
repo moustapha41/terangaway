@@ -170,7 +170,17 @@ export function FormulaireDemande({
         // La demande est partie : le brouillon n'a plus de raison d'être, et le
         // laisser repréremplirait le formulaire d'une réservation déjà envoyée.
         await oublierBrouillonAction().catch(() => {});
-        naviguer(`/demande/confirmation?reference=${resultat.demande.reference}`);
+        // De quoi proposer la suite du séjour : le visiteur n'a plus de session
+        // à ce stade, l'écran ne peut donc pas relire la demande. Rien de
+        // sensible ne voyage : un identifiant de logement, deux dates, un nombre.
+        const suite = new URLSearchParams({
+          reference: resultat.demande.reference,
+          logement: logement.id,
+          debut,
+          fin,
+          personnes: String(voyageurs),
+        });
+        naviguer(`/demande/confirmation?${suite.toString()}`);
         return;
       }
 

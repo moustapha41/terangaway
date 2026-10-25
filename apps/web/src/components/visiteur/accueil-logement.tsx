@@ -94,7 +94,7 @@ export function AccueilLogement({
               : t("accueilLogement.populairesPartout")}
           </h2>
           <Lien
-            href={ville ? `/logements?ville=${encodeURIComponent(ville)}` : "/logements?tri=note"}
+            href={ville ? `/logements?ville=${encodeURIComponent(ville)}` : "/logements?tri=prix-croissant"}
             className="text-petit font-semibold text-primaire underline underline-offset-4"
           >
             {t("accueilLogement.voirTous")}

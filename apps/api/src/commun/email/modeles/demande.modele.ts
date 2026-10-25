@@ -30,6 +30,14 @@ export interface DetailsDemande {
   urlSite: string;
   /** Présents une seule fois : à la création du compte. */
   identifiants?: IdentifiantsDemande;
+  /**
+   * La suite du séjour, en adresses complètes.
+   *
+   * Seulement pour un logement : c'est lui qui appelle un transfert. Les mêmes
+   * adresses que l'écran de confirmation — un visiteur arrivé par l'e-mail doit
+   * retrouver le trajet que l'écran lui annonçait.
+   */
+  suite?: { lieu: string; arrivee: string; depart: string; services: string };
 }
 
 export interface ContenuEmail {
@@ -76,6 +84,24 @@ export function genererEmailDemande(details: DetailsDemande): ContenuEmail {
     "propriétaire, et jamais avant la prestation.",
   ];
 
+  if (details.suite) {
+    lignesTexte.push(
+      "",
+      "— Complétez votre séjour —",
+      "",
+      "Facultatif, et rien n'est payé maintenant.",
+      "",
+      `Votre transfert depuis l'aéroport, de l'aéroport AIBD à ${details.suite.lieu} :`,
+      details.suite.arrivee,
+      "",
+      "Pendant votre séjour — carte SIM, guides, restaurants :",
+      details.suite.services,
+      "",
+      `Votre retour à l'aéroport, de ${details.suite.lieu} à l'aéroport AIBD :`,
+      details.suite.depart,
+    );
+  }
+
   if (details.identifiants) {
     lignesTexte.push(
       "",
@@ -101,6 +127,29 @@ export function genererEmailDemande(details: DetailsDemande): ContenuEmail {
     "L'hospitalité sénégalaise en toute confiance",
     "",
   );
+
+  const blocSuite = details.suite
+    ? `
+      <h3 class="sous-titre">Complétez votre séjour</h3>
+      <p class="text">Facultatif, et rien n'est payé maintenant.</p>
+      <table role="presentation" style="width: 100%; border-collapse: collapse; margin: 0 0 8px;">
+        ${[
+          ["✈️", "Votre transfert depuis l'aéroport", `De l'aéroport AIBD à ${details.suite.lieu}`, details.suite.arrivee],
+          ["🧭", "Pendant votre séjour", "Carte SIM, guides, restaurants", details.suite.services],
+          ["🚗", "Votre retour à l'aéroport", `De ${details.suite.lieu} à l'aéroport AIBD`, details.suite.depart],
+        ]
+          .map(
+            ([icone, titre, texte, lien]) => `<tr>
+          <td style="padding: 10px 0; border-bottom: 1px solid #f1f5f9; vertical-align: top; width: 34px; font-size: 20px;">${icone}</td>
+          <td style="padding: 10px 0; border-bottom: 1px solid #f1f5f9; vertical-align: top;">
+            <a href="${echapper(lien)}" style="color: #0f172a; font-weight: 600; font-size: 14px; text-decoration: none;">${echapper(titre)}</a>
+            <div style="font-size: 13px; color: #64748b; margin-top: 2px;">${echapper(texte)}</div>
+          </td>
+        </tr>`,
+          )
+          .join("")}
+      </table>`
+    : "";
 
   const blocIdentifiants = details.identifiants
     ? `
@@ -297,7 +346,7 @@ export function genererEmailDemande(details: DetailsDemande): ContenuEmail {
           💳 <strong>Aucun paiement :</strong> rien n'est bloqué ni prélevé. Le règlement
           se fait sur place, auprès du propriétaire, et jamais avant la prestation.
         </p>
-      </div>${blocIdentifiants}
+      </div>${blocSuite}${blocIdentifiants}
     </div>
     <div class="footer">
       <p style="margin: 0;">&copy; ${new Date().getFullYear()} Teranga Way. L'hospitalité en toute confiance.</p>
