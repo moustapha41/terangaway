@@ -8,6 +8,8 @@ import { etiquettesDates } from "@/features/transport/etiquettes-dates";
 import { FENETRE_JEUX } from "@/lib/dates/sejour";
 import { formaterDateComplete, nombreDeNuits } from "@/lib/dates";
 import { formaterPrixVisiteur, prixAffiche, totalSejour } from "@/lib/prix";
+import { lienWhatsapp } from "@/lib/assistance";
+import { titreLogement } from "@/lib/i18n/titre-logement";
 import { Lien } from "@/lib/i18n/lien";
 import { useNaviguer } from "@/lib/i18n/naviguer";
 
@@ -57,6 +59,23 @@ export function EncadreReservation({
    * pas : c'est le loyer qui s'annonce, et la durée minimale avec lui.
    */
   const auMois = logement.seulementAuMois === true && logement.prixParMois !== undefined;
+
+  /**
+   * La conversation, déjà écrite : ce logement, ces dates, ce nombre de
+   * voyageurs. Elle arrive à l'équipe qualifiée — une demande précise, pas un
+   * « bonjour » — et suit les dates **courantes** de l'encadré, pas celles de
+   * l'adresse.
+   */
+  const message =
+    plage.debut && plage.fin
+      ? t("whatsapp.logement", {
+          titre: titreLogement(logement, t),
+          debut: formaterDateComplete(new Date(`${plage.debut}T00:00:00`), langue),
+          fin: formaterDateComplete(new Date(`${plage.fin}T00:00:00`), langue),
+          personnes: voyageurs,
+        })
+      : t("whatsapp.logementSansDates", { titre: titreLogement(logement, t) });
+  const lienDiscussion = lienWhatsapp(message);
 
   const demander = () => {
     const params = new URLSearchParams({ personnes: String(voyageurs) });
@@ -128,7 +147,31 @@ export function EncadreReservation({
           <Bouton variante="principal" largeur="pleine" onClick={demander}>
             {t("fiche.demander")}
           </Bouton>
+
+          {/* Sous `lg`, la barre est étroite : une icône seule, à côté. */}
+          <a
+            href={lienDiscussion}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label={t("whatsapp.bouton")}
+            data-umami-event="whatsapp-fiche"
+            className="flex h-[var(--size-control,48px)] w-[var(--size-control,48px)] shrink-0 items-center justify-center rounded-pill bg-succes text-white transition-opacity hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-succes lg:hidden"
+          >
+            <Icone nom="whatsapp" taille={24} />
+          </a>
         </div>
+
+        {/* À partir de `lg`, le bouton a la place de se nommer. */}
+        <a
+          href={lienDiscussion}
+          target="_blank"
+          rel="noopener noreferrer"
+          data-umami-event="whatsapp-fiche"
+          className="mt-2.5 hidden h-[var(--size-control,48px)] items-center justify-center gap-2 rounded-pill border border-succes px-4 text-[15px] font-semibold text-succes transition-colors hover:bg-teinte-vert focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-succes lg:flex"
+        >
+          <Icone nom="whatsapp" taille={20} />
+          {t("whatsapp.bouton")}
+        </a>
 
         <p className="mt-3 hidden items-center justify-center gap-1.5 text-legende text-encre-douce lg:flex">
           <Icone nom="information" taille={16} />

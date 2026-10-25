@@ -1,4 +1,5 @@
 import { PiedDePage } from "@/components/layout/pied-de-page";
+import { WhatsappFlottant } from "@/components/layout/whatsapp-flottant";
 import { estLangue } from "@/lib/i18n/langues";
 
 export default async function LayoutVisiteur({
@@ -15,6 +16,7 @@ export default async function LayoutVisiteur({
     <>
       {children}
       <PiedDePage langue={langue} />
+      <WhatsappFlottant />
     </>
   );
 }

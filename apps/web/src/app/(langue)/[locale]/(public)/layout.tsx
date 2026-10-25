@@ -1,5 +1,6 @@
 import { EnTeteSession } from "@/components/layout/en-tete-session";
 import { PiedDePage } from "@/components/layout/pied-de-page";
+import { WhatsappFlottant } from "@/components/layout/whatsapp-flottant";
 import { estLangue } from "@/lib/i18n/langues";
 
 /** Les pages publiques portent la même enveloppe que les écrans visiteur. */
@@ -18,6 +19,7 @@ export default async function LayoutPublic({
       <EnTeteSession />
       {children}
       <PiedDePage langue={langue} />
+      <WhatsappFlottant />
     </>
   );
 }

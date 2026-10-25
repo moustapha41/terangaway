@@ -20,3 +20,18 @@ export const ASSISTANCE = {
 export const telUrl = `tel:${ASSISTANCE.telephone.replace(/\s/g, "")}`;
 export const whatsappUrl = `https://wa.me/${ASSISTANCE.whatsapp}`;
 export const emailUrl = `mailto:${ASSISTANCE.email}`;
+
+/**
+ * Une conversation WhatsApp ouverte sur un message déjà écrit.
+ *
+ * C'est le point de ce bouton : sur ce marché, personne ne remplit un
+ * formulaire pour une maison dans un pays qu'il ne connaît pas, mais tout le
+ * monde envoie un message. Écrit d'avance — le logement, les dates, le nombre
+ * de voyageurs —, il arrive **qualifié** : l'équipe répond à une demande
+ * précise, pas à un « bonjour ».
+ */
+export function lienWhatsapp(message?: string): string {
+  return message
+    ? `${whatsappUrl}?text=${encodeURIComponent(message)}`
+    : whatsappUrl;
+}

@@ -2230,5 +2230,13 @@
     "bordDeLagune": "Lagoon side",
     "residenceMangrove": "Mangrove residence",
     "citeMakiyouFaye": "Makiyou Faye estate"
+  },
+  "whatsapp": {
+    "bouton": "Chat on WhatsApp",
+    "flottant": "Message the team on WhatsApp",
+    "libelleFlottant": "WhatsApp",
+    "general": "Hello, I have a question about Teranga Way.",
+    "logement": "Hello, I'm interested in \"{titre}\" from {debut} to {fin}, for {personnes} guest(s). Is it available?",
+    "logementSansDates": "Hello, I'm interested in \"{titre}\". Is it available, and on which dates?"
   }
 }
