@@ -838,7 +838,16 @@
     "echecTexte": "No se guardó nada y sus datos se conservan. Vuelva a intentarlo en un momento.",
     "echecReessayer": "Reintentar",
     "plutotUnCompte": "¿Prefiere una cuenta?",
-    "creerUnCompte": "Crear una cuenta"
+    "creerUnCompte": "Crear una cuenta",
+    "duree": "Duración de la estancia",
+    "dureeTroisJours": "3 días",
+    "dureeUneSemaine": "1 semana",
+    "dureeDeuxSemaines": "2 semanas",
+    "dureeTroisSemaines": "3 semanas",
+    "dureeUnMois": "1 mes",
+    "dureeChoisie": "Mis fechas · {nuits}",
+    "dureeDates": "Del {debut} al {fin}",
+    "dureeMinimum": "estancia mínima: {nuits}"
   },
   "confirmation": {
     "titre": "Su solicitud se ha registrado correctamente",

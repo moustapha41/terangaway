@@ -838,7 +838,16 @@
     "echecTexte": "Rien n'a été enregistré et votre saisie est conservée. Réessayez dans un instant.",
     "echecReessayer": "Réessayer",
     "plutotUnCompte": "Vous préférez un compte ?",
-    "creerUnCompte": "Créer un compte"
+    "creerUnCompte": "Créer un compte",
+    "duree": "Durée du séjour",
+    "dureeTroisJours": "3 jours",
+    "dureeUneSemaine": "1 semaine",
+    "dureeDeuxSemaines": "2 semaines",
+    "dureeTroisSemaines": "3 semaines",
+    "dureeUnMois": "1 mois",
+    "dureeChoisie": "Mes dates · {nuits}",
+    "dureeDates": "Du {debut} au {fin}",
+    "dureeMinimum": "séjour minimum : {nuits}"
   },
   "confirmation": {
     "titre": "Votre demande est bien enregistrée",

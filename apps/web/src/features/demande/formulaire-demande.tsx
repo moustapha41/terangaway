@@ -1,14 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import type { Logement } from "@teranga/contracts";
+import { ajouterJours, nuitsEntre, type Logement } from "@teranga/contracts";
 import { ArrowRight, ChevronDown, Mail, Phone, User, Users } from "lucide-react";
 import { Bandeau, Carte, Compteur, Icone } from "@teranga/ui";
 import { IndicateurEtapes } from "./indicateur-etapes";
+import { SelecteurDuree } from "./selecteur-duree";
 import { Lien } from "@/lib/i18n/lien";
 import { useLangue, useT } from "@/lib/i18n/contexte";
 import { useEnLigne } from "@/lib/hors-ligne/etat-reseau";
-import { formaterDateComplete, nombreDeNuits } from "@/lib/dates";
+import { formaterDateComplete } from "@/lib/dates";
 import { formaterPrixVisiteur, prixAffiche, sousTotalSejour } from "@/lib/prix";
 import { titreLogement } from "@/lib/i18n/titre-logement";
 import { useNaviguer } from "@/lib/i18n/naviguer";
@@ -82,7 +83,7 @@ function Cadre({
 export function FormulaireDemande({
   logement,
   debut,
-  fin,
+  fin: finInitiale,
   personnes,
   etatSimule,
   visiteur,
@@ -90,6 +91,7 @@ export function FormulaireDemande({
 }: {
   logement: Logement;
   debut: string;
+  /** La fin proposée par l'adresse ; la durée choisie dans le formulaire la remplace. */
   fin: string;
   personnes: number;
   etatSimule: EtatEnvoi;
@@ -128,7 +130,16 @@ export function FormulaireDemande({
   const [erreurs, setErreurs] = useState<Record<string, boolean>>({});
   const [pris, setPris] = useState<Logement[] | null>(null);
 
-  const nuits = nombreDeNuits(new Date(`${debut}T00:00:00`), new Date(`${fin}T00:00:00`)) || 1;
+  /**
+   * La durée du séjour, en nuits : celle des dates venues de la fiche, relevée
+   * au minimum de l'annonce quand elle en a un. Le jour d'arrivée ne bouge pas ;
+   * c'est le départ qui suit la durée — et avec lui le prix, le récapitulatif,
+   * ce qui est envoyé et ce qui est mis de côté avant une inscription.
+   */
+  const [nuits, setNuits] = useState(() =>
+    Math.max(nuitsEntre(debut, finInitiale), logement.sejourMinimum ?? 1),
+  );
+  const fin = ajouterJours(debut, nuits);
   const fraisFixes = logement.fraisFixes ?? [];
   const sousTotal = sousTotalSejour(logement, nuits);
   const total = sousTotal + fraisFixes.reduce((s, f) => s + f.montant, 0);
@@ -355,6 +366,9 @@ export function FormulaireDemande({
               onChange={setVoyageurs}
             />
           </div>
+
+          {/* La durée du séjour : chaque choix porte son prix, et le total suit. */}
+          <SelecteurDuree logement={logement} debut={debut} nuits={nuits} onChoisir={setNuits} />
 
           {/* Message facultatif */}
           <div className="space-y-1">

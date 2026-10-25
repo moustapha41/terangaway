@@ -31,6 +31,7 @@ export function formaterMontant(montant: number, langue: Langue): string {
  * seul point d'entrée sur les prix.
  */
 export {
+  NUITS_PAR_MOIS,
   NUITS_PAR_SEMAINE,
   prixSemaine,
   sousTotalSejour,

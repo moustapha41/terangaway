@@ -838,7 +838,16 @@
     "echecTexte": "Nothing was saved and your entries are kept. Please try again in a moment.",
     "echecReessayer": "Try again",
     "plutotUnCompte": "Would you rather have an account?",
-    "creerUnCompte": "Create an account"
+    "creerUnCompte": "Create an account",
+    "duree": "Length of stay",
+    "dureeTroisJours": "3 days",
+    "dureeUneSemaine": "1 week",
+    "dureeDeuxSemaines": "2 weeks",
+    "dureeTroisSemaines": "3 weeks",
+    "dureeUnMois": "1 month",
+    "dureeChoisie": "My dates · {nuits}",
+    "dureeDates": "From {debut} to {fin}",
+    "dureeMinimum": "minimum stay: {nuits}"
   },
   "confirmation": {
     "titre": "Your request has been recorded",

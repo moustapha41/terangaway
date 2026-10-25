@@ -123,4 +123,47 @@ describe("ServiceDemandes", () => {
       expect(Math.round(await accepter("naturel", "trajet"))).toBe(3);
     });
   });
+
+  describe("prix figé selon la durée du séjour", () => {
+    /**
+     * Le formulaire propose trois jours, une, deux, trois semaines, un mois, et
+     * affiche le total de chacun. Ce que l'API fige à l'envoi doit être
+     * exactement ce nombre : c'est la même fonction, mais seul un test dit que
+     * le dépôt s'en sert bien, et avec le tarif mensuel.
+     *
+     * l-002 : 130 000 F la nuit, 650 000 F la semaine, 1 200 000 F le mois.
+     */
+    const duree = async (nuits: number, debut = "2026-11-01") => {
+      const service = await creerService();
+      const fin = new Date(`${debut}T00:00:00Z`);
+      fin.setUTCDate(fin.getUTCDate() + nuits);
+      return service.creerLogement({
+        logementId: "l-002",
+        debut,
+        fin: fin.toISOString().slice(0, 10),
+        personnes: 2,
+        visiteurId: "visiteur-demo",
+      });
+    };
+
+    it.each([
+      [3, 3 * 130_000],
+      [7, 650_000],
+      [14, 2 * 650_000],
+      [21, 3 * 650_000],
+      [30, 1_200_000],
+    ])("%i nuits : le total figé est celui qu'annonçait le formulaire", async (nuits, attendu) => {
+      const demande = await duree(nuits);
+      expect(demande.prix.total).toBe(attendu);
+    });
+
+    it("un mois coûte la même chose, quelle que soit la date d'arrivée", async () => {
+      // Février n'a pas vingt-neuf ou trente jours pour le tarif mensuel :
+      // trente nuits, partout.
+      const novembre = await duree(30, "2026-11-01");
+      const fevrier = await duree(30, "2027-02-01");
+      expect(novembre.prix.total).toBe(1_200_000);
+      expect(fevrier.prix.total).toBe(1_200_000);
+    });
+  });
 });

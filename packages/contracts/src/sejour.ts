@@ -102,3 +102,43 @@ export function jourValide(valeur: string | undefined): string | undefined {
     ? undefined
     : valeur;
 }
+
+/**
+ * Les durées de séjour que le formulaire propose.
+ *
+ * Cinq choix, et non un champ libre : un visiteur qui ne connaît pas encore ses
+ * dates de retour pense en « trois jours », « une semaine », « un mois », et
+ * ces durées sont aussi celles que les propriétaires tarifent. Chacune est un
+ * nombre de **nuits** — « trois jours » est un séjour de trois nuits.
+ *
+ * La clé suffit à retrouver le libellé (`demande.duree<Clé>`) ; le nombre de
+ * nuits, lui, ne s'écrit qu'ici.
+ */
+export const DUREES_SEJOUR = [
+  { cle: "troisJours", nuits: 3 },
+  { cle: "uneSemaine", nuits: 7 },
+  { cle: "deuxSemaines", nuits: 14 },
+  { cle: "troisSemaines", nuits: 21 },
+  { cle: "unMois", nuits: 30 },
+] as const;
+
+export type CleDuree = (typeof DUREES_SEJOUR)[number]["cle"];
+
+/**
+ * Un jour `AAAA-MM-JJ`, décalé de `jours` jours.
+ *
+ * Calculé en UTC et non à l'heure locale : le passage à l'heure d'été ferait
+ * tomber un séjour de sept nuits sur le sixième ou le huitième jour, selon la
+ * machine qui compte.
+ */
+export function ajouterJours(jour: string, jours: number): string {
+  const date = new Date(`${jour}T00:00:00Z`);
+  date.setUTCDate(date.getUTCDate() + Math.round(jours));
+  return date.toISOString().slice(0, 10);
+}
+
+/** Le nombre de nuits entre deux jours `AAAA-MM-JJ`, jamais moins d'une. */
+export function nuitsEntre(debut: string, fin: string): number {
+  const ecart = Date.parse(`${fin}T00:00:00Z`) - Date.parse(`${debut}T00:00:00Z`);
+  return Math.max(1, Math.round(ecart / 86_400_000));
+}
