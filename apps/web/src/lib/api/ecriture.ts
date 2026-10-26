@@ -4,7 +4,7 @@
  * Lecture (offres, recherche…) reste sur les mocks tant que la colonne
  * partenaire n'est pas livrée. Ici : comptes, demandes, réponses, visiteurs.
  */
-import type { Demande, MotifRefus, ServiceALaDemande } from "@teranga/contracts";
+import type { ChoixTransfert, Demande, MotifRefus, ServiceALaDemande } from "@teranga/contracts";
 
 import { appelerApi, appelerApiEnveloppe, type NotificationApi } from "./http";
 
@@ -41,7 +41,12 @@ export async function apiCreerDemandeLogement(corps: {
  * Une demande qu'on vient d'enregistrer, et ce qu'on sait de son e-mail.
  * `acompteAnnonce` n'est vrai que si l'e-mail annonce réellement un acompte.
  */
-export type DemandeEnvoyee = Demande & { emailEnvoye: boolean; acompteAnnonce: boolean };
+export type DemandeEnvoyee = Demande & {
+  emailEnvoye: boolean;
+  acompteAnnonce: boolean;
+  /** Pour un logement : de quoi répondre à la question du transfert. */
+  jetonSuite?: string;
+};
 
 /**
  * Absent = on ne sait pas, donc on ne prétend rien : l'écran traite cela comme
@@ -52,7 +57,24 @@ function avecNotification(demande: Demande, notification?: NotificationApi): Dem
     ...demande,
     emailEnvoye: notification?.emailEnvoye === true,
     acompteAnnonce: notification?.acompteAnnonce === true,
+    jetonSuite: typeof notification?.jetonSuite === "string" ? notification.jetonSuite : undefined,
   };
+}
+
+/**
+ * Répond à « voulez-vous qu'on vienne vous chercher à l'aéroport ? ».
+ *
+ * `emailEnvoye` n'est vrai que si l'e-mail de confirmation est réellement parti :
+ * l'écran n'annonce « un e-mail vous sera envoyé » que dans ce cas.
+ */
+export async function apiChoisirTransfert(
+  demandeId: string,
+  corps: { choix: ChoixTransfert; jeton: string },
+): Promise<{ transfert: ChoixTransfert; emailEnvoye: boolean }> {
+  return appelerApi(`/demandes/${encodeURIComponent(demandeId)}/transfert`, {
+    method: "POST",
+    corps,
+  });
 }
 
 /**

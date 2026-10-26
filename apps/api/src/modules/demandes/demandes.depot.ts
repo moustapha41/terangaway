@@ -1,5 +1,5 @@
 import { HttpStatus } from "@nestjs/common";
-import type { Demande, ServiceALaDemande, StatutDemande } from "@teranga/contracts";
+import type { ChoixTransfert, Demande, ServiceALaDemande, StatutDemande } from "@teranga/contracts";
 
 import { ErreurMetier } from "../../commun/erreurs";
 import type { GenreService } from "./machine-a-etats/delais";
@@ -131,6 +131,17 @@ export interface DepotDemandes {
   marquerRelancees?(ids: readonly string[]): Promise<void>;
 
   /**
+   * Pose la réponse du visiteur à « voulez-vous qu'on vienne vous chercher à
+   * l'aéroport ? », et dit ce qu'il y avait avant.
+   *
+   * L'ancien choix est lu et le nouveau écrit **dans la même transaction** :
+   * c'est lui qui décide s'il faut envoyer l'e-mail de confirmation, et deux
+   * clics rapprochés ne doivent pas en produire deux. `null` si la demande
+   * n'existe pas.
+   */
+  enregistrerTransfert?(demandeId: string, choix: ChoixTransfert): Promise<ResultatTransfert | null>;
+
+  /**
    * Les demandes dont l'échéance est passée et qui attendent encore.
    *
    * Deux cas, et `expireLe` porte les deux : une demande « envoyée » que le
@@ -155,6 +166,21 @@ export interface DemandeARelancer {
   titre: string;
   creeLe: string;
   expireLe?: string;
+}
+
+/** Qui a demandé, tel que le compte le connaît : de quoi lui écrire, et l'appeler. */
+export interface ContactVisiteur {
+  email?: string;
+  nom?: string;
+  telephone?: string;
+}
+
+/** Ce que le dépôt rend après avoir écrit le choix du transfert. */
+export interface ResultatTransfert {
+  demande: Demande;
+  /** Le choix qui était posé avant celui-ci, ou rien s'il n'y en avait pas. */
+  avant?: ChoixTransfert;
+  contact: ContactVisiteur;
 }
 
 /** Le jeton en clair, et qui doit le recevoir. */

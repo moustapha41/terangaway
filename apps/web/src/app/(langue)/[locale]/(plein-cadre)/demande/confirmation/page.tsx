@@ -5,8 +5,9 @@ import { SelecteurLangue } from "@/components/layout/selecteur-langue";
 import { IndicateurEtapes } from "@/features/demande/indicateur-etapes";
 import { visiteurConnecte } from "@/features/compte/session";
 import { lireRecapitulatif, type Recapitulatif } from "@/features/demande/recapitulatif";
+import { QuestionTransfert } from "@/features/demande/question-transfert";
 import { SuiteDuSejour } from "@/features/demande/suite-du-sejour";
-import { jourValide, lieuDeSejour } from "@teranga/contracts";
+import { jourValide, lieuDeSejour, lienTransfert } from "@teranga/contracts";
 import { logementParId } from "@/mocks/api";
 import { formaterDateComplete } from "@/lib/dates";
 import { Lien } from "@/lib/i18n/lien";
@@ -178,13 +179,38 @@ export default async function Confirmation({
             {recap && <Resume recap={recap} langue={langue} t={t} />}
 
             {logementSejour && recap && jourDebut && jourFin && (
-              <SuiteDuSejour
-                t={t}
-                lieu={lieuDeSejour(logementSejour)}
-                debut={jourDebut}
-                fin={jourFin}
-                personnes={Math.min(Math.max(Math.round(recap.personnes) || 2, 1), 50)}
-              />
+              <>
+                {/* La question du transfert, quand on a de quoi y répondre : le
+                    jeton vit dans le cookie, que seul le serveur lit. Sans lui
+                    — cookie expiré, démonstration — la liste ci-dessous garde
+                    sa ligne d'arrivée, et le visiteur ne perd rien. */}
+                {recap.jetonSuite && (
+                  <QuestionTransfert
+                    lieu={lieuDeSejour(logementSejour)}
+                    jour={formaterDateComplete(new Date(`${jourDebut}T00:00:00`), langue)}
+                    reference={referenceAffichee ?? recap.reference}
+                    lienVehicules={lienTransfert({
+                      sens: "arrivee",
+                      lieu: lieuDeSejour(logementSejour),
+                      debut: jourDebut,
+                      fin: jourFin,
+                      personnes: Math.min(Math.max(Math.round(recap.personnes) || 2, 1), 50),
+                    })}
+                    initial={{
+                      transfert: recap.transfert,
+                      emailEnvoye: recap.transfertEmailEnvoye === true,
+                    }}
+                  />
+                )}
+                <SuiteDuSejour
+                  t={t}
+                  lieu={lieuDeSejour(logementSejour)}
+                  debut={jourDebut}
+                  fin={jourFin}
+                  personnes={Math.min(Math.max(Math.round(recap.personnes) || 2, 1), 50)}
+                  sansArrivee={Boolean(recap.jetonSuite)}
+                />
+              </>
             )}
 
             <p

@@ -150,3 +150,14 @@ export const TYPES_EVENEMENT_ACOMPTE = [
   "envoi_echoue",
 ] as const;
 export type TypeEvenementAcompte = (typeof TYPES_EVENEMENT_ACOMPTE)[number];
+
+/**
+ * La réponse du visiteur à « voulez-vous qu'on vienne vous chercher à
+ * l'aéroport ? ».
+ *
+ * Deux valeurs, et leur absence : tant qu'il n'a pas répondu, il n'y a pas de
+ * choix — ce n'est ni un oui ni un non, et l'équipe ne doit pas le lire comme
+ * l'un des deux.
+ */
+export const CHOIX_TRANSFERT = ["souhaite", "refuse"] as const;
+export type ChoixTransfert = (typeof CHOIX_TRANSFERT)[number];

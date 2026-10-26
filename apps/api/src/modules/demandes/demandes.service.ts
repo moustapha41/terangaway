@@ -1,5 +1,5 @@
 import { HttpStatus, Inject, Injectable, Logger, Optional } from "@nestjs/common";
-import type { Demande, MotifRefus, StatutDemande } from "@teranga/contracts";
+import type { ChoixTransfert, Demande, MotifRefus, StatutDemande } from "@teranga/contracts";
 
 import { DEPOT_DEMANDES } from "../../commun/depots/depot";
 import { ErreurMetier, introuvable } from "../../commun/erreurs";
@@ -12,6 +12,7 @@ import type {
   EntreeCreationService,
   EntreeCreationVehicule,
   JetonReponse,
+  ResultatTransfert,
 } from "./demandes.depot";
 import { expireConfirmationPour } from "./machine-a-etats/delais";
 import {
@@ -89,6 +90,38 @@ export class ServiceDemandes {
 
   creerService(entree: EntreeCreationService): Promise<Demande> {
     return this.depot.creerService(entree);
+  }
+
+  /**
+   * Enregistre la réponse du visiteur à « voulez-vous qu'on vienne vous chercher
+   * à l'aéroport ? ».
+   *
+   * Deux refus avant toute écriture, parce qu'un « oui » déclenche un e-mail et
+   * un appel de l'équipe : une demande qui n'est pas un logement n'a pas de
+   * transfert depuis l'aéroport à proposer, et une demande refusée, expirée ou
+   * annulée n'a plus de séjour à accompagner.
+   */
+  async choisirTransfert(demandeId: string, choix: ChoixTransfert): Promise<ResultatTransfert> {
+    const demande = await this.obtenir(demandeId);
+
+    if (demande.offre.genre !== "logement") {
+      throw new ErreurMetier(
+        "TRANSFERT_NON_APPLICABLE",
+        "Le transfert depuis l'aéroport ne se choisit que pour un logement.",
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+    if (!["envoyee", "acceptee", "confirmee"].includes(demande.statut)) {
+      throw new ErreurMetier(
+        "DEMANDE_CLOSE",
+        "Cette demande n'est plus en cours : le transfert ne peut plus être choisi.",
+        HttpStatus.CONFLICT,
+      );
+    }
+
+    const resultat = await this.depot.enregistrerTransfert?.(demandeId, choix);
+    if (!resultat) throw introuvable("Demande");
+    return resultat;
   }
 
   /**

@@ -189,6 +189,42 @@ export default async function FicheDemandeAdmin({
                 </div>
               )}
 
+              {/* Le transfert depuis l'aéroport, pour un logement. « Souhaité » est
+                  la seule valeur qui demande un geste de l'équipe — véhicule,
+                  heure, prix, numéro de vol — et c'est la seule qui se voit :
+                  les autres se lisent sans attirer l'œil. */}
+              {demande.offre.genre === "logement" && (
+                <div
+                  className={
+                    "rounded-xl p-3.5 " +
+                    (demande.transfert === "souhaite"
+                      ? "border border-emerald-300 bg-emerald-50"
+                      : "bg-slate-50")
+                  }
+                >
+                  <span className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+                    {t("admin.transfert")}
+                  </span>
+                  <span
+                    className={
+                      "mt-1 flex items-center gap-1.5 text-xs font-semibold " +
+                      (demande.transfert === "souhaite" ? "text-emerald-900" : "text-slate-900")
+                    }
+                  >
+                    <Plane
+                      className={
+                        "h-4 w-4 " + (demande.transfert === "souhaite" ? "text-emerald-600" : "text-slate-400")
+                      }
+                    />
+                    {demande.transfert === "souhaite"
+                      ? t("admin.transfertSouhaite")
+                      : demande.transfert === "refuse"
+                        ? t("admin.transfertRefuse")
+                        : t("admin.transfertSansReponse")}
+                  </span>
+                </div>
+              )}
+
               <div className="rounded-xl bg-slate-50 p-3.5">
                 <span className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
                   {t("admin.prixTotal")}

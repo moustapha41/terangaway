@@ -2198,7 +2198,11 @@
     },
     "dernieresDemandes": "Latest requests",
     "dernieresDemandesTexte": "The six most recent, whatever their status.",
-    "voirTout": "View all"
+    "voirTout": "View all",
+    "transfert": "Airport transfer",
+    "transfertSouhaite": "Requested: to arrange",
+    "transfertRefuse": "Declined: to guide to the accommodation",
+    "transfertSansReponse": "No answer yet"
   },
   "titreLogement": {
     "l-001": "Villa with pool in Gandiagal",
@@ -2246,6 +2250,29 @@
     "libelleFlottant": "WhatsApp",
     "general": "Hello, I have a question about Teranga Way.",
     "logement": "Hello, I'm interested in \"{titre}\" from {debut} to {fin}, for {personnes} guest(s). Is it available?",
-    "logementSansDates": "Hello, I'm interested in \"{titre}\". Is it available, and on which dates?"
+    "logementSansDates": "Hello, I'm interested in \"{titre}\". Is it available, and on which dates?",
+    "transfert": "Hello, my request {reference}: I would like an airport transfer. My flight number: "
+  },
+  "transfert": {
+    "questionTitre": "Would you like us to pick you up at the airport?",
+    "questionTexte": "A driver takes you from AIBD airport to {lieu}, on {jour}. Nothing is paid now.",
+    "oui": "Yes, I want a car",
+    "non": "No thanks",
+    "enCours": "Saving…",
+    "ouiTitre": "Noted: your transfer is requested",
+    "ouiEmail": "A confirmation email will be sent to you, with the vehicle, the time and the price.",
+    "ouiSansEmail": "Our team will contact you to confirm the vehicle, the time and the price.",
+    "ouiVol": "To speed things up, send us your flight number.",
+    "ouiVolBouton": "Send my flight number",
+    "ouiVehicules": "Prefer to choose your vehicle yourself?",
+    "ouiVehiculesLien": "See the vehicles",
+    "nonTitre": "No problem, we will guide you",
+    "nonTexte": "We will guide you to your accommodation. As soon as your stay is confirmed, you receive the address and the arrival instructions.",
+    "changer": "Changed your mind?",
+    "changerOui": "Request a transfer",
+    "changerNon": "Cancel the transfer",
+    "erreur": "Your choice could not be saved. Please try again in a moment.",
+    "indisponible": "This page has expired: your choice can no longer be saved here. Write to us on WhatsApp and we will take care of it.",
+    "ecrireWhatsapp": "Write on WhatsApp"
   }
 }

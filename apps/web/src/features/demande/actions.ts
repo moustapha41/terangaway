@@ -129,7 +129,9 @@ export async function creerDemandeLogementAction(
 
     // Le récapitulatif de la confirmation vient de la réponse de l'API. S'il ne
     // peut pas être posé, la demande n'en reste pas moins enregistrée.
-    await poserRecapitulatif(recapitulatifDe(demande, demande.emailEnvoye, demande.acompteAnnonce)).catch(() => {});
+    await poserRecapitulatif(
+      recapitulatifDe(demande, demande.emailEnvoye, demande.acompteAnnonce, demande.jetonSuite),
+    ).catch(() => {});
 
     revalidatePath("/[locale]/mes-demandes", "page");
     revalidatePath("/[locale]/compte", "page");

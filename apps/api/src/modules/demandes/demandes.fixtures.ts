@@ -1,5 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import { totalSejour, type Demande, type StatutDemande } from "@teranga/contracts";
+import { totalSejour, type ChoixTransfert, type Demande, type StatutDemande } from "@teranga/contracts";
 import { DEMANDES, LOGEMENTS, VEHICULES } from "@teranga/fixtures";
 
 import { ErreurMetier, introuvable } from "../../commun/erreurs";
@@ -10,7 +10,7 @@ import type {
   EntreeCreationService,
   EntreeCreationVehicule,
 } from "./demandes.depot";
-import { transitionConcurrente } from "./demandes.depot";
+import { transitionConcurrente, type ResultatTransfert } from "./demandes.depot";
 import { coordonneesAEffacer, coordonneesDivulguables } from "./coordonnees";
 
 /**
@@ -242,6 +242,28 @@ export class DepotDemandesFixtures implements DepotDemandes {
     if (efface) this.traces.delete(demande.id);
     this.demandes[index] = structuredClone({ ...demande, coordonnees });
     return vue(this.demandes[index], this.verifiee(demande.id));
+  }
+
+  /**
+   * Même contrat que le dépôt Prisma : l'ancien choix est rendu, le nouveau est
+   * posé, et rien n'est réécrit quand il est identique. En mémoire il n'y a pas
+   * de compte à interroger — le contact reste vide.
+   */
+  async enregistrerTransfert(
+    demandeId: string,
+    choix: ChoixTransfert,
+  ): Promise<ResultatTransfert | null> {
+    const index = this.demandes.findIndex((d) => d.id === demandeId);
+    if (index < 0) return null;
+
+    const avant = this.demandes[index].transfert;
+    if (avant !== choix) this.demandes[index] = { ...this.demandes[index], transfert: choix };
+
+    return {
+      demande: vue(this.demandes[index], this.verifiee(demandeId)),
+      avant,
+      contact: {},
+    };
   }
 
   /** Réservé aux réponses partenaire : rattachement interne. */

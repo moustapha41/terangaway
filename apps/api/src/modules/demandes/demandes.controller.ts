@@ -1,18 +1,31 @@
-import { Body, Controller, Headers, Post } from "@nestjs/common";
+import { Body, Controller, Headers, HttpStatus, Param, Post } from "@nestjs/common";
 import { ApiHeader, ApiOperation, ApiTags } from "@nestjs/swagger";
-import { jourValide, lieuDeSejour, lienTransfert, type Demande, type GenreDemande } from "@teranga/contracts";
+import {
+  jourValide,
+  lieuDeSejour,
+  lienTransfert,
+  lienWhatsapp,
+  type Demande,
+  type GenreDemande,
+} from "@teranga/contracts";
 
 import { ServiceEmail } from "../../commun/email/email.service";
 import { ErreurMetier } from "../../commun/erreurs";
 import { config } from "../../config/configuration";
-import { extraireJetonRequete } from "../../commun/securite/hachage";
+import {
+  extraireJetonRequete,
+  jetonSuiteDemande,
+  jetonSuiteValide,
+} from "../../commun/securite/hachage";
 import { delaiAcompteHeures } from "../acomptes/calcul";
 import { coordonneesPaiement } from "../acomptes/paiement";
 import { DUREE_LIEN_DEMANDE_HEURES, ServiceComptes, type VisiteurDeDemande } from "../comptes/comptes.service";
 import { ServiceLogements } from "../offres/logements/logements.service";
+import { ChoisirTransfertDto } from "./dto/choisir-transfert.dto";
 import { CreerDemandeLogementDto } from "./dto/creer-demande-logement.dto";
 import { CreerDemandeServiceDto } from "./dto/creer-demande-service.dto";
 import { CreerDemandeVehiculeDto } from "./dto/creer-demande-vehicule.dto";
+import type { ContactVisiteur } from "./demandes.depot";
 import { ServiceDemandes } from "./demandes.service";
 
 /** Ce qui est réellement parti après l'enregistrement d'une demande. */
@@ -24,6 +37,12 @@ export interface NotificationDemande {
    * instruction de paiement.
    */
   acompteAnnonce: boolean;
+  /**
+   * Le jeton qui autorise la seule réponse à « voulez-vous qu'on vienne vous
+   * chercher à l'aéroport ? », pour cette demande. Présent pour un logement
+   * seulement : c'est lui qui appelle un transfert.
+   */
+  jetonSuite?: string;
 }
 
 @ApiTags("demandes")
@@ -58,7 +77,35 @@ export class ControleurDemandes {
       visiteurId: visiteur.compteId,
     });
     const notification = await this.previenir(visiteur, demande, corps.contact, "logement");
-    return { donnees: demande, notification };
+    return {
+      donnees: demande,
+      notification: { ...notification, jetonSuite: jetonSuiteDemande(demande.id) },
+    };
+  }
+
+  @Post(":id/transfert")
+  @ApiOperation({
+    summary: "Répondre à « voulez-vous qu'on vienne vous chercher à l'aéroport ? »",
+    description:
+      "Une fois la demande de logement partie. Un « oui » envoie l'e-mail de confirmation " +
+      "au visiteur et prévient l'équipe ; un « non » est simplement enregistré. " +
+      "Le jeton remis à la création de la demande est exigé : il n'autorise que cela.",
+  })
+  async choisirTransfert(@Param("id") id: string, @Body() corps: ChoisirTransfertDto) {
+    // Avant tout : sans le jeton, on ne dit même pas si la demande existe.
+    if (!jetonSuiteValide(id, corps.jeton)) {
+      throw new ErreurMetier("ACCES_INTERDIT", "Ce choix n'est pas autorisé.", HttpStatus.FORBIDDEN);
+    }
+
+    const { demande, avant, contact } = await this.demandes.choisirTransfert(id, corps.choix);
+
+    // L'e-mail ne part que sur un vrai changement vers « oui » : le même choix
+    // renvoyé deux fois — un double clic, un rechargement — n'écrit pas deux
+    // fois au visiteur ni à l'équipe.
+    const annonce = corps.choix === "souhaite" && avant !== "souhaite";
+    const emailEnvoye = annonce ? await this.annoncerTransfert(demande, contact) : false;
+
+    return { donnees: { transfert: corps.choix, emailEnvoye } };
   }
 
   @Post("vehicule")
@@ -248,6 +295,62 @@ export class ControleurDemandes {
         : undefined,
     });
     return { envoye, acompteAnnonce: annonceAcompte !== undefined };
+  }
+
+  /**
+   * Confirme le transfert au visiteur et prévient l'équipe.
+   *
+   * Rend **si l'e-mail du visiteur est réellement parti** : l'écran n'annonce
+   * « un e-mail de confirmation vous sera envoyé » que dans ce cas. L'alerte de
+   * l'équipe part de toute façon, et c'est elle qui rattrape un e-mail raté —
+   * le visiteur est alors recontacté sans l'avoir su.
+   *
+   * Ne lève jamais : la réponse est enregistrée, elle ne doit pas être défaite
+   * parce qu'un service d'envoi bégaie.
+   */
+  private async annoncerTransfert(demande: Demande, contact: ContactVisiteur): Promise<boolean> {
+    if (demande.offre.genre !== "logement") return false;
+
+    const debut = jourValide(demande.dates.debut);
+    const fin = jourValide(demande.dates.fin);
+    const logement = await this.logements.parId(demande.offre.logementId).catch(() => null);
+    if (!debut || !fin || !logement) return false;
+
+    const lieu = lieuDeSejour(logement);
+    const base = `${config.appUrl.replace(/\/$/, "")}/fr`;
+    const jour = new Date(`${debut}T00:00:00Z`).toLocaleDateString("fr-FR", {
+      timeZone: "UTC",
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
+    const commun = {
+      reference: demande.reference,
+      titre: demande.offre.titre,
+      lieu,
+      jour,
+      personnes: demande.personnes,
+    };
+
+    const equipe = await this.comptes.adressesEquipe();
+    const [visiteur] = await Promise.all([
+      contact.email
+        ? this.email.envoyerConfirmationTransfert(contact.email, {
+            ...commun,
+            lienWhatsapp: lienWhatsapp(
+              `Bonjour, ma demande ${demande.reference} : je souhaite un transfert depuis l'aéroport. Mon numéro de vol : `,
+            ),
+            lienVehicules: `${base}${lienTransfert({ sens: "arrivee", lieu, debut, fin, personnes: demande.personnes })}`,
+          })
+        : Promise.resolve({ envoye: false }),
+      this.email.alerterTransfert(equipe, {
+        ...commun,
+        contact,
+        lien: `${base}/admin/demandes/${demande.id}`,
+      }),
+    ]);
+
+    return visiteur.envoye;
   }
 
   /**

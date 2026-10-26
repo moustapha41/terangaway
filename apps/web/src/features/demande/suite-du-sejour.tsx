@@ -31,6 +31,7 @@ export function SuiteDuSejour({
   debut,
   fin,
   personnes,
+  sansArrivee = false,
 }: {
   t: Traducteur;
   /** Le lieu du logement, tel que `lieuDeSejour` le nomme. */
@@ -38,6 +39,14 @@ export function SuiteDuSejour({
   debut: string;
   fin: string;
   personnes: number;
+  /**
+   * Retire la ligne de l'arrivée.
+   *
+   * Quand l'écran pose lui-même la question « voulez-vous qu'on vienne vous
+   * chercher à l'aéroport ? », cette ligne dirait la même chose à côté : deux
+   * chemins vers le même transfert, dont un seul enregistre la réponse.
+   */
+  sansArrivee?: boolean;
 }) {
   const chemins: Array<{
     cle: string;
@@ -73,6 +82,8 @@ export function SuiteDuSejour({
     },
   ];
 
+  const affiches = sansArrivee ? chemins.filter((chemin) => chemin.cle !== "arrivee") : chemins;
+
   return (
     <section aria-labelledby="suite-titre" className="mt-6 text-left sm:mt-7">
       <h2 id="suite-titre" className="text-[15px] font-bold text-encre">
@@ -81,7 +92,7 @@ export function SuiteDuSejour({
       <p className="mt-0.5 text-[12.5px] text-encre-douce">{t("confirmation.suiteTexte")}</p>
 
       <ul className="mt-3 space-y-2">
-        {chemins.map((chemin) => (
+        {affiches.map((chemin) => (
           <li key={chemin.cle}>
             <Lien
               href={chemin.href}

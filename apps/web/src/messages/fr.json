@@ -2198,7 +2198,11 @@
     },
     "dernieresDemandes": "Dernières demandes",
     "dernieresDemandesTexte": "Les six plus récentes, quel que soit leur état.",
-    "voirTout": "Voir tout"
+    "voirTout": "Voir tout",
+    "transfert": "Transfert aéroport",
+    "transfertSouhaite": "Demandé : à organiser",
+    "transfertRefuse": "Refusé : à guider jusqu'au logement",
+    "transfertSansReponse": "Pas encore répondu"
   },
   "titreLogement": {
     "l-001": "Villa avec piscine à Gandiagal",
@@ -2246,6 +2250,29 @@
     "libelleFlottant": "WhatsApp",
     "general": "Bonjour, j'ai une question sur Teranga Way.",
     "logement": "Bonjour, je suis intéressé(e) par « {titre} » du {debut} au {fin}, pour {personnes} personne(s). Est-ce disponible ?",
-    "logementSansDates": "Bonjour, je suis intéressé(e) par « {titre} ». Est-ce disponible, et à quelles dates ?"
+    "logementSansDates": "Bonjour, je suis intéressé(e) par « {titre} ». Est-ce disponible, et à quelles dates ?",
+    "transfert": "Bonjour, ma demande {reference} : je souhaite un transfert depuis l'aéroport. Mon numéro de vol : "
+  },
+  "transfert": {
+    "questionTitre": "Souhaitez-vous qu'on vienne vous chercher à l'aéroport ?",
+    "questionTexte": "Un chauffeur vous conduit de l'aéroport AIBD jusqu'à {lieu}, le {jour}. Rien n'est payé maintenant.",
+    "oui": "Oui, je veux une voiture",
+    "non": "Non merci",
+    "enCours": "Enregistrement…",
+    "ouiTitre": "C'est noté : votre transfert est demandé",
+    "ouiEmail": "Un e-mail de confirmation vous sera envoyé, avec le véhicule, l'heure et le prix.",
+    "ouiSansEmail": "Notre équipe vous contactera pour confirmer le véhicule, l'heure et le prix.",
+    "ouiVol": "Pour aller plus vite, envoyez-nous votre numéro de vol.",
+    "ouiVolBouton": "Envoyer mon numéro de vol",
+    "ouiVehicules": "Vous préférez choisir votre véhicule vous-même ?",
+    "ouiVehiculesLien": "Voir les véhicules",
+    "nonTitre": "Pas de problème, nous vous guiderons",
+    "nonTexte": "Nous vous guiderons jusqu'à votre logement. Dès que votre séjour est confirmé, vous recevez l'adresse et les consignes d'arrivée.",
+    "changer": "Vous avez changé d'avis ?",
+    "changerOui": "Demander un transfert",
+    "changerNon": "Annuler le transfert",
+    "erreur": "Votre choix n'a pas pu être enregistré. Réessayez dans un instant.",
+    "indisponible": "Cette page a expiré : votre choix ne peut plus être enregistré ici. Écrivez-nous sur WhatsApp, nous nous en occupons.",
+    "ecrireWhatsapp": "Écrire sur WhatsApp"
   }
 }

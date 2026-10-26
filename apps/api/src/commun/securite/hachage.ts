@@ -27,6 +27,38 @@ function verifierHmacUnitaire(code: string, hashAttendu: string, secret: string)
 }
 
 /**
+ * Le jeton qui autorise une seule chose : répondre à la question du transfert
+ * pour **cette** demande.
+ *
+ * Après l'envoi d'une demande de logement, le visiteur n'a ni session ni code.
+ * Or il doit pouvoir répondre « oui » ou « non » à « voulez-vous qu'on vienne
+ * vous chercher à l'aéroport ? » — et cette réponse écrit à l'équipe et à lui.
+ * Sans rien pour le prouver, n'importe qui connaissant une référence (six
+ * chiffres, elle se devine) pourrait faire écrire à un inconnu et déranger
+ * l'équipe.
+ *
+ * Le jeton est donc une signature de l'identifiant de la demande : sans état,
+ * rien à stocker, rien à expirer, et **limité à cette action** — il ne donne ni
+ * lecture, ni modification, ni accès à quoi que ce soit d'autre. Le préfixe
+ * sépare ce domaine de celui des codes OTP, qui partagent la même clé : une
+ * signature obtenue ici ne vaut rien là-bas, et inversement.
+ *
+ * L'API le remet à la création de la demande ; le site le garde dans le cookie
+ * de confirmation, `httpOnly`, le temps d'une visite.
+ */
+export function jetonSuiteDemande(demandeId: string, secret = config.otpSecret): string {
+  return createHmac("sha256", secret).update(`suite-demande:${demandeId}`).digest("hex");
+}
+
+/** Le jeton présenté correspond-il à cette demande ? Comparaison en temps constant. */
+export function jetonSuiteValide(demandeId: string, jeton: unknown, secret = config.otpSecret): boolean {
+  if (typeof jeton !== "string") return false;
+  const attendu = Buffer.from(jetonSuiteDemande(demandeId, secret), "utf8");
+  const recu = Buffer.from(jeton, "utf8");
+  return attendu.length === recu.length && timingSafeEqual(attendu, recu);
+}
+
+/**
  * Vérifie un code OTP en temps constant avec son empreinte HMAC-SHA-256.
  * Prend en charge la rotation de clé sans compromettre les OTP déjà émis.
  * Aucun fallback permissif : seuls les codes HMAC valides avec la clé active ou précédente sont acceptés.

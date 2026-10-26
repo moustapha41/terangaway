@@ -50,6 +50,12 @@ function baseUrl(): string {
 export interface NotificationApi {
   emailEnvoye: boolean;
   acompteAnnonce?: boolean;
+  /**
+   * Le jeton qui autorise la seule réponse à « voulez-vous qu'on vienne vous
+   * chercher à l'aéroport ? », pour cette demande. Il reste côté serveur : le
+   * cookie de confirmation le garde, et le navigateur ne le lit jamais.
+   */
+  jetonSuite?: string;
 }
 
 type OptionsAppel = {

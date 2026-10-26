@@ -1,5 +1,5 @@
 import { cookies } from "next/headers";
-import type { Demande } from "@teranga/contracts";
+import { CHOIX_TRANSFERT, type ChoixTransfert, type Demande } from "@teranga/contracts";
 
 /**
  * Ce que l'écran de confirmation affiche, et d'où cela vient.
@@ -38,12 +38,26 @@ export interface Recapitulatif {
   emailEnvoye: boolean;
   /** Vrai seulement si un acompte est annoncé : sinon, aucun paiement à suivre. */
   acompteAnnonce: boolean;
+  /**
+   * De quoi répondre à « voulez-vous qu'on vienne vous chercher à l'aéroport ? ».
+   *
+   * Un jeton signé par l'API, qui n'autorise que cette réponse pour cette
+   * demande : ni lecture, ni modification, rien d'autre. Il n'est lu que par
+   * l'action serveur — le cookie est `httpOnly`, et le composant du navigateur
+   * ne le reçoit jamais.
+   */
+  jetonSuite?: string;
+  /** Ce que le visiteur a répondu, une fois qu'il a répondu. */
+  transfert?: ChoixTransfert;
+  /** Vrai seulement si l'e-mail de confirmation du transfert est réellement parti. */
+  transfertEmailEnvoye?: boolean;
 }
 
 export function recapitulatifDe(
   demande: Demande,
   emailEnvoye: boolean,
   acompteAnnonce = false,
+  jetonSuite?: string,
 ): Recapitulatif {
   const total = demande.prix.total;
   return {
@@ -59,6 +73,9 @@ export function recapitulatifDe(
     statut: demande.statut,
     emailEnvoye,
     acompteAnnonce,
+    // Seulement pour un logement : c'est lui qui appelle un transfert.
+    jetonSuite: demande.offre.genre === "logement" ? jetonSuite : undefined,
+    transfert: demande.transfert,
   };
 }
 
@@ -103,6 +120,15 @@ export async function lireRecapitulatif(): Promise<Recapitulatif | null> {
       statut: r.statut,
       emailEnvoye: r.emailEnvoye === true,
       acompteAnnonce: r.acompteAnnonce === true,
+      jetonSuite:
+        typeof r.jetonSuite === "string" && r.jetonSuite.length > 0 && r.jetonSuite.length <= 128
+          ? r.jetonSuite
+          : undefined,
+      transfert: (CHOIX_TRANSFERT as readonly string[]).includes(r.transfert as string)
+        ? (r.transfert as ChoixTransfert)
+        : undefined,
+      // Absent plutôt que faux : un récapitulatif sans transfert ne porte rien de plus.
+      transfertEmailEnvoye: r.transfertEmailEnvoye === true ? true : undefined,
     };
   } catch {
     return null;

@@ -1,37 +1,13 @@
+import { ASSISTANCE, lienWhatsapp } from "@teranga/contracts";
+
 /**
- * Coordonnées de l'assistance — source unique.
- *
- * Elles étaient écrites à cinq endroits et avaient déjà divergé : la page Aide
- * annonçait 7 h – 23 h, les pages Services et À propos « 7j/7 », et la maquette
- * du centre d'aide « lundi-vendredi, 8 h – 20 h ». Un horaire d'assistance est
- * une promesse ; il ne doit exister qu'une fois.
- *
- * Le choix retenu est **tous les jours** : les Jeux se tiennent aussi le
- * week-end, et un visiteur bloqué un dimanche soir est précisément celui qui a
- * besoin d'appeler. La maquette est l'exception, pas la règle.
+ * Coordonnées de l'assistance : elles vivent dans les contrats, parce que les
+ * e-mails de l'API portent eux aussi le lien WhatsApp. Relayées ici pour que le
+ * site garde son point d'entrée habituel.
  */
-export const ASSISTANCE = {
-  telephone: "+221 76 522 29 29",
-  whatsapp: "221765222929",
-  email: "contact@teranga-way.com",
-} as const;
+export { ASSISTANCE, lienWhatsapp };
 
 /** Numéro de téléphone prêt pour un lien `tel:`. */
 export const telUrl = `tel:${ASSISTANCE.telephone.replace(/\s/g, "")}`;
 export const whatsappUrl = `https://wa.me/${ASSISTANCE.whatsapp}`;
 export const emailUrl = `mailto:${ASSISTANCE.email}`;
-
-/**
- * Une conversation WhatsApp ouverte sur un message déjà écrit.
- *
- * C'est le point de ce bouton : sur ce marché, personne ne remplit un
- * formulaire pour une maison dans un pays qu'il ne connaît pas, mais tout le
- * monde envoie un message. Écrit d'avance — le logement, les dates, le nombre
- * de voyageurs —, il arrive **qualifié** : l'équipe répond à une demande
- * précise, pas à un « bonjour ».
- */
-export function lienWhatsapp(message?: string): string {
-  return message
-    ? `${whatsappUrl}?text=${encodeURIComponent(message)}`
-    : whatsappUrl;
-}

@@ -2198,7 +2198,11 @@
     },
     "dernieresDemandes": "Últimas solicitudes",
     "dernieresDemandesTexte": "Las seis más recientes, sea cual sea su estado.",
-    "voirTout": "Ver todo"
+    "voirTout": "Ver todo",
+    "transfert": "Traslado del aeropuerto",
+    "transfertSouhaite": "Solicitado: por organizar",
+    "transfertRefuse": "Rechazado: guiar hasta el alojamiento",
+    "transfertSansReponse": "Sin respuesta aún"
   },
   "titreLogement": {
     "l-001": "Villa con piscina en Gandiagal",
@@ -2246,6 +2250,29 @@
     "libelleFlottant": "WhatsApp",
     "general": "Hola, tengo una pregunta sobre Teranga Way.",
     "logement": "Hola, me interesa «{titre}» del {debut} al {fin}, para {personnes} persona(s). ¿Está disponible?",
-    "logementSansDates": "Hola, me interesa «{titre}». ¿Está disponible y en qué fechas?"
+    "logementSansDates": "Hola, me interesa «{titre}». ¿Está disponible y en qué fechas?",
+    "transfert": "Hola, mi solicitud {reference}: quiero un traslado desde el aeropuerto. Mi número de vuelo: "
+  },
+  "transfert": {
+    "questionTitre": "¿Quiere que vayamos a recogerle al aeropuerto?",
+    "questionTexte": "Un conductor le lleva del aeropuerto AIBD a {lieu}, el {jour}. No se paga nada ahora.",
+    "oui": "Sí, quiero un coche",
+    "non": "No, gracias",
+    "enCours": "Guardando…",
+    "ouiTitre": "Anotado: su traslado está solicitado",
+    "ouiEmail": "Le enviaremos un correo de confirmación, con el vehículo, la hora y el precio.",
+    "ouiSansEmail": "Nuestro equipo se pondrá en contacto con usted para confirmar el vehículo, la hora y el precio.",
+    "ouiVol": "Para ir más rápido, envíenos su número de vuelo.",
+    "ouiVolBouton": "Enviar mi número de vuelo",
+    "ouiVehicules": "¿Prefiere elegir usted mismo el vehículo?",
+    "ouiVehiculesLien": "Ver los vehículos",
+    "nonTitre": "Sin problema, le guiaremos",
+    "nonTexte": "Le guiaremos hasta su alojamiento. En cuanto su estancia esté confirmada, recibirá la dirección y las instrucciones de llegada.",
+    "changer": "¿Ha cambiado de opinión?",
+    "changerOui": "Solicitar un traslado",
+    "changerNon": "Cancelar el traslado",
+    "erreur": "No se ha podido guardar su elección. Inténtelo de nuevo en un momento.",
+    "indisponible": "Esta página ha caducado: su elección ya no se puede guardar aquí. Escríbanos por WhatsApp y nos ocupamos.",
+    "ecrireWhatsapp": "Escribir por WhatsApp"
   }
 }

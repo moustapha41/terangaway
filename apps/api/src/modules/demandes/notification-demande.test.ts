@@ -55,14 +55,14 @@ describe("Notification renvoyée avec la demande", () => {
     expect(config.acompte.actif).toBe(false);
     const { creer, email } = controleur(true);
     const res = await creer();
-    expect(res.notification).toEqual({ emailEnvoye: true, acompteAnnonce: false });
+    expect(res.notification).toEqual({ emailEnvoye: true, acompteAnnonce: false, jetonSuite: expect.any(String) });
     expect(email.envoyerConfirmationDemande.mock.calls[0][1].acompte).toBeUndefined();
     expect(email.envoyerConfirmationDemande.mock.calls[0][1].lienAcces.url).toContain("/fr/acces-demande/twl_x");
   });
 
   it("n'affirme pas l'envoi quand l'e-mail échoue", async () => {
     const { creer } = controleur(false);
-    expect((await creer()).notification).toEqual({ emailEnvoye: false, acompteAnnonce: false });
+    expect((await creer()).notification).toEqual({ emailEnvoye: false, acompteAnnonce: false, jetonSuite: expect.any(String) });
   });
 
   it("acompte ouvert : le paiement n'est annoncé que si l'e-mail l'annonce", async () => {

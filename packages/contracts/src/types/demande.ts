@@ -1,4 +1,4 @@
-import type { MotifRefus, ServiceALaDemande, StatutDemande } from "../enums";
+import type { ChoixTransfert, MotifRefus, ServiceALaDemande, StatutDemande } from "../enums";
 import type { CoordonneesLogement, PrixSejour } from "./logement";
 import type { CoordonneesVehicule } from "./vehicule";
 
@@ -48,5 +48,10 @@ export interface Demande {
   /** Au-delà, la demande passe « expirée ». */
   expireLe?: string;
   motifRefus?: MotifRefus;
+  /**
+   * Veut-il qu'on vienne le chercher à l'aéroport ? Absent tant qu'il n'a pas
+   * répondu : la question lui est posée une fois la demande de logement partie.
+   */
+  transfert?: ChoixTransfert;
   coordonnees?: CoordonneesLogement | CoordonneesVehicule;
 }

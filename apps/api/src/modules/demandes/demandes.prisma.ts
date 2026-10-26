@@ -1,6 +1,6 @@
 import { HttpStatus, Inject, Injectable } from "@nestjs/common";
 import { Prisma, type Demand } from "@prisma/client";
-import { totalSejour, type Demande, type StatutDemande } from "@teranga/contracts";
+import { totalSejour, type ChoixTransfert, type Demande, type StatutDemande } from "@teranga/contracts";
 
 import { randomBytes } from "node:crypto";
 import { PrismaService } from "../../base-de-donnees/prisma.service";
@@ -25,6 +25,7 @@ import type {
   EntreeCreationVehicule,
   DemandeARelancer,
   JetonReponse,
+  ResultatTransfert,
 } from "./demandes.depot";
 import { transitionConcurrente } from "./demandes.depot";
 import { coordonneesAEffacer, coordonneesDivulguables } from "./coordonnees";
@@ -167,6 +168,49 @@ export class DepotDemandesPrisma implements DepotDemandes {
     // à qui l'envoyer.
 
     return demandToDemande(created);
+  }
+
+  async enregistrerTransfert(
+    demandeId: string,
+    choix: ChoixTransfert,
+  ): Promise<ResultatTransfert | null> {
+    return this.prisma.$transaction(async (tx) => {
+      // Le verrou est ce qui tient la promesse. Une transaction seule ne suffit
+      // pas : sous le niveau d'isolation par défaut, deux clics rapprochés lisent
+      // tous les deux « pas de choix », écrivent chacun, et se croient chacun le
+      // premier — deux e-mails au visiteur, deux alertes à l'équipe. En
+      // verrouillant la ligne, le second attend le premier, relit son écriture,
+      // et trouve `avant = souhaite`.
+      await tx.$queryRaw`SELECT 1 FROM "demands" WHERE "id" = ${demandeId} FOR UPDATE`;
+
+      const ligne = await tx.demand.findUnique({
+        where: { id: demandeId },
+        include: { visiteur: { select: { email: true, nom: true, telephone: true } } },
+      });
+      if (!ligne) return null;
+
+      const avant = lireChoixTransfert(ligne.transfertAeroport);
+
+      // Rien n'est réécrit quand le choix est le même : la date de la réponse
+      // reste celle de la première, et l'appelant sait qu'il n'y a rien de neuf.
+      const courante =
+        avant === choix
+          ? ligne
+          : await tx.demand.update({
+              where: { id: demandeId },
+              data: { transfertAeroport: choix, transfertChoisiLe: new Date() },
+            });
+
+      return {
+        demande: demandToDemande(courante),
+        avant,
+        contact: {
+          email: ligne.visiteur.email ?? undefined,
+          nom: ligne.visiteur.nom ?? undefined,
+          telephone: ligne.visiteur.telephone ?? undefined,
+        },
+      };
+    });
   }
 
   async aExpirer(maintenant: Date, limite: number): Promise<string[]> {
@@ -476,6 +520,16 @@ export class DepotDemandesPrisma implements DepotDemandes {
  * une seconde traduction : deux conversions divergent toujours, et c'est
  * l'équipe qui verrait la différence sans comprendre pourquoi.
  */
+/**
+ * Le choix du transfert, tel que la base le porte.
+ *
+ * Une contrainte n'admet que `souhaite` et `refuse`, mais la lecture ne s'y
+ * fie pas : une valeur inattendue vaut « pas de choix », jamais un oui.
+ */
+function lireChoixTransfert(valeur: string | null): ChoixTransfert | undefined {
+  return valeur === "souhaite" || valeur === "refuse" ? valeur : undefined;
+}
+
 export function demandToDemande(row: Demand): Demande {
   const genre =
     row.genre === "logement"
@@ -538,6 +592,7 @@ export function demandToDemande(row: Demand): Demande {
     frise,
     expireLe: row.expireLe ? row.expireLe.toISOString() : undefined,
     motifRefus: (row.motifRefus as any) ?? undefined,
+    transfert: lireChoixTransfert(row.transfertAeroport),
     // Filtré ici, à la source de toutes les lectures, et pas seulement à
     // l'écran : il faut un statut qui l'autorise **et** une vérification
     // enregistrée par une seconde personne. La colonne de vérification

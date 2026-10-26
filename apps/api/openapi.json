@@ -666,6 +666,32 @@
         ]
       }
     },
+    "/comptes/lien-demande/ouvrir": {
+      "post": {
+        "operationId": "ControleurComptes_ouvrirLienDemande",
+        "summary": "Ouvrir une session visiteur depuis le lien d'accès à une demande",
+        "description": "Le jeton, envoyé par e-mail, est à usage unique et limité dans le temps. Il désigne une seule demande, celle de son destinataire.",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OuvrirLienDemandeDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "comptes"
+        ]
+      }
+    },
     "/comptes/inscription": {
       "post": {
         "operationId": "ControleurComptes_inscription",
@@ -909,6 +935,41 @@
         ]
       }
     },
+    "/demandes/{id}/transfert": {
+      "post": {
+        "operationId": "ControleurDemandes_choisirTransfert",
+        "summary": "Répondre à « voulez-vous qu'on vienne vous chercher à l'aéroport ? »",
+        "description": "Une fois la demande de logement partie. Un « oui » envoie l'e-mail de confirmation au visiteur et prévient l'équipe ; un « non » est simplement enregistré. Le jeton remis à la création de la demande est exigé : il n'autorise que cela.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChoisirTransfertDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "demandes"
+        ]
+      }
+    },
     "/demandes/vehicule": {
       "post": {
         "operationId": "ControleurDemandes_creerVehicule",
@@ -1007,6 +1068,371 @@
         },
         "tags": [
           "demandes"
+        ]
+      }
+    },
+    "/administration/demandes/{id}/acompte": {
+      "get": {
+        "operationId": "ControleurAcomptesAdmin_lire",
+        "summary": "L'acompte d'une demande : montants, coordonnées, journal, actions possibles",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "authorization",
+            "required": false,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cookie",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "administration"
+        ]
+      }
+    },
+    "/administration/demandes/{id}/acompte/preparation": {
+      "post": {
+        "operationId": "ControleurAcomptesAdmin_preparer",
+        "summary": "Ouvrir l'acompte d'une demande déjà acceptée",
+        "description": "Pour une demande acceptée alors que l'acompte était fermé. Recalculé côté serveur.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "authorization",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cookie",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "administration"
+        ]
+      }
+    },
+    "/administration/demandes/{id}/acompte/reception": {
+      "post": {
+        "operationId": "ControleurAcomptesAdmin_confirmerReception",
+        "summary": "Constater la réception d'un versement, après vérification du compte",
+        "description": "Réservé aux administrateurs. Un montant différent du reste dû exige ecartConfirme et un commentaire. Un cumul périmé, un doublon de référence ou un double clic sont refusés (409). Ne change jamais le statut de la demande.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "authorization",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cookie",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaisirReceptionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "administration"
+        ]
+      }
+    },
+    "/administration/demandes/{id}/acompte/instructions/renvoi": {
+      "post": {
+        "operationId": "ControleurAcomptesAdmin_renvoyerInstructions",
+        "summary": "Renvoyer les instructions de paiement (aucun paiement n'est créé)",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "authorization",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cookie",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "administration"
+        ]
+      }
+    },
+    "/administration/demandes/{id}/acompte/reception/confirmation/renvoi": {
+      "post": {
+        "operationId": "ControleurAcomptesAdmin_renvoyerConfirmation",
+        "summary": "Renvoyer l'e-mail de réception (le cumul reçu ne bouge pas)",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "authorization",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cookie",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "administration"
+        ]
+      }
+    },
+    "/administration/demandes/{id}/acompte/paiement-tardif": {
+      "post": {
+        "operationId": "ControleurAcomptesAdmin_deciderPaiementTardif",
+        "summary": "Décider d'un paiement arrivé après l'échéance",
+        "description": "Accepter exige une demande encore vivante et un commentaire ; rembourser ne rembourse rien lui-même.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "authorization",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cookie",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeciderPaiementTardifDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "administration"
+        ]
+      }
+    },
+    "/administration/demandes/{id}/acompte/remboursement/decision": {
+      "post": {
+        "operationId": "ControleurAcomptesAdmin_deciderRemboursement",
+        "summary": "Décider qu'un acompte payé ou partiel doit être rendu",
+        "description": "Une décision, pas un transfert : aucune banque n'est appelée et aucun délai n'est promis. Motif obligatoire ; remboursement intégral du cumul reçu.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "authorization",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cookie",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeciderRemboursementDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "administration"
+        ]
+      }
+    },
+    "/administration/demandes/{id}/acompte/remboursement/effectue": {
+      "post": {
+        "operationId": "ControleurAcomptesAdmin_constaterRemboursement",
+        "summary": "Consigner un remboursement déjà exécuté hors plateforme",
+        "description": "Rien n'est transféré par cette route. Le montant doit être la totalité du cumul reçu ; « remboursé » est final.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "authorization",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cookie",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConstaterRemboursementDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "administration"
         ]
       }
     },
@@ -1503,6 +1929,146 @@
           "administration"
         ]
       }
+    },
+    "/administration/demandes/{id}/coordonnees": {
+      "get": {
+        "operationId": "ControleurAdministration_lireCoordonnees",
+        "summary": "Les coordonnées d'une réservation, et qui les a saisies et vérifiées",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "authorization",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cookie",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "administration"
+        ]
+      },
+      "put": {
+        "operationId": "ControleurAdministration_saisirCoordonnees",
+        "summary": "Saisir ou corriger les coordonnées",
+        "description": "Seulement à « acceptee » ou « confirmee ». Les champs dépendent du genre : logement ou véhicule. Toute saisie annule la vérification précédente.",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "authorization",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cookie",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaisirCoordonneesDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "administration"
+        ]
+      }
+    },
+    "/administration/demandes/{id}/coordonnees/verification": {
+      "post": {
+        "operationId": "ControleurAdministration_verifierCoordonnees",
+        "summary": "Vérifier les coordonnées saisies par une autre personne",
+        "description": "Refusé à la personne qui a fait la dernière saisie (quatre yeux).",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "authorization",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cookie",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifierCoordonneesDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "administration"
+        ]
+      }
     }
   },
   "info": {
@@ -1557,6 +2123,18 @@
         },
         "required": [
           "code"
+        ]
+      },
+      "OuvrirLienDemandeDto": {
+        "type": "object",
+        "properties": {
+          "jeton": {
+            "type": "string",
+            "description": "Jeton du lien reçu par e-mail (twl_…)"
+          }
+        },
+        "required": [
+          "jeton"
         ]
       },
       "InscriptionDto": {
@@ -1731,6 +2309,26 @@
           "personnes"
         ]
       },
+      "ChoisirTransfertDto": {
+        "type": "object",
+        "properties": {
+          "choix": {
+            "type": "string",
+            "enum": [
+              "souhaite",
+              "refuse"
+            ]
+          },
+          "jeton": {
+            "type": "string",
+            "description": "Le jeton remis à la création de la demande. Il n'autorise que cette réponse, pour cette demande : sans lui, une référence devinée suffirait à écrire à un inconnu."
+          }
+        },
+        "required": [
+          "choix",
+          "jeton"
+        ]
+      },
       "CreerDemandeVehiculeDto": {
         "type": "object",
         "properties": {
@@ -1829,6 +2427,85 @@
           "details"
         ]
       },
+      "SaisirReceptionDto": {
+        "type": "object",
+        "properties": {
+          "montant": {
+            "type": "number",
+            "description": "Montant réellement reçu, en FCFA entiers."
+          },
+          "montantRecuAvant": {
+            "type": "number",
+            "description": "Le cumul reçu que l'écran affichait ; refusé s'il a changé."
+          },
+          "referenceTransaction": {
+            "type": "string",
+            "description": "Référence relevée sur le relevé bancaire ou Mobile Money."
+          },
+          "commentaire": {
+            "type": "string"
+          },
+          "ecartConfirme": {
+            "type": "boolean",
+            "description": "Reconnaît un écart avec le reste dû ; exige un commentaire."
+          }
+        },
+        "required": [
+          "montant",
+          "montantRecuAvant"
+        ]
+      },
+      "DeciderPaiementTardifDto": {
+        "type": "object",
+        "properties": {
+          "issue": {
+            "type": "string",
+            "enum": [
+              "accepter",
+              "rembourser"
+            ]
+          },
+          "commentaire": {
+            "type": "string",
+            "description": "Ce qui a été vérifié, la disponibilité surtout."
+          }
+        },
+        "required": [
+          "issue",
+          "commentaire"
+        ]
+      },
+      "DeciderRemboursementDto": {
+        "type": "object",
+        "properties": {
+          "commentaire": {
+            "type": "string",
+            "description": "Pourquoi l'acompte est rendu. Obligatoire."
+          }
+        },
+        "required": [
+          "commentaire"
+        ]
+      },
+      "ConstaterRemboursementDto": {
+        "type": "object",
+        "properties": {
+          "montant": {
+            "type": "number",
+            "description": "Montant rendu, en FCFA entiers : la totalité du cumul reçu."
+          },
+          "referenceTransaction": {
+            "type": "string",
+            "description": "Référence du transfert effectué hors plateforme."
+          },
+          "commentaire": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "montant"
+        ]
+      },
       "RepondreDto": {
         "type": "object",
         "properties": {
@@ -1892,6 +2569,47 @@
             "description": "En francs CFA."
           }
         }
+      },
+      "SaisirCoordonneesDto": {
+        "type": "object",
+        "properties": {
+          "adresseExacte": {
+            "type": "string",
+            "description": "Logement"
+          },
+          "telephone": {
+            "type": "string",
+            "description": "Logement"
+          },
+          "consignesArrivee": {
+            "type": "string",
+            "description": "Logement"
+          },
+          "immatriculation": {
+            "type": "string",
+            "description": "Véhicule"
+          },
+          "telephoneChauffeur": {
+            "type": "string",
+            "description": "Véhicule"
+          },
+          "lieuDeRendezVous": {
+            "type": "string",
+            "description": "Véhicule"
+          }
+        }
+      },
+      "VerifierCoordonneesDto": {
+        "type": "object",
+        "properties": {
+          "saisieLe": {
+            "type": "string",
+            "description": "La date de la saisie que vous avez relue. Une saisie plus récente rend la vérification caduque."
+          }
+        },
+        "required": [
+          "saisieLe"
+        ]
       }
     }
   }

@@ -101,7 +101,7 @@ const ECHAPPEMENTS: Record<string, string> = {
  * écrire tels quels laisserait une apostrophe casser le document — et une
  * balise y entrer.
  */
-function echapper(valeur: string): string {
+export function echapper(valeur: string): string {
   return valeur.replace(/[&<>"']/g, (caractere) => ECHAPPEMENTS[caractere]);
 }
 

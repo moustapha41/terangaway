@@ -198,6 +198,15 @@ model Demand {
   /// cinq minutes : une alerte répétée se filtre, et une alerte filtrée ne
   /// prévient plus personne.
   relanceeLe          DateTime?
+
+  /// Le visiteur veut-il qu'on vienne le chercher à l'aéroport ?
+  ///
+  /// `souhaite`, `refuse`, ou `NULL` tant qu'il n'a pas répondu. La question lui
+  /// est posée sur l'écran de confirmation, une fois la demande de logement
+  /// partie : la demande est donc enregistrée avant la réponse, et ne dépend pas
+  /// d'elle. Une contrainte en base n'admet que ces deux valeurs.
+  transfertAeroport   String?
+  transfertChoisiLe   DateTime?
   motifRefus          String?
 
   creeLe              DateTime        @default(now())

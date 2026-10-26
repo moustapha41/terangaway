@@ -9,6 +9,12 @@ import {
   type DemandePartenaire,
 } from "./modeles/demande-partenaire.modele";
 import { genererRelanceEquipe, type LigneRelance } from "./modeles/relance-equipe.modele";
+import {
+  genererAlerteTransfert,
+  genererEmailTransfert,
+  type TransfertEquipe,
+  type TransfertVisiteur,
+} from "./modeles/transfert.modele";
 import { genererEmailDemande, type ContenuEmail, type DetailsDemande } from "./modeles/demande.modele";
 import { genererEmailOtp } from "./modeles/otp.modele";
 import {
@@ -227,6 +233,80 @@ export class ServiceEmail {
     } catch (erreur) {
       const message = (erreur as Error)?.message ?? "Erreur inconnue";
       this.logger.error(`Alerte ${alerte.reference} non partie : ${message}`);
+      return { envoye: false };
+    }
+  }
+
+  /**
+   * Confirme au visiteur que son transfert depuis l'aéroport est demandé.
+   *
+   * **Ne lève jamais** : la réponse est déjà enregistrée, et un e-mail qui ne part
+   * pas ne doit pas défaire cela. Il rend en revanche **si le message a
+   * réellement été accepté par le service d'envoi** — c'est ce qui permet à
+   * l'écran de ne dire « un e-mail vous sera envoyé » que lorsque c'est vrai.
+   */
+  async envoyerConfirmationTransfert(
+    email: string,
+    details: TransfertVisiteur,
+  ): Promise<{ envoye: boolean }> {
+    return this.expedier([email], genererEmailTransfert(details), `Transfert ${details.reference} (visiteur)`);
+  }
+
+  /**
+   * Prévient l'équipe qu'un transfert est à organiser. Ne lève jamais ; un échec
+   * s'écrit dans le journal, et rien d'autre ne l'a signalé.
+   */
+  async alerterTransfert(
+    destinataires: readonly string[],
+    details: TransfertEquipe,
+  ): Promise<{ envoye: boolean }> {
+    const adresses = [...new Set(destinataires.map((a) => a.trim().toLowerCase()).filter(Boolean))];
+    if (adresses.length === 0) {
+      this.logger.error(
+        `Transfert ${details.reference} : aucune adresse d'équipe à prévenir. ` +
+          "Donnez le rôle ADMINISTRATEUR à un compte, ou renseignez ADMIN_EMAILS.",
+      );
+      return { envoye: false };
+    }
+    return this.expedier(adresses, genererAlerteTransfert(details), `Transfert ${details.reference} (équipe)`);
+  }
+
+  /**
+   * L'envoi lui-même, pour les messages du transfert : un message, des
+   * destinataires, une étiquette pour le journal. Jamais d'exception ; `envoye`
+   * ne vaut vrai que si le service d'envoi a accepté le message.
+   */
+  private async expedier(
+    destinataires: readonly string[],
+    modele: { sujet: string; html: string; texte: string },
+    etiquette: string,
+  ): Promise<{ envoye: boolean }> {
+    const to = destinataires.map((a) => a.trim().toLowerCase()).filter(Boolean);
+    if (to.length === 0) return { envoye: false };
+
+    if (!this.resend) {
+      this.logger.warn(`[Sans Resend] ${etiquette} non envoyé à ${to.join(", ")}.`);
+      return { envoye: false };
+    }
+
+    try {
+      const reponse = await this.resend.emails.send({
+        from: config.emailFrom,
+        to,
+        subject: modele.sujet,
+        html: modele.html,
+        text: modele.texte,
+      });
+
+      if (reponse.error) {
+        this.logger.error(`${etiquette} refusé par Resend : ${reponse.error.message}`);
+        return { envoye: false };
+      }
+
+      this.logger.log(`${etiquette} envoyé (id: ${reponse.data?.id})`);
+      return { envoye: true };
+    } catch (erreur) {
+      this.logger.error(`${etiquette} non parti : ${(erreur as Error)?.message ?? "erreur inconnue"}`);
       return { envoye: false };
     }
   }

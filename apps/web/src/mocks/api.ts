@@ -269,6 +269,8 @@ export async function envoyerDemande(
     // La démonstration n'envoie aucun e-mail, et ne le prétend pas.
     emailEnvoye: false,
     acompteAnnonce: false,
+    // La démonstration pose la question du transfert elle aussi, sans rien envoyer.
+    jetonSuite: "demonstration",
     id: `d-${Date.now()}`,
     reference: `TW-${Math.floor(100000 + Math.random() * 900000)}`,
     statut: "envoyee",
