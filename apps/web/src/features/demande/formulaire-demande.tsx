@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { ajouterJours, nuitsEntre, type Logement } from "@teranga/contracts";
 import { ArrowRight, ChevronDown, Mail, Phone, User, Users } from "lucide-react";
 import { Bandeau, Carte, Compteur, Icone } from "@teranga/ui";
@@ -18,6 +18,7 @@ import { nomLisible } from "@/features/compte/cookie";
 import { type EtatEnvoi } from "@/mocks/api";
 import { mettreDemandeDeCoteEtSInscrire, oublierBrouillonAction } from "./actions";
 import type { BrouillonLogement } from "./brouillon";
+import { PAYS_PAR_DEFAUT, codeDuPays, drapeauDe, indicatifs } from "@/lib/indicatifs";
 
 /**
  * Écrans 4, 9 et 10 · Demande en trois étapes.
@@ -34,22 +35,6 @@ import type { BrouillonLogement } from "./brouillon";
  *
  * Rien n'est perdu entre les étapes : revenir en arrière garde toute la saisie.
  */
-/**
- * Indicatifs courants pour les visiteurs des Jeux.
- *
- * Le drapeau est un emoji, pas une image : il suit la police du système, pèse
- * deux octets et reste net partout. Le nom du pays va dans l'attribut `title` —
- * un `<select>` n'affiche que le libellé choisi, et « +221 · Sénégal » déborde
- * sur un écran de téléphone.
- */
-const INDICATIFS = [
-  { code: "+221", pays: "Sénégal", drapeau: "🇸🇳" },
-  { code: "+33", pays: "France", drapeau: "🇫🇷" },
-  { code: "+34", pays: "España", drapeau: "🇪🇸" },
-  { code: "+44", pays: "United Kingdom", drapeau: "🇬🇧" },
-  { code: "+1", pays: "USA / Canada", drapeau: "🇺🇸" },
-];
-
 const CHAMP =
   "min-w-0 flex-1 bg-transparent text-[16px] text-encre outline-none placeholder:text-encre-douce";
 
@@ -113,7 +98,9 @@ export function FormulaireDemande({
     visiteur ? nomLisible(visiteur.identifiant) : (brouillon?.nom ?? ""),
   );
   const [email, setEmail] = useState(visiteur?.email ?? brouillon?.email ?? "");
-  const [indicatif, setIndicatif] = useState("+221");
+  const [paysTel, setPaysTel] = useState(PAYS_PAR_DEFAUT);
+  const listeIndicatifs = useMemo(() => indicatifs(langue), [langue]);
+  const indicatif = codeDuPays(paysTel);
   const [telephone, setTelephone] = useState(visiteur?.telephone ?? brouillon?.telephone ?? "");
   const [voyageurs, setVoyageurs] = useState(brouillon?.personnes ?? personnes);
   const [message, setMessage] = useState(brouillon?.message ?? "");
@@ -309,16 +296,28 @@ export function FormulaireDemande({
               {t("demande.telephone")}
             </label>
             <div className="flex gap-2">
+              {/* Ce qui se voit est court — « 🇸🇳 +221 » — pour tenir sur un téléphone ;
+                  la vraie liste, avec le nom de chaque pays, est le <select> posé
+                  par-dessus, transparent : le clavier, le lecteur d'écran et la
+                  recherche par initiale marchent comme sur n'importe quel select. */}
               <div className="relative shrink-0">
-                <select
-                  value={indicatif}
-                  onChange={(e) => setIndicatif(e.target.value)}
-                  aria-label={t("demande.pays")}
-                  className="flex h-[48px] w-[100px] sm:w-[110px] cursor-pointer appearance-none items-center rounded-[14px] border border-contour-champ bg-champ/60 pl-3 pr-7 text-[16px] font-medium text-encre outline-none transition-colors focus:border-primaire/40 focus:bg-surface"
+                <div
+                  aria-hidden="true"
+                  className="flex h-[48px] w-[104px] sm:w-[114px] items-center rounded-[14px] border border-contour-champ bg-champ/60 pl-3 pr-7 text-[16px] font-medium text-encre"
                 >
-                  {INDICATIFS.map((i) => (
-                    <option key={i.code} value={i.code} title={i.pays}>
-                      {i.drapeau} {i.code}
+                  <span className="truncate">
+                    {drapeauDe(paysTel)} {indicatif}
+                  </span>
+                </div>
+                <select
+                  value={paysTel}
+                  onChange={(e) => setPaysTel(e.target.value)}
+                  aria-label={t("demande.pays")}
+                  className="absolute inset-0 h-full w-full cursor-pointer appearance-none opacity-0"
+                >
+                  {listeIndicatifs.map((i) => (
+                    <option key={i.pays} value={i.pays}>
+                      {i.drapeau} {i.nom} ({i.code})
                     </option>
                   ))}
                 </select>
