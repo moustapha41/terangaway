@@ -1,23 +1,21 @@
 /**
- * Motion design de la plateforme : faire une demande, puis accepter le transport.
+ * Parcours complet, dans un navigateur, en 16:9 (1920×1080) :
  *
- * Les écrans sont les vrais — captures de la plateforme, sur un téléphone de
- * 390 px — animés par-dessus : caméra qui s'approche, curseur qui touche, anneaux
- * autour de ce qui compte, pastilles de progression. Aucun sous-titre : l'interface
- * parle d'elle-même.
+ *   1. On tape teranga-way.com dans la barre d'adresse.
+ *   2. L'accueil s'affiche ; on défile jusqu'à « Voir tous les logements ».
+ *   3. La liste ; on la parcourt, on choisit un logement.
+ *   4. La fiche ; « Demander ce logement ».
+ *   5. Le formulaire : nom, e-mail, téléphone, « Continuer ».
+ *   6. La confirmation, puis la proposition de transport : « Oui, je veux une voiture ».
+ *   7. La marque.
  *
- *   1. La fiche du logement : on touche « Demander ce logement ».
- *   2. Le formulaire : nom, e-mail, téléphone, durée du séjour, « Continuer ».
- *   3. La confirmation, puis la proposition de transport s'ouvre.
- *   4. « Oui, je veux une voiture » : c'est noté. On continue.
- *   5. La marque.
- *
- * Tout est dessiné à partir du seul temps `t` : la même fonction rend n'importe
- * quelle image, dans le navigateur comme à l'enregistrement.
+ * Les pages sont les vraies, capturées sur la plateforme ; ce fichier ne fait que
+ * les animer : fenêtre, barre d'adresse, défilement, curseur, caméra. Tout est
+ * calculé à partir du seul temps `t`.
  */
 const W = 1920, H = 1080;
-const DUREE = 26.0;
-const C = { nuit: "#001D35", nuit2: "#0F2A47", jaune: "#F5BB45", vert: "#087443", vertClair: "#2FB574", blanc: "#FFFFFF" };
+const DUREE = 44.0;
+const C = { nuit: "#001D35", jaune: "#F5BB45", vert: "#087443", vertClair: "#2FB574" };
 
 /* ───────────── outils ───────────── */
 const clamp = (x, a = 0, b = 1) => Math.max(a, Math.min(b, x));
@@ -25,8 +23,8 @@ const P = (t, a, b) => clamp((t - a) / (b - a));
 const lerp = (a, b, k) => a + (b - a) * k;
 const outCubic = (k) => 1 - Math.pow(1 - k, 3);
 const inOut = (k) => (k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2);
+const inOutSine = (k) => -(Math.cos(Math.PI * k) - 1) / 2;
 const outBack = (k) => { const c1 = 1.70158, c3 = c1 + 1; return 1 + c3 * Math.pow(k - 1, 3) + c1 * Math.pow(k - 1, 2); };
-const outElastic = (k) => (k === 0 || k === 1 ? k : Math.pow(2, -10 * k) * Math.sin((k * 10 - 0.75) * (2 * Math.PI) / 3) + 1);
 const rnd = (i) => { const x = Math.sin(i * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); };
 function rr(ctx, x, y, w, h, r) {
   const q = Math.min(r, w / 2, h / 2);
@@ -34,306 +32,332 @@ function rr(ctx, x, y, w, h, r) {
   ctx.arcTo(x + w, y, x + w, y + h, q); ctx.arcTo(x + w, y + h, x, y + h, q);
   ctx.arcTo(x, y + h, x, y, q); ctx.arcTo(x, y, x + w, y, q); ctx.closePath();
 }
+function circle(ctx, x, y, r, fill) { ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fillStyle = fill; ctx.fill(); }
 function glow(ctx, x, y, r, color, a = 1) {
   const g = ctx.createRadialGradient(x, y, 0, x, y, r);
   g.addColorStop(0, color); g.addColorStop(1, "rgba(255,255,255,0)");
-  ctx.save(); ctx.globalAlpha = a; ctx.fillStyle = g; ctx.fillRect(x - r, y - r, r * 2, r * 2); ctx.restore();
+  ctx.save(); ctx.globalAlpha *= a; ctx.fillStyle = g; ctx.fillRect(x - r, y - r, r * 2, r * 2); ctx.restore();
 }
-function circle(ctx, x, y, r, fill) { ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fillStyle = fill; ctx.fill(); }
-
-/** Interpolation entre des images clés : [[t, v], …] ou [[t, [v…]], …], avec adoucissement. */
-function cle(t, kf) {
+/** Interpolation entre images clés [[t, v|[v…]], …]. */
+function cle(t, kf, ease = inOut) {
   if (t <= kf[0][0]) return kf[0][1];
   for (let i = 1; i < kf.length; i++) {
     if (t <= kf[i][0]) {
-      const k = inOut(P(t, kf[i - 1][0], kf[i][0])), a = kf[i - 1][1], b = kf[i][1];
+      const k = ease(P(t, kf[i - 1][0], kf[i][0])), a = kf[i - 1][1], b = kf[i][1];
       return Array.isArray(a) ? a.map((v, j) => lerp(v, b[j], k)) : lerp(a, b, k);
     }
   }
   return kf[kf.length - 1][1];
 }
+const FONT = 'system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif';
 
-/* ───────────── le téléphone ───────────── */
-const K = 1.12;                       // pixels du canvas par pixel CSS de l'écran
-const SW = 390 * K, SH = 844 * K;     // écran
-const SX = 960 - SW / 2 + 0, SY = 540 - SH / 2; // coin haut-gauche de l'écran
-const px = (x) => SX + x * K, py = (y) => SY + y * K; // coordonnées d'écran → canvas
-
+/* ───────────── la fenêtre du navigateur ───────────── */
+// Le contenu fait 1800×916 : exactement la taille d'une capture (1440×733 css à 1,25).
+const WX = 60, WY = 36, WWIDTH = 1800, BARRE = 92, CX = WX, CY = WY + BARRE, CH = 916;
+const DPR = 1.25;
 const IMG = {};
+let LOGO = null;
 function charger(cb) {
   let reste = 0;
-  for (const [k, src] of Object.entries(window.ECRANS)) { reste++; const im = new Image(); im.onload = () => { if (--reste === 0) cb(); }; im.src = src; IMG[k] = im; }
-  LOGO = new Image(); LOGO.src = window.LOGO_URL; reste++; LOGO.onload = () => { if (--reste === 0) cb(); };
+  const fin = () => { if (--reste === 0) cb(); };
+  for (const [k, src] of Object.entries(window.ECRANS)) { reste++; const im = new Image(); im.onload = fin; im.src = src; IMG[k] = im; }
+  reste++; LOGO = new Image(); LOGO.onload = fin; LOGO.src = window.LOGO_URL;
 }
-let LOGO = null;
+/** Coordonnées de page (px CSS) → canvas, à un défilement donné (px CSS). */
+const cx = (x) => CX + x * DPR;
+const cy = (y, sc = 0) => CY + (y - sc) * DPR;
 
-/** Un écran, à une position de défilement, décalé de dx, entre y0 et y1 (coordonnées de page). */
-function ecran(ctx, nom, o = {}) {
-  const { scroll = 0, dx = 0, dy = 0, alpha = 1, y0 = 0, y1 = 99999, scale = 1 } = o;
+/** Une page, à un défilement donné ; `alpha` pour les fondus. */
+function page(ctx, nom, sc = 0, alpha = 1, dy = 0) {
   const im = IMG[nom]; if (!im || alpha <= 0) return;
-  ctx.save();
-  rr(ctx, SX, SY, SW, SH, 44 * K / 1.1); ctx.clip();
-  // fenêtre de page visible, bornée à [y0, y1]
-  const a = Math.max(y0, scroll), b = Math.min(y1, scroll + 844);
-  if (b > a) {
-    ctx.globalAlpha *= alpha;
-    const sy = a * 2, sh = (b - a) * 2;
-    ctx.drawImage(im, 0, sy, 780, Math.min(sh, im.height - sy), SX + dx, SY + (a - scroll) * K + dy, SW, (b - a) * K);
-  }
+  ctx.save(); ctx.beginPath(); ctx.rect(CX, CY, WWIDTH, CH); ctx.clip();
+  ctx.globalAlpha *= alpha;
+  const sy = Math.max(0, Math.min(im.height - CH, sc * DPR));
+  ctx.drawImage(im, 0, sy, 1800, CH, CX, CY + dy, 1800, CH);
   ctx.restore();
 }
 
-function telephone(ctx) {
-  // ombre portée
-  ctx.save(); ctx.shadowColor = "rgba(0,0,0,0.55)"; ctx.shadowBlur = 80; ctx.shadowOffsetY = 40;
-  rr(ctx, SX - 18, SY - 18, SW + 36, SH + 36, 78); ctx.fillStyle = "#0A0F16"; ctx.fill(); ctx.restore();
-  rr(ctx, SX - 18, SY - 18, SW + 36, SH + 36, 78); ctx.strokeStyle = "#2A3340"; ctx.lineWidth = 3; ctx.stroke();
-  ctx.fillStyle = "#1B232D"; ctx.fillRect(SX + SW + 15, SY + 160, 5, 90); ctx.fillRect(SX - 20, SY + 130, 5, 56); ctx.fillRect(SX - 20, SY + 200, 5, 56);
-}
-function ilot(ctx) { // îlot dynamique
-  rr(ctx, 960 - 54, SY + 10, 108, 30, 15); ctx.fillStyle = "#04070B"; ctx.fill();
+function url(ctx, texte, saisie, caret) {
+  // pastille de l'adresse
+  const x0 = WX + 150, w = WWIDTH - 150 - 120, y0 = WY + 46 + 6, h = 36;
+  rr(ctx, x0, y0, w, h, 18); ctx.fillStyle = saisie ? "#FFFFFF" : "#EEF1F6"; ctx.fill();
+  if (saisie) { ctx.strokeStyle = "#1A73E8"; ctx.lineWidth = 2.5; ctx.stroke(); }
+  // cadenas
+  ctx.save(); ctx.translate(x0 + 24, y0 + h / 2); ctx.strokeStyle = "#5F6368"; ctx.lineWidth = 2; ctx.lineCap = "round";
+  ctx.beginPath(); ctx.arc(0, -3, 5, Math.PI, 0); ctx.stroke(); rr(ctx, -7, -3, 14, 11, 2.5); ctx.fillStyle = "#5F6368"; ctx.fill(); ctx.restore();
+  ctx.font = `400 17px ${FONT}`; ctx.textBaseline = "middle";
+  const m = texte.match(/^([^/]+)(\/.*)?$/) || [null, texte, ""];
+  const x = x0 + 48;
+  ctx.fillStyle = "#1F2328"; ctx.fillText(m[1], x, y0 + h / 2 + 1);
+  const dw = ctx.measureText(m[1]).width;
+  if (m[2]) { ctx.fillStyle = "#6B7280"; ctx.fillText(m[2], x + dw, y0 + h / 2 + 1); }
+  if (caret) { const tw = ctx.measureText(texte).width; ctx.fillStyle = "#1F2328"; ctx.fillRect(x + tw + 1, y0 + 8, 2, h - 16); }
 }
 
-/* ───────────── le curseur et ses effets ───────────── */
-function curseur(ctx, x, y, presse = 0) {
-  ctx.save(); ctx.translate(x, y); ctx.scale(1.5 - presse * 0.18, 1.5 - presse * 0.18);
-  ctx.shadowColor = "rgba(0,0,0,0.45)"; ctx.shadowBlur = 10; ctx.shadowOffsetY = 4;
+function navigateur(ctx, o) {
+  const { titre, favicon, texte, saisie, caret, charge, nouvelOnglet } = o;
+  // ombre + corps
+  ctx.save(); ctx.shadowColor = "rgba(0,0,0,0.5)"; ctx.shadowBlur = 70; ctx.shadowOffsetY = 28;
+  rr(ctx, WX, WY, WWIDTH, BARRE + CH, 20); ctx.fillStyle = "#DEE3EA"; ctx.fill(); ctx.restore();
+  ctx.save(); rr(ctx, WX, WY, WWIDTH, BARRE + CH, 20); ctx.clip();
+  // rangée d'onglets
+  ctx.fillStyle = "#DEE3EA"; ctx.fillRect(WX, WY, WWIDTH, 46);
+  [["#FF5F57", 24], ["#FEBC2E", 48], ["#28C840", 72]].forEach(([c, dx]) => circle(ctx, WX + 12 + dx, WY + 23, 7, c));
+  // onglet actif
+  const tx = WX + 120, tw = 280;
+  ctx.fillStyle = "#FFFFFF"; ctx.beginPath(); ctx.moveTo(tx - 10, WY + 46); ctx.quadraticCurveTo(tx, WY + 46, tx, WY + 36); ctx.lineTo(tx, WY + 14); ctx.quadraticCurveTo(tx, WY + 6, tx + 10, WY + 6); ctx.lineTo(tx + tw - 10, WY + 6); ctx.quadraticCurveTo(tx + tw, WY + 6, tx + tw, WY + 14); ctx.lineTo(tx + tw, WY + 36); ctx.quadraticCurveTo(tx + tw, WY + 46, tx + tw + 10, WY + 46); ctx.closePath(); ctx.fill();
+  // favicon (ou rond de chargement)
+  if (charge > 0 && charge < 1) { ctx.save(); ctx.translate(tx + 26, WY + 26); ctx.rotate((o.t || 0) * 7); ctx.strokeStyle = "#1A73E8"; ctx.lineWidth = 3; ctx.lineCap = "round"; ctx.beginPath(); ctx.arc(0, 0, 8, 0, Math.PI * 1.4); ctx.stroke(); ctx.restore(); }
+  else if (favicon) { circle(ctx, tx + 26, WY + 26, 9, C.jaune); ctx.fillStyle = C.nuit; ctx.font = `800 12px ${FONT}`; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText("T", tx + 26, WY + 27); ctx.textAlign = "left"; }
+  else { circle(ctx, tx + 26, WY + 26, 8, "#C4C9D1"); }
+  ctx.font = `400 14px ${FONT}`; ctx.textBaseline = "middle"; ctx.fillStyle = "#1F2328"; ctx.fillText(titre, tx + 46, WY + 27);
+  ctx.fillStyle = "#6B7280"; ctx.font = `400 18px ${FONT}`; ctx.fillText("×", tx + tw - 26, WY + 26);
+  ctx.fillStyle = "#6B7280"; ctx.font = `300 24px ${FONT}`; ctx.fillText("+", tx + tw + 22, WY + 26);
+  // barre d'outils
+  ctx.fillStyle = "#FFFFFF"; ctx.fillRect(WX, WY + 46, WWIDTH, BARRE - 46);
+  ctx.strokeStyle = "#5F6368"; ctx.lineWidth = 2.4; ctx.lineCap = "round"; ctx.lineJoin = "round";
+  [[WX + 30, 1], [WX + 72, -1]].forEach(([x, s]) => { ctx.beginPath(); ctx.moveTo(x + 8 * s, WY + 69); ctx.lineTo(x - 8 * s, WY + 69); ctx.moveTo(x - 1 * s, WY + 61); ctx.lineTo(x - 9 * s, WY + 69); ctx.lineTo(x - 1 * s, WY + 77); ctx.stroke(); });
+  ctx.beginPath(); ctx.arc(WX + 118, WY + 69, 8, 0.4, Math.PI * 2 - 0.5); ctx.stroke();
+  url(ctx, texte, saisie, caret);
+  // menu
+  [-1, 0, 1].forEach((d) => circle(ctx, WX + WWIDTH - 40, WY + 69 + d * 7, 2.2, "#5F6368"));
+  // barre de progression
+  if (charge > 0 && charge < 1) { ctx.fillStyle = "#1A73E8"; ctx.fillRect(WX, WY + BARRE - 3, WWIDTH * charge, 3); }
+  ctx.fillStyle = "#E3E6EB"; ctx.fillRect(WX, WY + BARRE - 1, WWIDTH, 1);
+  ctx.restore();
+}
+
+/* ───────────── le curseur ───────────── */
+function curseur(ctx, x, y, presse = 0, main = 0) {
+  ctx.save(); ctx.translate(x, y); ctx.scale(1.35 - presse * 0.16, 1.35 - presse * 0.16);
+  ctx.shadowColor = "rgba(0,0,0,0.45)"; ctx.shadowBlur = 9; ctx.shadowOffsetY = 3;
   ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, 30); ctx.lineTo(8, 23); ctx.lineTo(14, 36); ctx.lineTo(20, 33); ctx.lineTo(14, 21); ctx.lineTo(24, 21); ctx.closePath();
-  ctx.fillStyle = "#fff"; ctx.fill(); ctx.shadowColor = "transparent"; ctx.lineWidth = 2.4; ctx.strokeStyle = C.nuit; ctx.stroke();
+  ctx.fillStyle = "#fff"; ctx.fill(); ctx.shadowColor = "transparent"; ctx.lineWidth = 2.2; ctx.strokeStyle = "#111"; ctx.stroke();
   ctx.restore();
 }
-function touche(ctx, x, y, t, t0) { // anneaux de pression
+function touche(ctx, x, y, t, t0) {
   for (let i = 0; i < 2; i++) {
     const k = P(t, t0 + i * 0.12, t0 + 0.7 + i * 0.12);
-    if (k > 0 && k < 1) { ctx.strokeStyle = `rgba(245,187,69,${0.95 * (1 - k)})`; ctx.lineWidth = 6 * (1 - k) + 1; ctx.beginPath(); ctx.arc(x, y, 14 + k * 90, 0, Math.PI * 2); ctx.stroke(); }
+    if (k > 0 && k < 1) { ctx.strokeStyle = `rgba(245,187,69,${0.95 * (1 - k)})`; ctx.lineWidth = 6 * (1 - k) + 1; ctx.beginPath(); ctx.arc(x, y, 12 + k * 80, 0, Math.PI * 2); ctx.stroke(); }
   }
-  const k = P(t, t0, t0 + 0.5); if (k > 0 && k < 1) circle(ctx, x, y, 26 * (1 - k), `rgba(245,187,69,${0.45 * (1 - k)})`);
+  const k = P(t, t0, t0 + 0.45); if (k > 0 && k < 1) circle(ctx, x, y, 24 * (1 - k), `rgba(245,187,69,${0.5 * (1 - k)})`);
 }
-/** Anneau qui bat autour d'un élément (coordonnées d'écran en px CSS). */
-function halo(ctx, r, t, a, b, couleur = C.jaune, marge = 8) {
+/** Anneau autour d'un élément (coordonnées de page css + défilement). */
+function halo(ctx, r, sc, t, a, b, couleur = C.jaune, marge = 10) {
   const k = P(t, a, a + 0.35) * (1 - P(t, b - 0.3, b)); if (k <= 0) return;
-  const pulse = 1 + Math.sin(t * 7) * 0.03;
-  ctx.save(); ctx.globalAlpha = k; ctx.strokeStyle = couleur; ctx.lineWidth = 5; ctx.shadowColor = couleur; ctx.shadowBlur = 24;
-  const cx = px(r.x + r.w / 2), cy = py(r.y + r.h / 2), w = (r.w * K + marge * 2) * pulse, h = (r.h * K + marge * 2) * pulse;
-  rr(ctx, cx - w / 2, cy - h / 2, w, h, Math.min(h / 2, 30)); ctx.stroke(); ctx.restore();
+  const pulse = 1 + Math.sin(t * 7) * 0.025;
+  const x = cx(r.x + r.w / 2), y = cy(r.y + r.h / 2, sc), w = (r.w * DPR + marge * 2) * pulse, h = (r.h * DPR + marge * 2) * pulse;
+  ctx.save(); ctx.globalAlpha *= k; ctx.strokeStyle = couleur; ctx.lineWidth = 5; ctx.shadowColor = couleur; ctx.shadowBlur = 26;
+  rr(ctx, x - w / 2, y - h / 2, w, h, Math.min(h / 2, 26)); ctx.stroke(); ctx.restore();
 }
-
-/* ───────────── pictogrammes ───────────── */
-function icone(ctx, nom, x, y, s, col) {
-  ctx.save(); ctx.translate(x, y); ctx.scale(s, s); ctx.strokeStyle = col; ctx.fillStyle = col; ctx.lineWidth = 7; ctx.lineCap = "round"; ctx.lineJoin = "round";
-  if (nom === "maison") { ctx.beginPath(); ctx.moveTo(-30, -2); ctx.lineTo(0, -30); ctx.lineTo(30, -2); ctx.stroke(); ctx.beginPath(); ctx.moveTo(-22, -4); ctx.lineTo(-22, 28); ctx.lineTo(22, 28); ctx.lineTo(22, -4); ctx.stroke(); ctx.strokeRect(-7, 10, 14, 18); }
-  else if (nom === "calendrier") { rr(ctx, -30, -24, 60, 54, 9); ctx.stroke(); ctx.beginPath(); ctx.moveTo(-30, -6); ctx.lineTo(30, -6); ctx.moveTo(-16, -34); ctx.lineTo(-16, -18); ctx.moveTo(16, -34); ctx.lineTo(16, -18); ctx.stroke(); circle(ctx, -12, 8, 4.5, col); circle(ctx, 4, 8, 4.5, col); circle(ctx, -12, 20, 4.5, col); }
-  else if (nom === "enveloppe") { rr(ctx, -32, -22, 64, 46, 8); ctx.stroke(); ctx.beginPath(); ctx.moveTo(-30, -18); ctx.lineTo(0, 6); ctx.lineTo(30, -18); ctx.stroke(); }
-  else if (nom === "voiture") { ctx.beginPath(); ctx.moveTo(-34, 14); ctx.lineTo(-34, -4); ctx.quadraticCurveTo(-32, -10, -22, -10); ctx.lineTo(-14, -10); ctx.lineTo(-6, -26); ctx.lineTo(16, -26); ctx.lineTo(26, -10); ctx.quadraticCurveTo(34, -8, 34, 0); ctx.lineTo(34, 14); ctx.closePath(); ctx.stroke(); circle(ctx, -18, 16, 8, col); circle(ctx, 18, 16, 8, col); }
-  else if (nom === "coche") { ctx.lineWidth = 11; ctx.beginPath(); ctx.moveTo(-18, 2); ctx.lineTo(-5, 15); ctx.lineTo(20, -14); ctx.stroke(); }
-  ctx.restore();
+function pression(ctx, r, sc, t, a, b) {
+  const k = P(t, a, a + 0.12) * (1 - P(t, b, b + 0.25)); if (k <= 0) return;
+  ctx.save(); ctx.globalAlpha *= 0.18 * k; rr(ctx, cx(r.x) - 4, cy(r.y, sc) - 4, r.w * DPR + 8, r.h * DPR + 8, 18); ctx.fillStyle = "#000"; ctx.fill(); ctx.restore();
 }
 
 /* ───────────── le décor ───────────── */
 function fond(ctx, t) {
   const g = ctx.createLinearGradient(0, 0, W, H);
-  const k = P(t, 12, 16) - P(t, 19, 22);
-  g.addColorStop(0, "#001D35"); g.addColorStop(0.55, k > 0 ? "#0B3B5A" : "#0F2A47"); g.addColorStop(1, "#001628");
+  g.addColorStop(0, "#001D35"); g.addColorStop(0.55, "#0F2A47"); g.addColorStop(1, "#001628");
   ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
-  for (let i = 0; i < 18; i++) {
-    const x = (rnd(i) * W + Math.sin(t * 0.3 + i) * 40), y = (rnd(i + 5) * H + t * 14 * (0.5 + rnd(i + 2))) % H;
-    glow(ctx, x, y, 90 + rnd(i + 8) * 150, i % 3 === 0 ? "rgba(245,187,69,0.55)" : "rgba(70,150,220,0.45)", 0.22);
+  for (let i = 0; i < 16; i++) {
+    const x = rnd(i) * W + Math.sin(t * 0.3 + i) * 40, y = (rnd(i + 5) * H + t * 12 * (0.5 + rnd(i + 2))) % H;
+    glow(ctx, x, y, 90 + rnd(i + 8) * 150, i % 3 === 0 ? "rgba(245,187,69,0.55)" : "rgba(70,150,220,0.45)", 0.2);
   }
-  // grandes courbes
-  ctx.save(); ctx.globalAlpha = 0.07; ctx.strokeStyle = "#fff"; ctx.lineWidth = 2;
-  for (let i = 0; i < 6; i++) { ctx.beginPath(); ctx.arc(1640 - i * 40 + Math.sin(t * 0.4) * 10, 540, 380 + i * 70, 0, Math.PI * 2); ctx.stroke(); }
-  ctx.restore();
 }
-
-/** Les quatre pastilles de progression, à droite : elles s'allument au fil de l'histoire. */
-const ETAPES = [
-  { nom: "maison", t: 3.1 }, { nom: "calendrier", t: 8.6 }, { nom: "enveloppe", t: 12.6 }, { nom: "voiture", t: 16.0 },
-];
-function progression(ctx, t, sortie) {
-  const x = 1500, y0 = 310, pas = 150;
-  ctx.save(); ctx.globalAlpha = 1 - sortie;
-  ctx.strokeStyle = "rgba(255,255,255,0.18)"; ctx.lineWidth = 6; ctx.beginPath(); ctx.moveTo(x, y0); ctx.lineTo(x, y0 + pas * 3); ctx.stroke();
-  // le trait jaune rejoint la pastille suivante entre deux moments
-  const i = ETAPES.reduce((m, e, j) => (t >= e.t ? j : m), -1);
-  const suite = i >= 0 && i < 3 ? P(t, ETAPES[i].t + 0.6, ETAPES[i + 1].t - 0.2) : 0;
-  const longueur = i < 0 ? 0 : Math.min(3, i + suite);
-  ctx.strokeStyle = C.jaune; ctx.lineWidth = 6; ctx.beginPath(); ctx.moveTo(x, y0); ctx.lineTo(x, y0 + pas * longueur); ctx.stroke();
-  ETAPES.forEach((e, j) => {
-    const on = t >= e.t, cy = y0 + pas * j, k = P(t, e.t, e.t + 0.9);
-    const sc = 1 + (on ? 0.28 * Math.sin(k * Math.PI) : 0);
-    if (on) glow(ctx, x, cy, 110, "rgba(245,187,69,0.8)", 0.5 * (1 - P(t, e.t + 0.6, e.t + 2.2)));
-    ctx.save(); ctx.translate(x, cy); ctx.scale(sc, sc);
-    circle(ctx, 0, 0, 52, on ? C.jaune : "rgba(255,255,255,0.1)");
-    ctx.lineWidth = 4; ctx.strokeStyle = on ? "#FFE3A0" : "rgba(255,255,255,0.25)"; ctx.beginPath(); ctx.arc(0, 0, 52, 0, Math.PI * 2); ctx.stroke();
-    icone(ctx, e.nom, 0, 0, 0.9, on ? C.nuit : "rgba(255,255,255,0.45)");
-    ctx.restore();
-  });
-  ctx.restore();
-}
-
-/** Grande pastille qui jaillit près du téléphone à chaque moment clé. */
-function pastille(ctx, t, t0, nom, x, y, vert = false) {
-  const k = outElastic(P(t, t0, t0 + 0.9)) * (1 - inOut(P(t, t0 + 1.7, t0 + 2.3)));
-  if (k <= 0.01) return;
-  ctx.save(); ctx.translate(x, y); ctx.scale(k, k);
-  glow(ctx, 0, 0, 200, vert ? "rgba(47,181,116,0.9)" : "rgba(245,187,69,0.9)", 0.55);
-  circle(ctx, 0, 0, 86, vert ? C.vert : C.jaune); circle(ctx, 0, 0, 74, vert ? "#0B8E54" : "#FFD27A");
-  icone(ctx, nom, 0, 0, 1.55, vert ? "#fff" : C.nuit);
-  ctx.restore();
-}
-
-/* ───────────── la caméra ───────────── */
-const CAM = [
-  [0.0, [1.0, 195, 422]], [1.0, [1.0, 195, 422]],
-  [2.2, [1.7, 195, 640]], [3.9, [1.7, 195, 640]], [4.5, [1.0, 195, 422]],
-  [5.0, [1.5, 195, 410]], [7.2, [1.5, 195, 520]],
-  [7.9, [1.15, 195, 422]], [8.9, [1.6, 255, 390]], [10.0, [1.6, 255, 390]],
-  [10.6, [1.5, 195, 650]], [11.8, [1.5, 195, 650]], [12.4, [1.0, 195, 422]],
-  [14.6, [1.0, 195, 422]], [15.6, [1.4, 195, 600]], [17.6, [1.4, 195, 600]],
-  [18.4, [1.45, 195, 640]], [20.2, [1.45, 195, 640]], [20.9, [1.0, 195, 422]],
-  [21.2, [1.0, 195, 422]],
-];
 
 /* ───────────── le scénario ───────────── */
-const R = {
-  btnFiche: { x: 30, y: 760, w: 265, h: 48 },
-  nom: { x: 73, y: 388.6, w: 272, h: 24 }, email: { x: 73, y: 474.1, w: 272, h: 24 }, tel: { x: 185, y: 559.6, w: 160, h: 24 },
-  semaine: { x: 199, y: 699.1, w: 161, h: 52 }, continuer: { x: 30, y: 1025.4, w: 330, h: 48 },
-  oui: { x: 20, y: 674, w: 350, h: 52 }, vol: { x: 36, y: 612, w: 256, h: 44 }, fermer: { x: 20, y: 741, w: 350, h: 52 },
-};
-const ctr = (r) => [r.x + r.w / 2, r.y + r.h / 2];
-const SCROLL_MAX = 363;
-/** Défilement du formulaire : en haut, puis vers les durées, puis vers le bouton. */
-const defile = (t) => cle(t, [[0, 0], [7.6, 0], [8.6, 150], [10.1, 150], [10.8, SCROLL_MAX], [99, SCROLL_MAX]]);
+const R = window.RECTS;
+const MODALE = window.MODALE;
+// défilements (px CSS)
+const SC_ACCUEIL = R.voirTout.y - 360;
+const SC_LISTE = R.carte.y - 330;
+const SC_FICHE = 300;
+const SC_FORM = 493;
+const mid = (r) => [r.x + r.w / 2, r.y + r.h / 2];
 
-/** Le chemin du curseur : [temps, x, y] en pixels CSS d'écran (coordonnées de fenêtre). */
-function cheminCurseur(t) {
-  // fiche → bouton « Demander ce logement » (fenêtre : le bouton est fixé en bas)
+/** La saisie de l'adresse, lettre par lettre. */
+const ADRESSE = "teranga-way.com";
+function adresseSaisie(t) { return ADRESSE.slice(0, Math.floor(clamp((t - 2.5) / 1.35) * ADRESSE.length)); }
+
+/** Quelle page, à quel défilement, et l'adresse affichée, selon l'instant. */
+function etat(t) {
+  // [début de la navigation, fin du chargement, nom de la page, adresse, titre]
+  return t;
+}
+
+const PAGES = [
+  { a: 4.0, nom: "accueil", url: "teranga-way.com", titre: "Teranga Way — Logements et transports JOJ 2026" },
+  { a: 10.4, nom: "liste", url: "teranga-way.com/logements?tri=prix-croissant", titre: "Logements — Teranga Way" },
+  { a: 16.6, nom: "fiche", url: "teranga-way.com/logements/appartement-piscine-sur-le-toit", titre: "Appartement deux chambres avec piscine sur le toit" },
+  { a: 21.6, nom: "demande", url: "teranga-way.com/demande/l-029", titre: "Faire une demande — Teranga Way" },
+  { a: 28.6, nom: "apres", url: "teranga-way.com/demande/confirmation", titre: "Demande enregistrée — Teranga Way" },
+];
+const CHARGE = 0.9, FONDU = 0.45;
+
+const defileAccueil = (t) => cle(t, [[0, 0], [6.1, 0], [8.7, SC_ACCUEIL], [99, SC_ACCUEIL]]);
+const defileListe = (t) => cle(t, [[0, 0], [11.6, 0], [12.4, 60], [15.4, SC_LISTE], [99, SC_LISTE]], inOutSine);
+const defileFiche = (t) => cle(t, [[0, 0], [18.3, 0], [19.6, SC_FICHE], [99, SC_FICHE]]);
+const defileForm = (t) => cle(t, [[0, 0], [25.9, 0], [27.3, SC_FORM], [99, SC_FORM]]);
+
+function dessinerContenu(ctx, t) {
+  // la page courante (la dernière dont le chargement est fini) et la précédente en fondu
+  const i = PAGES.reduce((m, p, j) => (t >= p.a + CHARGE ? j : m), -1);
+  const scDe = (nom, tt) => nom === "accueil" ? defileAccueil(tt) : nom === "liste" ? defileListe(tt) : nom === "fiche" ? defileFiche(tt) : nom === "demande" ? defileForm(tt) : 0;
+  // fond blanc de l'onglet vide
+  ctx.save(); ctx.fillStyle = "#FFFFFF"; ctx.fillRect(CX, CY, WWIDTH, CH);
+  if (i < 0) {
+    // nouvel onglet : une barre de recherche discrète
+    ctx.fillStyle = "#F4F6F9"; rr(ctx, CX + 600, CY + 380, 600, 56, 28); ctx.fill();
+    ctx.fillStyle = "#9AA3AE"; ctx.font = `400 18px ${FONT}`; ctx.textBaseline = "middle"; ctx.fillText("Rechercher ou saisir une adresse", CX + 640, CY + 409);
+  }
+  ctx.restore();
+  if (i >= 0) {
+    const p = PAGES[i], k = P(t, p.a + CHARGE, p.a + CHARGE + FONDU);
+    if (i > 0 && k < 1) page(ctx, PAGES[i - 1].nom === "demande" ? "remplie" : PAGES[i - 1].nom, scDe(PAGES[i - 1].nom, t), 1);
+    if (p.nom === "demande") {
+      const sc = defileForm(t);
+      page(ctx, "demande", sc, k);
+      // la saisie : chaque champ se remplit de gauche à droite
+      [[R.nom, 22.6], [R.email, 23.4], [R.tel, 24.2]].forEach(([r, t0]) => {
+        const kk = clamp((t - t0) / 0.7); if (kk <= 0) return;
+        ctx.save(); ctx.beginPath(); ctx.rect(cx(r.x) - 30, cy(r.y - 14, sc), (r.w * DPR + 30) * outCubic(kk) + 30, (r.h + 28) * DPR); ctx.clip();
+        page(ctx, "remplie", sc, 1); ctx.restore();
+      });
+    } else if (p.nom === "apres") {
+      page(ctx, "apres", 0, k);
+    } else page(ctx, p.nom, scDe(p.nom, t), k);
+  }
+  // la proposition de transport
+  if (t >= 30.4) {
+    const ouvre = outCubic(P(t, 30.4, 31.1)), ferme = inOut(P(t, 37.0, 37.6)), rep = inOut(P(t, 33.5, 34.0));
+    const dim = ouvre * (1 - ferme);
+    if (dim > 0) {
+      const x0 = cx(R.oui.x - 24), x1 = cx(R.oui.x + R.oui.w + 24);
+      // MODALE mesure le corps blanc de la fenêtre ; l'en-tête (titre, croix) est au-dessus.
+      const y0e = cy(MODALE.e[0] - 84), y1e = cy(MODALE.e[1] + 16), y0f = cy(MODALE.f[0] - 84), y1f = cy(MODALE.f[1] + 16);
+      ctx.save(); ctx.beginPath(); ctx.rect(CX, CY, WWIDTH, CH); ctx.clip();
+      // le voile : même teinte que celle du site (bleu nuit à moitié opaque)
+      ctx.fillStyle = `rgba(0,29,53,${0.5 * dim})`; ctx.fillRect(CX, CY, WWIDTH, CH);
+      // la fenêtre surgit (échelle + fondu), puis change de contenu
+      const sc = lerp(0.92, 1, ouvre) - ferme * 0.06;
+      const cxm = (x0 + x1) / 2, cym = (y0e + y1e) / 2;
+      ctx.translate(cxm, cym + (1 - ouvre) * 26); ctx.scale(sc, sc); ctx.translate(-cxm, -cym);
+      ctx.globalAlpha *= dim;
+      ctx.save(); ctx.beginPath(); ctx.rect(x0, y0e, x1 - x0, y1e - y0e); ctx.clip(); ctx.globalAlpha *= 1 - rep; ctx.drawImage(IMG.popup, 0, 0, 1800, CH, CX, CY, 1800, CH); ctx.restore();
+      ctx.save(); ctx.beginPath(); ctx.rect(x0, y0f, x1 - x0, y1f - y0f); ctx.clip(); ctx.globalAlpha *= rep; ctx.drawImage(IMG.oui, 0, 0, 1800, CH, CX, CY, 1800, CH); ctx.restore();
+      ctx.restore();
+    }
+  }
+}
+
+/** Chemin du curseur en canvas, selon l'instant. */
+function curseurPos(t) {
+  const C0 = [WX + 1300, WY + 700];
   const kf = [
-    [0.0, [470, 900]], [2.0, [470, 900]],
-    [2.9, ctr(R.btnFiche).map((v, i) => (i ? v + 0 : v))],
-    [3.5, ctr(R.btnFiche)],
-    // formulaire (fenêtre : y de page − défilement)
-    [4.9, [300, 640]],
-    [5.4, [ctr(R.nom)[0] + 40, ctr(R.nom)[1]]],
-    [6.1, [ctr(R.email)[0] + 40, ctr(R.email)[1]]],
-    [6.8, [ctr(R.tel)[0] + 20, ctr(R.tel)[1]]],
-    [8.2, [300, 520]],
+    [0.8, [1500, 760]], [1.9, [CX + 900, WY + 69]],              // vers la barre d'adresse
+    [2.4, [CX + 900, WY + 69]],
+    [4.6, [CX + 1050, CY + 470]],                                  // l'accueil
+    [8.8, [CX + 1000, CY + 520]],
+    [9.5, [cx(mid(R.voirTout)[0]), cy(mid(R.voirTout)[1], SC_ACCUEIL)]],
+    [10.2, [cx(mid(R.voirTout)[0]), cy(mid(R.voirTout)[1], SC_ACCUEIL)]],
+    [11.6, [CX + 1100, CY + 500]],                                 // la liste
+    [15.7, [CX + 1000, CY + 560]],
+    [16.3, [cx(mid(R.carte)[0]) + 20, cy(mid(R.carte)[1], SC_LISTE)]],
+    [16.9, [cx(mid(R.carte)[0]) + 20, cy(mid(R.carte)[1], SC_LISTE)]],
+    [18.0, [CX + 1300, CY + 400]],                                 // la fiche
+    [19.8, [CX + 1400, CY + 560]],
+    [20.9, [cx(mid(R.demander)[0]), cy(mid(R.demander)[1], SC_FICHE)]],
+    [21.7, [cx(mid(R.demander)[0]), cy(mid(R.demander)[1], SC_FICHE)]],
+    [22.6, [cx(R.nom.x + 140), cy(R.nom.y + 10, 0)]],              // le formulaire
+    [23.4, [cx(R.email.x + 140), cy(R.email.y + 10, 0)]],
+    [24.2, [cx(R.tel.x + 100), cy(R.tel.y + 10, 0)]],
+    [25.2, [cx(R.semaine.x + 60), cy(R.semaine.y + 20, 0)]],
+    [26.0, [cx(R.semaine.x + 60), cy(R.semaine.y + 20, 0)]],
+    [28.2, [cx(mid(R.continuer)[0]), cy(mid(R.continuer)[1], SC_FORM)]],
+    [28.9, [cx(mid(R.continuer)[0]), cy(mid(R.continuer)[1], SC_FORM)]],
+    [30.6, [CX + 1250, CY + 560]],                                 // la proposition
+    [33.0, [cx(mid(R.oui)[0]), cy(mid(R.oui)[1])]],
+    [34.4, [cx(mid(R.oui)[0]), cy(mid(R.oui)[1])]],
+    [35.4, [cx(R.vol.x + 120), cy(R.vol.y + 22)]],
+    [36.5, [cx(mid(R.cont)[0]), cy(mid(R.cont)[1])]],
+    [37.3, [cx(mid(R.cont)[0]), cy(mid(R.cont)[1])]],
+    [38.2, [CX + 1450, CY + 650]],
   ];
   return cle(t, kf);
 }
+const CLICS = [1.9, 9.9, 16.4, 21.0, 28.4, 33.4, 36.8]; // l'adresse est validée par Entrée, non cliquée
+
+/** Caméra : [t, zoom, fx, fy] en canvas. */
+const CAMERA = [
+  [0.0, [1.0, 960, 540]], [1.8, [1.0, 960, 540]],
+  [2.0, [1.9, CX + 560, WY + 69]], [4.2, [1.9, CX + 560, WY + 69]], [5.0, [1.0, 960, 540]],
+  [8.6, [1.0, 960, 540]], [9.4, [1.6, cx(mid(R.voirTout)[0]), cy(mid(R.voirTout)[1], SC_ACCUEIL)]], [10.3, [1.6, cx(mid(R.voirTout)[0]), cy(mid(R.voirTout)[1], SC_ACCUEIL)]], [11.0, [1.0, 960, 540]],
+  [15.8, [1.0, 960, 540]], [16.3, [1.45, cx(mid(R.carte)[0]) + 120, cy(mid(R.carte)[1], SC_LISTE)]], [16.9, [1.45, cx(mid(R.carte)[0]) + 120, cy(mid(R.carte)[1], SC_LISTE)]], [17.6, [1.0, 960, 540]],
+  [20.2, [1.0, 960, 540]], [20.8, [1.6, cx(mid(R.demander)[0]), cy(mid(R.demander)[1], SC_FICHE)]], [21.5, [1.6, cx(mid(R.demander)[0]), cy(mid(R.demander)[1], SC_FICHE)]], [22.2, [1.0, 960, 540]],
+  [22.4, [1.35, CX + 760, CY + 430]], [26.0, [1.35, CX + 760, CY + 430]], [26.8, [1.0, 960, 540]],
+  [28.0, [1.5, cx(mid(R.continuer)[0]), cy(mid(R.continuer)[1], SC_FORM)]], [29.0, [1.5, cx(mid(R.continuer)[0]), cy(mid(R.continuer)[1], SC_FORM)]], [29.8, [1.0, 960, 540]],
+  [30.6, [1.0, 960, 540]], [31.6, [1.5, 960, CY + 400]], [37.4, [1.5, 960, CY + 400]], [38.4, [1.0, 960, 540]],
+];
 
 function dessiner(ctx, t) {
   t = clamp(t, 0, DUREE - 0.001);
   fond(ctx, t);
-  const sortie = inOut(P(t, 21.4, 22.6));
-  const [z, fx, fy] = cle(t, CAM);
-  const entree = outCubic(P(t, 0, 1.1));
-  const zoomFin = lerp(1, 0.55, sortie);
+  const sortie = inOut(P(t, 39.4, 40.8));
+  const entree = outCubic(P(t, 0, 1.2));
+  let [z, fx, fy] = cle(t, CAMERA);
+  // la caméra reste dans la fenêtre : jamais de vide sur les bords
+  fx = clamp(fx, WX + 960 / z, WX + WWIDTH - 960 / z); fy = clamp(fy, WY + 540 / z, WY + BARRE + CH - 540 / z);
   ctx.save();
-  // caméra : on se place sur le point visé, avec un léger balancement
-  ctx.translate(960, 540 + (1 - entree) * 600 - sortie * 500);
-  ctx.scale(z * zoomFin * (0.9 + 0.1 * entree), z * zoomFin * (0.9 + 0.1 * entree));
-  ctx.translate(-px(fx), -py(fy));
-  ctx.globalAlpha = 1 - sortie;
-  telephone(ctx);
+  const k = z * (0.9 + 0.1 * entree) * lerp(1, 0.6, sortie);
+  ctx.translate(960, 540 + (1 - entree) * 120 - sortie * 360); ctx.scale(k, k); ctx.translate(-fx, -fy);
+  ctx.globalAlpha = (0.2 + 0.8 * entree) * (1 - sortie);
 
-  /* ── l'écran : quatre phases ── */
-  const pousse1 = inOut(P(t, 3.7, 4.5));        // fiche → formulaire
-  const pousse2 = inOut(P(t, 11.7, 12.5));      // formulaire → confirmation
-  const sheetE = window.FEUILLE.e - 26, sheetF = window.FEUILLE.f - 26;
-
-  if (t < 4.5) {
-    ecran(ctx, "a", { dx: -pousse1 * SW * 0.3 });
-    if (pousse1 > 0) { ecran(ctx, "c", { dx: (1 - pousse1) * SW }); }
-    // pression du bouton
-    const pr = P(t, 3.15, 3.3) * (1 - P(t, 3.3, 3.55));
-    if (pr > 0) { ctx.save(); ctx.globalAlpha = 0.18 * pr; rr(ctx, px(R.btnFiche.x), py(R.btnFiche.y), R.btnFiche.w * K, R.btnFiche.h * K, 24 * K); ctx.fillStyle = "#000"; ctx.fill(); ctx.restore(); }
-    halo(ctx, R.btnFiche, t, 1.8, 3.6);
-  } else if (t < 12.5) {
-    const sc = defile(t);
-    ecran(ctx, "c", { scroll: sc, dx: -pousse2 * SW * 0.3 });
-    // la saisie : chaque champ se remplit, de gauche à droite
-    [[R.nom, 5.2], [R.email, 5.9], [R.tel, 6.6]].forEach(([r, t0]) => {
-      const k = outCubic(P(t, t0, t0 + 0.55)); if (k <= 0) return;
-      ecran(ctx, "d", { scroll: sc, y0: r.y - 10, y1: r.y + r.h + 10, dx: -pousse2 * SW * 0.3, alpha: k });
-    });
-    // chips : l'anneau sur « 1 semaine »
-    halo(ctx, { ...R.semaine, y: R.semaine.y - sc }, t, 8.8, 10.2);
-    halo(ctx, { ...R.continuer, y: R.continuer.y - sc }, t, 11.0, 11.9);
-    const pr = P(t, 11.15, 11.3) * (1 - P(t, 11.3, 11.55));
-    if (pr > 0) { ctx.save(); ctx.globalAlpha = 0.18 * pr; rr(ctx, px(R.continuer.x), py(R.continuer.y - sc), R.continuer.w * K, R.continuer.h * K, 24 * K); ctx.fillStyle = "#000"; ctx.fill(); ctx.restore(); }
-    if (pousse2 > 0) { ecran(ctx, "g", { dx: (1 - pousse2) * SW }); }
+  // la barre d'adresse
+  const i = PAGES.reduce((m, p, j) => (t >= p.a ? j : m), -1);
+  const nav = { t, titre: "Nouvel onglet", favicon: false, texte: "", saisie: false, caret: false, charge: 0 };
+  if (t < 4.0) {
+    const tape = adresseSaisie(t);
+    nav.texte = tape; nav.saisie = t > 1.9; nav.caret = t > 1.9 && Math.floor(t * 2.2) % 2 === 0;
   } else {
-    // la confirmation, puis la proposition
-    ecran(ctx, "g");
-    const monte = outCubic(P(t, 13.6, 14.4));
-    const ferme = inOut(P(t, 19.3, 20.1));
-    const reponse = inOut(P(t, 15.9, 16.4));
-    if (t < 13.6) { /* page seule */ }
-    else if (ferme < 1) {
-      const dim = (monte) * (1 - ferme);
-      const base = reponse < 0.5 ? "e" : "f";
-      const haut = base === "e" ? sheetE : sheetF;
-      // l'arrière-plan s'assombrit
-      ecran(ctx, "e", { alpha: dim, y1: sheetE });
-      // la feuille monte, puis redescend
-      const dy = ((1 - monte) + ferme) * (844 - sheetE + 40) * K;
-      ecran(ctx, "e", { y0: sheetE, dy, alpha: 1 - reponse });
-      ecran(ctx, "f", { y0: sheetF, dy, alpha: reponse });
-    }
-    // pression sur « Oui » puis « Continuer »
-    [[R.oui, 15.55, 15.75], [R.fermer, 19.0, 19.2]].forEach(([r, a, b]) => {
-      const pr = P(t, a, b) * (1 - P(t, b, b + 0.25)); if (pr <= 0) return;
-      ctx.save(); ctx.globalAlpha = 0.16 * pr; rr(ctx, px(r.x), py(r.y), r.w * K, r.h * K, 26 * K); ctx.fillStyle = "#000"; ctx.fill(); ctx.restore();
-    });
-    halo(ctx, R.oui, t, 14.7, 15.8);
-    halo(ctx, R.vol, t, 17.2, 18.4, C.vertClair);
-    halo(ctx, R.fermer, t, 18.5, 19.4);
+    const p = PAGES[Math.max(i, 0)], dedans = P(t, p.a, p.a + CHARGE);
+    nav.texte = p.url; nav.charge = dedans < 1 ? 0.05 + outCubic(dedans) * 0.95 : 0;
+    nav.titre = dedans < 1 ? (i > 0 ? PAGES[i - 1].titre : "Nouvel onglet") : p.titre; nav.favicon = dedans >= 1 || i > 0;
   }
-  ilot(ctx);
+  navigateur(ctx, nav);
+  dessinerContenu(ctx, t);
 
-  /* ── curseur ── */
-  let cx, cy, presse = 0, visible = true;
-  if (t < 4.5) { [cx, cy] = cheminCurseur(t); presse = P(t, 3.15, 3.3) * (1 - P(t, 3.3, 3.5)); visible = t > 2.0 && t < 4.0; }
-  else if (t < 12.4) {
-    const sc = defile(t);
-    const [x, y] = cle(t, [
-      [4.5, [330, 700]], [5.2, [ctr(R.nom)[0] + 60, ctr(R.nom)[1] - defile(5.2)]], [5.9, [ctr(R.email)[0] + 60, ctr(R.email)[1] - defile(5.9)]], [6.6, [ctr(R.tel)[0] + 30, ctr(R.tel)[1] - defile(6.6)]],
-      [7.6, [300, 520]], [8.8, [ctr(R.semaine)[0], ctr(R.semaine)[1] - 150]], [10.0, [ctr(R.semaine)[0], ctr(R.semaine)[1] - 150]],
-      [11.05, [ctr(R.continuer)[0], ctr(R.continuer)[1] - SCROLL_MAX]],
-    ]);
-    cx = x; cy = y; presse = P(t, 11.15, 11.3) * (1 - P(t, 11.3, 11.5)); visible = t > 4.6 && t < 11.9;
-  } else {
-    [cx, cy] = cle(t, [
-      [14.4, [330, 800]], [15.5, ctr(R.oui)], [16.6, ctr(R.oui)], [17.4, [ctr(R.vol)[0] + 20, ctr(R.vol)[1]]], [18.8, ctr(R.fermer)], [19.2, ctr(R.fermer)], [19.6, [300, 600]],
-    ]);
-    presse = Math.max(P(t, 15.55, 15.7) * (1 - P(t, 15.7, 15.9)), P(t, 19.0, 19.15) * (1 - P(t, 19.15, 19.35))); visible = t > 14.4 && t < 19.8;
+  // halos et pressions
+  halo(ctx, R.voirTout, SC_ACCUEIL, t, 8.8, 10.0);
+  pression(ctx, R.voirTout, SC_ACCUEIL, t, 9.9, 9.95);
+  halo(ctx, R.carte, SC_LISTE, t, 15.6, 16.6, C.jaune, 14);
+  halo(ctx, R.demander, SC_FICHE, t, 20.0, 21.2);
+  pression(ctx, R.demander, SC_FICHE, t, 21.0, 21.05);
+  halo(ctx, R.semaine, 0, t, 24.8, 26.2);
+  halo(ctx, R.continuer, SC_FORM, t, 27.5, 28.6);
+  pression(ctx, R.continuer, SC_FORM, t, 28.4, 28.45);
+  if (t > 31.2 && t < 37.2) {
+    halo(ctx, R.oui, 0, t, 32.2, 33.6);
+    halo(ctx, R.vol, 0, t, 34.4, 35.8, C.vertClair);
+    halo(ctx, R.cont, 0, t, 36.0, 37.0);
   }
-  if (visible) {
-    const ex = px(cx), ey = py(cy);
-    if (t < 4.5) touche(ctx, ex, ey, t, 3.2);
-    else if (t < 12.4) touche(ctx, ex, ey, t, 11.2);
-    else { touche(ctx, ex, ey, t, 15.6); touche(ctx, ex, ey, t, 19.05); }
-    curseur(ctx, ex, ey, presse);
+
+  // curseur : visible une fois entré, jusqu'à la fin du parcours
+  if (t > 0.9 && t < 39.0) {
+    const [x, y] = curseurPos(t);
+    const clic = CLICS.find((c) => Math.abs(t - c) < 0.4);
+    const presse = CLICS.reduce((m, c) => Math.max(m, P(t, c, c + 0.12) * (1 - P(t, c + 0.12, c + 0.35))), 0);
+    CLICS.forEach((c) => touche(ctx, x, y, t, c + 0.04));
+    curseur(ctx, x, y, presse);
   }
   ctx.restore();
 
-  /* ── pastilles ── */
-  ctx.save(); ctx.globalAlpha = 1 - sortie;
-  pastille(ctx, t, 3.2, "maison", 470, 400);
-  pastille(ctx, t, 8.7, "calendrier", 470, 520);
-  pastille(ctx, t, 12.7, "enveloppe", 470, 400);
-  pastille(ctx, t, 16.2, "voiture", 470, 540, true);
-  ctx.restore();
-  progression(ctx, t, sortie);
-
-  /* ── la marque ── */
+  // la marque
   if (sortie > 0) {
-    const a = P(t, 22.0, 23.0), k = outBack(P(t, 22.0, 23.2));
-    const lk = inOut(P(t, 22.4, 24.0));
-    ctx.strokeStyle = C.jaune; ctx.lineWidth = 6; ctx.lineCap = "round"; ctx.beginPath(); ctx.moveTo(960 - 360 * lk, 650); ctx.lineTo(960 + 360 * lk, 650); ctx.stroke();
+    const a = P(t, 40.2, 41.2), kk = outBack(P(t, 40.2, 41.4)), lk = inOut(P(t, 40.6, 42.2));
+    ctx.save(); ctx.strokeStyle = C.jaune; ctx.lineWidth = 6; ctx.lineCap = "round"; ctx.beginPath(); ctx.moveTo(960 - 360 * lk, 650); ctx.lineTo(960 + 360 * lk, 650); ctx.stroke();
     glow(ctx, 960, 650, 320, "rgba(245,187,69,0.7)", 0.35 * lk);
-    if (LOGO && LOGO.complete) { const w = 820, h = w * LOGO.height / LOGO.width; ctx.save(); ctx.globalAlpha = a; ctx.translate(960, 500); ctx.scale(k, k); ctx.drawImage(LOGO, -w / 2, -h / 2, w, h); ctx.restore(); }
+    if (LOGO && LOGO.complete) { const w = 820, h = w * LOGO.height / LOGO.width; ctx.globalAlpha = a; ctx.translate(960, 500); ctx.scale(kk, kk); ctx.drawImage(LOGO, -w / 2, -h / 2, w, h); }
+    ctx.restore();
   }
 }

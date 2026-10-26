@@ -21,7 +21,7 @@ try {
   await new Promise((o) => (ws.onopen = o));
   const cmd = (method, params = {}) => new Promise((o) => { const i = ++n; att.set(i, o); ws.send(JSON.stringify({ id: i, method, params })); });
   await cmd("Page.enable");
-  await cmd("Page.navigate", { url: `file://${resolve(import.meta.dirname, "index.html")}` });
+  await cmd("Page.navigate", { url: `file://${resolve(import.meta.dirname, process.argv[4] ?? "index.html")}` });
   await new Promise((r) => setTimeout(r, 2500));
   const rep = await cmd("Runtime.evaluate", { expression: "window.enregistrer()", awaitPromise: true, returnByValue: true, timeout: 120000 });
   const { mime, taille } = rep.result.result.value;
@@ -33,7 +33,7 @@ try {
     base64 += t.result.result.value;
   }
   const ext = mime.startsWith("video/mp4") ? "mp4" : "webm";
-  const fichier = join(sortie, `accompagnement.${ext}`);
+  const fichier = join(sortie, `${process.argv[3] ?? "accompagnement"}.${ext}`);
   writeFileSync(fichier, Buffer.from(base64, "base64"));
   console.log(mime, fichier);
   ws.close();
