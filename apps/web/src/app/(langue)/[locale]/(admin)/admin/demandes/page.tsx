@@ -1,3 +1,4 @@
+import { dureeDeNuits } from "@teranga/contracts";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import {
@@ -175,6 +176,13 @@ export default async function DemandesAdmin({
                           <span className="mt-1 inline-flex items-center rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600">
                             {t(`admin.genre.${demande.genre}`)}
                           </span>
+                          {"nuits" in demande.prix && (
+                            <span className="mt-1 block text-[11px] text-slate-500">
+                              {demande.prix.nuits} nuit{demande.prix.nuits > 1 ? "s" : ""}
+                              {dureeDeNuits(demande.prix.nuits) ? "" : " · dates libres"} · {demande.personnes} voyageur
+                              {demande.personnes > 1 ? "s" : ""}
+                            </span>
+                          )}
                         </Link>
                       </td>
 

@@ -142,3 +142,16 @@ export function nuitsEntre(debut: string, fin: string): number {
   const ecart = Date.parse(`${fin}T00:00:00Z`) - Date.parse(`${debut}T00:00:00Z`);
   return Math.max(1, Math.round(ecart / 86_400_000));
 }
+
+/**
+ * La durée proposée qui correspond exactement à ce nombre de nuits, ou rien.
+ *
+ * Le visiteur choisit « une semaine » ou « trois jours » dans le formulaire ;
+ * l'API n'en garde que les dates. La durée se **relit** donc d'après les nuits :
+ * sept nuits sont « une semaine », cinq nuits ne sont aucune des cinq durées —
+ * ce sont des dates choisies à la main sur la fiche, et le backoffice le dit
+ * ainsi plutôt que de les arrondir à la plus proche.
+ */
+export function dureeDeNuits(nuits: number): CleDuree | undefined {
+  return DUREES_SEJOUR.find((duree) => duree.nuits === nuits)?.cle;
+}

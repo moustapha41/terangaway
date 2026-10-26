@@ -1,6 +1,13 @@
 import { HttpStatus, Inject, Injectable } from "@nestjs/common";
 import { Prisma, type Demand } from "@prisma/client";
-import { totalSejour, type ChoixTransfert, type Demande, type StatutDemande } from "@teranga/contracts";
+import {
+  lignesSejour,
+  totalSejour,
+  type ChoixTransfert,
+  type Demande,
+  type LignePrix,
+  type StatutDemande,
+} from "@teranga/contracts";
 
 import { randomBytes } from "node:crypto";
 import { PrismaService } from "../../base-de-donnees/prisma.service";
@@ -157,6 +164,9 @@ export class DepotDemandesPrisma implements DepotDemandes {
         nuits,
         fraisFixes: fraisFixes as any,
         prixTotal: total,
+        // La décomposition est figée avec le total : l'équipe doit relire ce que
+        // le visiteur a vu, pas ce que le catalogue dirait aujourd'hui.
+        prixLignes: lignesSejour(logement, nuits) as unknown as object,
         frise: [{ statut: "envoyee", horodatage: maintenant, origine: "visiteur" }],
         expireLe: new Date(expireLePour("logement")),
       },
@@ -530,6 +540,32 @@ function lireChoixTransfert(valeur: string | null): ChoixTransfert | undefined {
   return valeur === "souhaite" || valeur === "refuse" ? valeur : undefined;
 }
 
+/**
+ * Les lignes du prix, telles que la base les porte.
+ *
+ * Relues avec méfiance : une valeur qui n'aurait pas la forme attendue — une
+ * colonne éditée à la main, une version plus ancienne — vaut « pas de détail »,
+ * jamais une erreur qui ferait tomber la fiche d'une demande.
+ */
+function lireLignes(valeur: unknown): LignePrix[] | undefined {
+  if (!Array.isArray(valeur) || valeur.length === 0) return undefined;
+  const lignes: LignePrix[] = [];
+  for (const brut of valeur) {
+    if (!brut || typeof brut !== "object") return undefined;
+    const { palier, quantite, tarif, montant } = brut as Record<string, unknown>;
+    if (
+      (palier !== "mois" && palier !== "semaine" && palier !== "nuit") ||
+      !Number.isFinite(quantite) ||
+      !Number.isFinite(tarif) ||
+      !Number.isFinite(montant)
+    ) {
+      return undefined;
+    }
+    lignes.push({ palier, quantite: quantite as number, tarif: tarif as number, montant: montant as number });
+  }
+  return lignes;
+}
+
 export function demandToDemande(row: Demand): Demande {
   const genre =
     row.genre === "logement"
@@ -588,6 +624,7 @@ export function demandToDemande(row: Demand): Demande {
       nuits: row.nuits ?? 1,
       fraisFixes,
       total: row.prixTotal,
+      lignes: lireLignes(row.prixLignes),
     },
     frise,
     expireLe: row.expireLe ? row.expireLe.toISOString() : undefined,

@@ -21,6 +21,13 @@ import { delaiAcompteHeures } from "../acomptes/calcul";
 import { coordonneesPaiement } from "../acomptes/paiement";
 import { DUREE_LIEN_DEMANDE_HEURES, ServiceComptes, type VisiteurDeDemande } from "../comptes/comptes.service";
 import { ServiceLogements } from "../offres/logements/logements.service";
+import {
+  formaterFrancs,
+  lignesLogement,
+  lignesService,
+  lignesTransport,
+  type LigneFiche,
+} from "./fiche-reception";
 import { ChoisirTransfertDto } from "./dto/choisir-transfert.dto";
 import { CreerDemandeLogementDto } from "./dto/creer-demande-logement.dto";
 import { CreerDemandeServiceDto } from "./dto/creer-demande-service.dto";
@@ -76,7 +83,16 @@ export class ControleurDemandes {
       message: corps.message,
       visiteurId: visiteur.compteId,
     });
-    const notification = await this.previenir(visiteur, demande, corps.contact, "logement");
+    const logement = demande.offre.genre === "logement"
+      ? await this.logements.parId(demande.offre.logementId).catch(() => null)
+      : null;
+    const notification = await this.previenir(
+      visiteur,
+      demande,
+      corps.contact,
+      "logement",
+      lignesLogement(demande, logement ?? undefined),
+    );
     return {
       donnees: demande,
       notification: { ...notification, jetonSuite: jetonSuiteDemande(demande.id) },
@@ -144,7 +160,21 @@ export class ControleurDemandes {
       message: corps.message,
       visiteurId: visiteur.compteId,
     });
-    const notification = await this.previenir(visiteur, demande, corps.contact, genreDeVehicule(corps.prestation));
+    const notification = await this.previenir(
+      visiteur,
+      demande,
+      corps.contact,
+      genreDeVehicule(corps.prestation),
+      lignesTransport({
+        prestation: corps.prestation,
+        depart: corps.depart,
+        arrivee: corps.arrivee,
+        quand: corps.quand,
+        passagers: corps.passagers,
+        bagages: corps.bagages,
+        vol: corps.vol,
+      }),
+    );
     return { donnees: demande, notification };
   }
 
@@ -179,7 +209,7 @@ export class ControleurDemandes {
       message: corps.message,
       visiteurId: visiteur.compteId,
     });
-    const notification = await this.previenir(visiteur, demande, corps.contact, "service");
+    const notification = await this.previenir(visiteur, demande, corps.contact, "service", lignesService(details));
     return { donnees: demande, notification };
   }
 
@@ -200,6 +230,7 @@ export class ControleurDemandes {
     demande: Demande,
     contact: { nom?: string; email?: string; telephone?: string } | undefined,
     genre: GenreDemande,
+    detail?: LigneFiche[],
   ): Promise<NotificationDemande> {
     // Le jeton d'abord : c'est lui qui décide à qui va le pouvoir de répondre,
     // et donc ce que contiendra chacun des deux e-mails.
@@ -218,7 +249,7 @@ export class ControleurDemandes {
 
     const [emailVisiteur] = await Promise.all([
       this.confirmerParEmail(visiteur, demande, genre),
-      this.alerterEquipe(visiteur, demande, equipe, contact, { lienReponse }),
+      this.alerterEquipe(visiteur, demande, equipe, contact, { lienReponse }, detail),
       proprietaireDistinct && lienReponse
         ? this.email.envoyerDemandeAuPartenaire(adresseProprietaire, {
             reference: demande.reference,
@@ -402,12 +433,14 @@ export class ControleurDemandes {
     destinataires: readonly string[],
     contact?: { nom?: string; email?: string; telephone?: string },
     liens: { lienReponse?: string } = {},
+    detail?: LigneFiche[],
   ): Promise<void> {
     await this.email.alerterEquipe(destinataires, {
       reference: demande.reference,
       genre: demande.offre.genre === "service" ? demande.offre.service : demande.offre.genre,
       titre: demande.offre.titre,
       sejour: periode(demande),
+      detail,
       personnes: demande.personnes,
       total: demande.prix.total > 0 ? formaterFrancs(demande.prix.total) : undefined,
       message: demande.message,
@@ -462,15 +495,4 @@ function periode(demande: Demande): string | undefined {
   const jour = (iso: string) =>
     new Date(iso).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" });
   return !fin || fin === debut ? jour(debut) : `${jour(debut)} → ${jour(fin)}`;
-}
-
-/**
- * Le total en francs, monnaie du paiement.
- *
- * Le site affiche des euros ou des dollars au visiteur, mais le règlement a
- * lieu sur place, en francs : c'est ce montant-là qu'il tendra, et c'est donc
- * celui que l'écrit doit porter.
- */
-function formaterFrancs(montant: number): string {
-  return `${new Intl.NumberFormat("fr-FR").format(montant).replace(/\u202f|\u00a0/g, " ")} FCFA`;
 }

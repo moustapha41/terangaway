@@ -1,5 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import { totalSejour, type ChoixTransfert, type Demande, type StatutDemande } from "@teranga/contracts";
+import { lignesSejour, totalSejour, type ChoixTransfert, type Demande, type StatutDemande } from "@teranga/contracts";
 import { DEMANDES, LOGEMENTS, VEHICULES } from "@teranga/fixtures";
 
 import { ErreurMetier, introuvable } from "../../commun/erreurs";
@@ -148,7 +148,7 @@ export class DepotDemandesFixtures implements DepotDemandes {
       personnes: entree.personnes,
       heureArrivee: entree.heureArrivee,
       message: entree.message,
-      prix: { prixParNuit: logement.prixParNuit, nuits, fraisFixes, total },
+      prix: { prixParNuit: logement.prixParNuit, nuits, fraisFixes, total, lignes: lignesSejour(logement, nuits) },
       frise: [{ statut: "envoyee", horodatage: maintenant, origine: "visiteur" }],
       expireLe: expireLePour("logement"),
     };

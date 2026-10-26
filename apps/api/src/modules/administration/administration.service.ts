@@ -97,6 +97,8 @@ const COLONNES = [
   "offre",
   "debut",
   "fin",
+  "duree_nuits",
+  "detail_prix",
   "personnes",
   "heure_arrivee",
   "depart",
@@ -142,6 +144,10 @@ export function composerCsv(demandes: DemandeAdmin[]): string {
         d.offre.titre,
         d.dates.debut,
         d.dates.fin,
+        "nuits" in d.prix ? String(d.prix.nuits) : "",
+        "lignes" in d.prix && d.prix.lignes
+          ? d.prix.lignes.map((l) => `${l.quantite} ${l.palier} x ${l.tarif}`).join(" + ")
+          : "",
         String(d.personnes),
         d.heureArrivee ?? "",
         d.transport?.depart ?? "",

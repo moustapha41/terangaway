@@ -24,6 +24,7 @@ import {
   type ContactDemande,
 } from "@/lib/api/ecriture";
 import { apiMockActive, ErreurApi } from "@/lib/api/http";
+import { lignesSejour } from "@teranga/contracts";
 import { prixSemaine, totalSejour } from "@/lib/prix";
 import { traduireLogement } from "@teranga/fixtures/traduire";
 import type { FacettesVehicules, Lieu } from "@/lib/api/lecture";
@@ -284,7 +285,7 @@ export async function envoyerDemande(
     personnes: entree.personnes,
     heureArrivee: entree.heureArrivee,
     message: entree.message,
-    prix: { prixParNuit: logement.prixParNuit, nuits, fraisFixes, total },
+    prix: { prixParNuit: logement.prixParNuit, nuits, fraisFixes, total, lignes: lignesSejour(logement, nuits) },
     frise: [{ statut: "envoyee", horodatage: maintenant, origine: "visiteur" }],
     // Le partenaire a 2 heures pour répondre sur un logement.
     expireLe: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(),

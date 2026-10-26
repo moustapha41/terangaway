@@ -186,6 +186,13 @@ model Demand {
   fraisFixes          Json?
   prixTotal           Int             @default(0)
 
+  /// Comment l'hébergement a été chiffré, palier par palier : « 2 semaines ×
+  /// 650 000 F ». Figé avec `prixTotal`, dont il est la décomposition — et non
+  /// recalculé à la lecture : un catalogue qui aurait changé depuis ferait
+  /// afficher à l'équipe un détail qui ne tombe plus sur le total annoncé.
+  /// `NULL` pour les demandes antérieures à son enregistrement.
+  prixLignes          Json?
+
   coordonnees         Json?
   frise               Json
 

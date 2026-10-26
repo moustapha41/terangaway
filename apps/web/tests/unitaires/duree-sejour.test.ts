@@ -3,6 +3,8 @@ import {
   DUREES_SEJOUR,
   NUITS_PAR_MOIS,
   ajouterJours,
+  dureeDeNuits,
+  lignesSejour,
   nuitsEntre,
   prixSemaine,
   sousTotalSejour,
@@ -149,6 +151,67 @@ describe("Jours et nuits", () => {
   it("ajouter puis compter se répondent", () => {
     for (const { nuits } of DUREES_SEJOUR) {
       expect(nuitsEntre("2026-11-01", ajouterJours("2026-11-01", nuits))).toBe(nuits);
+    }
+  });
+});
+
+describe("Lignes du prix — ce que le backoffice affiche", () => {
+  it("la somme des lignes est toujours le sous-total, pour toute annonce et toute durée", () => {
+    // Le détail affiché à l'équipe et le total annoncé au visiteur sont la même
+    // chose, écrite deux fois : si l'un bougeait sans l'autre, le backoffice
+    // montrerait une décomposition qui ne tombe pas sur le prix.
+    for (const logement of LOGEMENTS) {
+      for (let nuits = 1; nuits <= 120; nuits++) {
+        const somme = lignesSejour(logement, nuits).reduce((total, ligne) => total + ligne.montant, 0);
+        expect(somme, `${logement.id} · ${nuits} nuits`).toBe(sousTotalSejour(logement, nuits));
+      }
+    }
+  });
+
+  it("chaque ligne est quantité × tarif, et ne porte que des quantités positives", () => {
+    for (const nuits of [1, 3, 7, 10, 14, 21, 29, 30, 45, 60, 95]) {
+      for (const ligne of lignesSejour(COMPLET, nuits)) {
+        expect(ligne.montant).toBe(ligne.quantite * ligne.tarif);
+        expect(ligne.quantite).toBeGreaterThan(0);
+      }
+    }
+  });
+
+  it("ne garde que les paliers utilisés", () => {
+    expect(lignesSejour(COMPLET, 3).map((l) => l.palier)).toEqual(["nuit"]);
+    expect(lignesSejour(COMPLET, 7).map((l) => l.palier)).toEqual(["semaine"]);
+    expect(lignesSejour(COMPLET, 10).map((l) => l.palier)).toEqual(["semaine", "nuit"]);
+    expect(lignesSejour(COMPLET, 30).map((l) => l.palier)).toEqual(["mois"]);
+    expect(lignesSejour(COMPLET, 45).map((l) => l.palier)).toEqual(["mois", "semaine", "nuit"]);
+  });
+
+  it("garde le tarif de chaque palier tel qu'il était : de quoi relire sans le catalogue", () => {
+    expect(lignesSejour(COMPLET, 45)).toEqual([
+      { palier: "mois", quantite: 1, tarif: 1_200_000, montant: 1_200_000 },
+      { palier: "semaine", quantite: 2, tarif: 650_000, montant: 1_300_000 },
+      { palier: "nuit", quantite: 1, tarif: 130_000, montant: 130_000 },
+    ]);
+  });
+
+  it("une annonce sans tarif mensuel n'a jamais de ligne « mois »", () => {
+    for (const nuits of [30, 60, 90]) {
+      expect(lignesSejour(SEMAINE, nuits).some((l) => l.palier === "mois")).toBe(false);
+    }
+  });
+});
+
+describe("Durée choisie, relue d'après les nuits", () => {
+  it("retrouve chacune des cinq durées proposées", () => {
+    expect(dureeDeNuits(3)).toBe("troisJours");
+    expect(dureeDeNuits(7)).toBe("uneSemaine");
+    expect(dureeDeNuits(14)).toBe("deuxSemaines");
+    expect(dureeDeNuits(21)).toBe("troisSemaines");
+    expect(dureeDeNuits(30)).toBe("unMois");
+  });
+
+  it("ne rattache pas à la plus proche : cinq nuits sont des dates choisies à la main", () => {
+    for (const nuits of [1, 2, 4, 5, 6, 8, 10, 15, 29, 31, 45]) {
+      expect(dureeDeNuits(nuits), `${nuits} nuits`).toBeUndefined();
     }
   });
 });

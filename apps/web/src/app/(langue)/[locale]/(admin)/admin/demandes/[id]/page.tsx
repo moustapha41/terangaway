@@ -20,7 +20,7 @@ import {
   AlertCircle,
   ExternalLink,
 } from "lucide-react";
-import type { CoordonneesAdmin, DemandeAdmin, StatutDemande, VueAcompteAdmin } from "@teranga/contracts";
+import { dureeDeNuits, type CoordonneesAdmin, type DemandeAdmin, type StatutDemande, type VueAcompteAdmin } from "@teranga/contracts";
 import { ErreurApi } from "@/lib/api/http";
 import { formaterDateHeure, formaterJour } from "@/features/admin/format";
 import { ServeurInjoignable } from "@/features/admin/serveur-injoignable";
@@ -92,6 +92,9 @@ export default async function FicheDemandeAdmin({
   }
 
   const retourLien = avecLangue(langue, "/admin/demandes");
+
+  // Seul un logement porte des nuits : les autres genres n'ont ni durée ni détail de prix.
+  const sejourChiffre = "nuits" in demande.prix ? demande.prix : undefined;
 
   return (
     <div className="space-y-6">
@@ -167,6 +170,18 @@ export default async function FicheDemandeAdmin({
                 </span>
               </div>
 
+              {sejourChiffre && (
+                <div className="rounded-xl bg-slate-50 p-3.5">
+                  <span className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+                    Durée choisie
+                  </span>
+                  <span className="mt-1 flex items-center gap-1.5 text-xs font-semibold text-slate-900">
+                    <Clock className="h-4 w-4 text-slate-400" />
+                    {libelleDuree(sejourChiffre.nuits)}
+                  </span>
+                </div>
+              )}
+
               <div className="rounded-xl bg-slate-50 p-3.5">
                 <span className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
                   {t("admin.personnes")}
@@ -235,6 +250,38 @@ export default async function FicheDemandeAdmin({
                 </span>
               </div>
             </div>
+
+            {/* Comment le prix est fait : les lignes ont été figées avec le total,
+                on les relit telles quelles — jamais recalculées d'après le catalogue. */}
+            {sejourChiffre && (
+              <div className="mt-4 rounded-xl border border-slate-200">
+                <p className="border-b border-slate-100 px-3.5 py-2 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                  Détail du prix
+                </p>
+                {sejourChiffre.lignes && sejourChiffre.lignes.length > 0 ? (
+                  <dl className="divide-y divide-slate-100 text-xs">
+                    {sejourChiffre.lignes.map((ligne) => (
+                      <div key={ligne.palier} className="flex items-center justify-between gap-3 px-3.5 py-2">
+                        <dt className="text-slate-600">
+                          {ligne.quantite} {libellePalier(ligne.palier, ligne.quantite)} × {formaterPrix(ligne.tarif, langue)}
+                        </dt>
+                        <dd className="font-mono font-semibold text-slate-900">{formaterPrix(ligne.montant, langue)}</dd>
+                      </div>
+                    ))}
+                    {sejourChiffre.fraisFixes.map((frais) => (
+                      <div key={frais.libelle} className="flex items-center justify-between gap-3 px-3.5 py-2">
+                        <dt className="text-slate-600">{frais.libelle}</dt>
+                        <dd className="font-mono font-semibold text-slate-900">{formaterPrix(frais.montant, langue)}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                ) : (
+                  <p className="px-3.5 py-2.5 text-xs text-slate-500">
+                    Le détail du tarif n'a pas été conservé pour cette demande : seul le total, figé à l'envoi, fait foi.
+                  </p>
+                )}
+              </div>
+            )}
           </div>
 
           {/* 2. Trajet transport (si applicable) */}
@@ -542,4 +589,24 @@ function libelleChamp(t: Traducteur, cle: string): string {
 function libelleValeur(t: Traducteur, valeur: string): string {
   const traduit = t(`demandeService.champ.${valeur}`);
   return traduit === `demandeService.champ.${valeur}` ? valeur : traduit;
+}
+
+const DUREES_LISIBLES = {
+  troisJours: "3 jours",
+  uneSemaine: "1 semaine",
+  deuxSemaines: "2 semaines",
+  troisSemaines: "3 semaines",
+  unMois: "1 mois",
+} as const;
+
+/** « 7 nuits · 1 semaine » ; cinq nuits ne sont aucune durée proposée : dates choisies à la main. */
+function libelleDuree(nuits: number): string {
+  const cle = dureeDeNuits(nuits);
+  return `${nuits} nuit${nuits > 1 ? "s" : ""} · ${cle ? DUREES_LISIBLES[cle] : "dates choisies à la main"}`;
+}
+
+function libellePalier(palier: "mois" | "semaine" | "nuit", quantite: number): string {
+  if (palier === "mois") return "mois";
+  const un = palier === "semaine" ? "semaine" : "nuit";
+  return quantite > 1 ? `${un}s` : un;
 }

@@ -21,6 +21,13 @@ export interface AlerteDemande {
   genre: string;
   titre: string;
   sejour?: string;
+  /**
+   * Le détail de ce que le visiteur a choisi, ligne par ligne : durée, lieu,
+   * décomposition du prix pour un logement ; trajet, heure de prise en charge,
+   * bagages, vol pour un transport ; saisie champ par champ pour un service.
+   * Quand il est là, il remplace « Séjour », trop court pour décider.
+   */
+  detail?: Array<[libelle: string, valeur: string]>;
   personnes?: number;
   /** Total figé, déjà formaté avec sa monnaie. */
   total?: string;
@@ -63,8 +70,12 @@ export function genererAlerteDemande(alerte: AlerteDemande): ContenuEmail {
     ["Référence", alerte.reference],
     ["Type", alerte.genre],
     ["Offre", alerte.titre],
-    ["Séjour", alerte.sejour],
-    ["Voyageurs", alerte.personnes ? String(alerte.personnes) : undefined],
+    ...(alerte.detail && alerte.detail.length > 0
+      ? alerte.detail
+      : ([
+          ["Séjour", alerte.sejour],
+          ["Voyageurs", alerte.personnes ? String(alerte.personnes) : undefined],
+        ] as Array<[string, string | undefined]>)),
     ["Total", alerte.total],
     ["Nom", alerte.contact.nom],
     ["E-mail", alerte.contact.email],
@@ -89,7 +100,7 @@ export function genererAlerteDemande(alerte: AlerteDemande): ContenuEmail {
     .filter(([, valeur]) => valeur)
     .map(
       ([etiquette, valeur]) =>
-        `<tr><td class="etiquette">${etiquette}</td><td class="valeur">${echapper(
+        `<tr><td class="etiquette">${echapper(etiquette)}</td><td class="valeur">${echapper(
           String(valeur),
         )}</td></tr>`,
     )

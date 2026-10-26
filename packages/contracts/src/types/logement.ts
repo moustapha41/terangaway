@@ -1,4 +1,5 @@
 import type { Equipement, Inclus, MoyenDePaiement, TypeLogement } from "../enums";
+import type { LignePrix } from "../prix";
 
 export interface Photo {
   url: string;
@@ -146,4 +147,11 @@ export interface PrixSejour {
   nuits: number;
   fraisFixes: { libelle: string; montant: number }[];
   total: number;
+  /**
+   * Comment l'hébergement a été chiffré, palier par palier — figé avec le total.
+   * Absent des demandes antérieures à son enregistrement : le backoffice dit
+   * alors que le détail n'a pas été conservé, plutôt que de le reconstituer d'après
+   * un catalogue qui a pu changer.
+   */
+  lignes?: LignePrix[];
 }
