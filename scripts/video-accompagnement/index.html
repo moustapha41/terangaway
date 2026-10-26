@@ -1,0 +1,20 @@
+<!doctype html><meta charset="utf-8"><title>accompagnement</title>
+<style>html,body{margin:0;background:#000}canvas{display:block;width:100vw;height:auto}</style>
+<canvas id="c" width="1920" height="1080"></canvas>
+<script src="logo.js"></script><script src="scene.js"></script>
+<script>
+const c = document.getElementById("c"), ctx = c.getContext("2d");
+LOGO = new Image(); LOGO.src = window.LOGO_URL;
+const q = new URLSearchParams(location.search);
+window.rendre = (t) => dessiner(ctx, t);
+if (q.has("t")) { LOGO.onload = () => { rendre(parseFloat(q.get("t"))); window.pret = true; }; }
+else window.enregistrer = () => new Promise((fin) => {
+  const flux = c.captureStream(30);
+  const mime = ["video/mp4;codecs=avc1", "video/webm;codecs=vp9", "video/webm"].find((m) => MediaRecorder.isTypeSupported(m));
+  const rec = new MediaRecorder(flux, { mimeType: mime, videoBitsPerSecond: 8_000_000 });
+  const morceaux = []; rec.ondataavailable = (e) => e.data.size && morceaux.push(e.data);
+  rec.onstop = async () => { const b = new Blob(morceaux, { type: mime }); const buf = new Uint8Array(await b.arrayBuffer()); let s = ""; for (let i = 0; i < buf.length; i += 32768) s += String.fromCharCode.apply(null, buf.subarray(i, i + 32768)); window.__b64 = btoa(s); fin({ mime, taille: window.__b64.length }); };
+  const debut = performance.now(); rec.start(500);
+  (function boucle() { const t = (performance.now() - debut) / 1000; dessiner(ctx, t); if (t < DUREE) requestAnimationFrame(boucle); else rec.stop(); })();
+});
+</script>
