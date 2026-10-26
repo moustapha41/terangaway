@@ -2273,6 +2273,8 @@
     "changerNon": "Cancel the transfer",
     "erreur": "Your choice could not be saved. Please try again in a moment.",
     "indisponible": "This page has expired: your choice can no longer be saved here. Write to us on WhatsApp and we will take care of it.",
-    "ecrireWhatsapp": "Write on WhatsApp"
+    "ecrireWhatsapp": "Write on WhatsApp",
+    "plusTard": "Answer later",
+    "continuer": "Continue"
   }
 }

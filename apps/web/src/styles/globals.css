@@ -27,6 +27,42 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
+/*
+ * L'entrée d'une fenêtre qui doit se faire remarquer : elle monte légèrement et
+ * s'éclaircit, et le fond s'assombrit en même temps. Sans transition, un popup
+ * qui apparaît d'un coup se confond avec un changement de page.
+ *
+ * Réservée aux fenêtres qui la demandent (`popup-entree`) : le calendrier ou les
+ * filtres, ouverts par le visiteur lui-même, n'ont pas à attirer l'œil.
+ */
+@keyframes popup-entree {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes popup-fond {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.popup-entree[open] {
+  animation: popup-entree 240ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.popup-entree[open]::backdrop {
+  animation: popup-fond 240ms ease-out;
+}
+
 /* §C.1 : les changements d'état sont désactivés si le téléphone le demande */
 @media (prefers-reduced-motion: reduce) {
   *,

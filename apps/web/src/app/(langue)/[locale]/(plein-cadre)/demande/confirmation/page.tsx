@@ -5,7 +5,7 @@ import { SelecteurLangue } from "@/components/layout/selecteur-langue";
 import { IndicateurEtapes } from "@/features/demande/indicateur-etapes";
 import { visiteurConnecte } from "@/features/compte/session";
 import { lireRecapitulatif, type Recapitulatif } from "@/features/demande/recapitulatif";
-import { QuestionTransfert } from "@/features/demande/question-transfert";
+import { TransfertSejour } from "@/features/demande/question-transfert";
 import { SuiteDuSejour } from "@/features/demande/suite-du-sejour";
 import { jourValide, lieuDeSejour, lienTransfert } from "@teranga/contracts";
 import { logementParId } from "@/mocks/api";
@@ -185,7 +185,7 @@ export default async function Confirmation({
                     — cookie expiré, démonstration — la liste ci-dessous garde
                     sa ligne d'arrivée, et le visiteur ne perd rien. */}
                 {recap.jetonSuite && (
-                  <QuestionTransfert
+                  <TransfertSejour
                     lieu={lieuDeSejour(logementSejour)}
                     jour={formaterDateComplete(new Date(`${jourDebut}T00:00:00`), langue)}
                     reference={referenceAffichee ?? recap.reference}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, useId, useRef, type ReactNode } from "react";
 import { cn } from "../cn";
 import { Icone } from "../icones";
 
@@ -27,6 +27,7 @@ export function FeuilleBasse({
   className?: string;
 }) {
   const dialogue = useRef<HTMLDialogElement>(null);
+  const idTitre = useId();
 
   useEffect(() => {
     const element = dialogue.current;
@@ -38,6 +39,9 @@ export function FeuilleBasse({
   return (
     <dialog
       ref={dialogue}
+      // Sans nom, un lecteur d'écran annonce « boîte de dialogue » et rien de
+      // plus : le titre visible est aussi celui qu'il lit.
+      aria-labelledby={idTitre}
       onClose={onFermer}
       onClick={(e) => e.currentTarget === e.target && onFermer()}
       className={cn(
@@ -49,7 +53,7 @@ export function FeuilleBasse({
       <div className="flex items-center justify-between gap-4 border-b border-contour px-5 py-4">
         {/* La poignée est décorative : la fermeture passe par le bouton et par Échap. */}
         <span aria-hidden="true" className="absolute left-1/2 top-2 h-1 w-10 -translate-x-1/2 rounded-pill bg-contour sm:hidden" />
-        <h2 className="text-titre-3 text-encre">{titre}</h2>
+        <h2 id={idTitre} className="text-titre-3 text-encre">{titre}</h2>
         <button
           type="button"
           onClick={onFermer}

@@ -2273,6 +2273,8 @@
     "changerNon": "Annuler le transfert",
     "erreur": "Votre choix n'a pas pu être enregistré. Réessayez dans un instant.",
     "indisponible": "Cette page a expiré : votre choix ne peut plus être enregistré ici. Écrivez-nous sur WhatsApp, nous nous en occupons.",
-    "ecrireWhatsapp": "Écrire sur WhatsApp"
+    "ecrireWhatsapp": "Écrire sur WhatsApp",
+    "plusTard": "Répondre plus tard",
+    "continuer": "Continuer"
   }
 }
