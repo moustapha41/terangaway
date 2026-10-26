@@ -1716,7 +1716,9 @@
     },
     "surnomDakar": "Dakar",
     "surnomDiamniadio": "Diamniadio",
-    "surnomSaly": "Saly"
+    "surnomSaly": "Saly",
+    "compteAReboursEnCours": "Los Juegos están en marcha",
+    "compteAReboursEnCoursTexte": "Tiempo restante hasta la clausura, el 13 de noviembre. Aún está a tiempo de reservar."
   },
   "demandeTransport": {
     "titre": "Hacer una solicitud",

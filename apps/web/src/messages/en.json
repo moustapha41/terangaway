@@ -1716,7 +1716,9 @@
     },
     "surnomDakar": "Dakar",
     "surnomDiamniadio": "Diamniadio",
-    "surnomSaly": "Saly"
+    "surnomSaly": "Saly",
+    "compteAReboursEnCours": "The Games are on",
+    "compteAReboursEnCoursTexte": "Time left until the closing, on 13 November. There is still time to book."
   },
   "demandeTransport": {
     "titre": "Make a request",

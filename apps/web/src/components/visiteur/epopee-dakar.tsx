@@ -14,7 +14,7 @@ import {
 import { Lien } from "@/lib/i18n/lien";
 import type { Langue } from "@/lib/i18n/langues";
 import { useT } from "@/lib/i18n/contexte";
-import { FENETRE_JEUX } from "@/lib/dates/sejour";
+import { JEUX } from "@/lib/dates/sejour";
 
 const POLES = [
   { id: "dakar", disciplines: ["athletisme", "basket3x3", "skateboard", "natation"] },
@@ -46,6 +46,7 @@ export function EpopeeDakar({ langue = "fr" }: { langue?: Langue }) {
   const t = useT();
   const sectionRef = useRef<HTMLElement>(null);
   const [poleActif, setPoleActif] = useState<(typeof POLES)[number]["id"]>("dakar");
+  const [enCours, setEnCours] = useState(false);
   const [temps, setTemps] = useState({ jours: 0, heures: 0, minutes: 0, secondes: 0 });
 
   useEffect(() => {
@@ -86,11 +87,17 @@ export function EpopeeDakar({ langue = "fr" }: { langue?: Langue }) {
     window.addEventListener("resize", onScroll, { passive: true });
     placer();
 
-    // L'ouverture des Jeux est une donnée du produit, pas de cette section :
-    // elle était recopiée ici, et au 31 octobre au lieu du 20.
-    const cible = new Date(`${FENETRE_JEUX.debut}T18:00:00Z`).getTime();
+    // Avant l'ouverture, on compte jusqu'à elle ; pendant les Jeux, jusqu'à la
+    // clôture — le compteur couvre ainsi toute la période, et ne reste jamais
+    // figé à zéro. L'ouverture est une donnée du produit, pas de cette section.
+    const ouverture = new Date(JEUX.ouverture).getTime();
+    const cloture = new Date(JEUX.cloture).getTime();
     const tick = () => {
-      const dist = Math.max(0, cible - Date.now());
+      const maintenant = Date.now();
+      const enCours = maintenant >= ouverture && maintenant < cloture;
+      setEnCours(enCours);
+      const cible = maintenant < ouverture ? ouverture : cloture;
+      const dist = Math.max(0, cible - maintenant);
       setTemps({
         jours: Math.floor(dist / 86_400_000),
         heures: Math.floor((dist % 86_400_000) / 3_600_000),
@@ -270,11 +277,11 @@ export function EpopeeDakar({ langue = "fr" }: { langue?: Langue }) {
               <div className="flex items-center gap-2 text-jaune-vif">
                 <Clock strokeWidth={1.7} className="h-4 w-4" />
                 <span className="text-[12.5px] font-semibold uppercase tracking-[0.14em]">
-                  {t("epopee.compteARebours")}
+                  {t(enCours ? "epopee.compteAReboursEnCours" : "epopee.compteARebours")}
                 </span>
               </div>
               <p className="mt-2 text-[14px] text-[#E6EDF5]">
-                {t("epopee.compteAReboursTexte")}
+                {t(enCours ? "epopee.compteAReboursEnCoursTexte" : "epopee.compteAReboursTexte")}
               </p>
 
               <div className="mt-6 [@media(min-width:1024px)_and_(min-height:960px)]:mt-4 grid grid-cols-4 gap-2 text-center">
