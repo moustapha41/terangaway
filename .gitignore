@@ -36,3 +36,7 @@ test-results/
 /v2/
 /v3/
 /v4/
+
+# Captures et rendus de la vidéo 4K (régénérables : voir scripts/video-4k)
+scripts/video-4k/ressources/
+livrables/
