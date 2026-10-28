@@ -1,0 +1,39 @@
+<!doctype html><meta charset="utf-8"><body style="margin:0;background:#000"><video id="a" muted playsinline preload="auto" style="display:none"></video><video id="b" muted playsinline preload="auto" style="display:none"></video><canvas id="c"></canvas>
+<script type="module">
+import { Muxer, ArrayBufferTarget } from "./mp4-muxer.mjs";
+const FPS = 30, W = 2160, H = 3840;
+const canvas = document.getElementById("c"); canvas.width = W; canvas.height = H;
+const ctx = canvas.getContext("2d"); ctx.imageSmoothingQuality = "high";
+const vid = { a: document.getElementById("a"), b: document.getElementById("b") };
+for (const k of ["a", "b"]) await new Promise((ok, ko) => { vid[k].onloadeddata = ok; vid[k].onerror = () => ko(new Error("lecture " + k)); vid[k].src = `/${k}.mp4`; });
+// plan : [vidéo, début, fin dans la source, vitesse, fondu en entrée (s)]
+const PLAN = JSON.parse(new URLSearchParams(location.search).get("plan"));
+let debut = 0; const items = PLAN.map(([v, s, e, vit, xf]) => { const dur = (e - s) / vit; const it = { v, s, e, vit, t0: debut - (debut ? xf : 0), dur, xf: debut ? xf : 0 }; debut = it.t0 + dur; return it; });
+const total = debut; window.infos = { total, items };
+const aller = (v, t) => new Promise((ok) => { v.onseeked = ok; v.currentTime = t; });
+async function image(T) {
+  const actifs = items.filter((it) => T >= it.t0 && T < it.t0 + it.dur);
+  ctx.globalAlpha = 1; ctx.fillStyle = "#000"; ctx.fillRect(0, 0, W, H);
+  for (const it of actifs) {
+    const src = Math.min(it.s + (T - it.t0) * it.vit, vid[it.v].duration - 0.001);
+    await aller(vid[it.v], src);
+    ctx.globalAlpha = it.xf ? Math.min(1, (T - it.t0) / it.xf) : 1; ctx.drawImage(vid[it.v], 0, 0, W, H);
+  }
+  ctx.globalAlpha = 1;
+}
+window.produire = async (debit) => {
+  const config = { codec: "avc1.640034", width: W, height: H, bitrate: debit, framerate: FPS, latencyMode: "quality" };
+  const muxer = new Muxer({ target: new ArrayBufferTarget(), video: { codec: "avc", width: W, height: H }, fastStart: "in-memory" });
+  let erreur = null; const enc = new VideoEncoder({ output: (c, m) => muxer.addVideoChunk(c, m), error: (e) => { erreur = e; } }); enc.configure(config);
+  const n = Math.floor(total * FPS);
+  for (let i = 0; i < n; i++) {
+    if (erreur) throw erreur; await image(i / FPS);
+    const f = new VideoFrame(canvas, { timestamp: Math.round(i * 1e6 / FPS), duration: Math.round(1e6 / FPS) });
+    while (enc.encodeQueueSize > 4) await new Promise((r) => setTimeout(r, 5));
+    enc.encode(f, { keyFrame: i % 60 === 0 }); f.close(); window.avancement = `${i}/${n}`;
+  }
+  await enc.flush(); muxer.finalize(); window.__mp4 = new Uint8Array(muxer.target.buffer); return window.__mp4.length;
+};
+window.tranche = (i, t) => { const b = window.__mp4.subarray(i, i + t); let s = ""; for (let k = 0; k < b.length; k += 32768) s += String.fromCharCode.apply(null, b.subarray(k, k + 32768)); return btoa(s); };
+window.pret = true;
+</script>
