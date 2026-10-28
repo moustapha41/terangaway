@@ -68,5 +68,13 @@ try {
     for (const ch of texte) { await p.cmd("Input.insertText", { text: ch }); await image(); await image(); }
     await maintenir(0.2);
   }
-  const b = await rect("button", "COMMANDER"); await vers(b.x, b.y, 0.5); await appuyer(false); await maintenir(0.8);
+  const b = await rect("button", "COMMANDER"); await vers(b.x, b.y, 0.5);
+  // on envoie la commande et on filme la validation jusqu'au bout (au plus 6 s)
+  const avant = await p.ev("location.href"); await appuyer(true);
+  const debut = nFichiers;
+  for (let i = 0; i < 6 * FPS; i++) {
+    await injecter(); await lireUrl(); await image();
+    if (i === 3 * FPS) console.log("après 3 s :", url, "| texte :", (await p.ev("document.body.innerText.slice(0,160).replace(/\\n/g,' ')")));
+  }
+  console.log("page de validation :", url, (await p.ev("location.href")) !== avant ? "(navigation)" : "(même page)");
 } finally { writeFileSync(join(sortie, "sequence.json"), JSON.stringify(sequence)); console.log("images", nFichiers, "durée", (sequence.length / FPS).toFixed(1), "s"); p.fermer(); }
