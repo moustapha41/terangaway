@@ -1,0 +1,29 @@
+<!doctype html><meta charset="utf-8"><body style="margin:0"><video id="v" muted playsinline preload="auto" style="display:none"></video><canvas id="c"></canvas>
+<script type="module">
+import { Muxer, ArrayBufferTarget } from "/video-4k/mp4-muxer.mjs";
+const FPS = 30, v = document.getElementById("v"), canvas = document.getElementById("c");
+await new Promise((ok, ko) => { v.onloadeddata = ok; v.onerror = () => ko(new Error("lecture impossible")); v.src = "/source.mp4"; });
+const W = v.videoWidth & ~1, H = v.videoHeight & ~1, duree = v.duration; canvas.width = W; canvas.height = H;
+const ctx = canvas.getContext("2d"); ctx.imageSmoothingQuality = "high";
+const aller = (t) => new Promise((ok) => { v.onseeked = ok; v.currentTime = t; });
+window.infos = { W, H, duree };
+/** Des images fixes, aux instants donnés (fractions de la durée). */
+window.images = async (fractions) => { const r = []; for (const f of fractions) { await aller(Math.min(duree * f, duree - 0.05)); ctx.drawImage(v, 0, 0, W, H); r.push(canvas.toDataURL("image/jpeg", 0.9).split(",")[1]); } return r; };
+/** La même vidéo, sans bande son. */
+window.produire = async (debit) => {
+  const config = { codec: "avc1.640028", width: W, height: H, bitrate: debit, framerate: FPS, latencyMode: "quality" };
+  if (!(await VideoEncoder.isConfigSupported(config)).supported) throw new Error("H.264 non pris en charge " + W + "x" + H);
+  const muxer = new Muxer({ target: new ArrayBufferTarget(), video: { codec: "avc", width: W, height: H }, fastStart: "in-memory" });
+  let erreur = null; const enc = new VideoEncoder({ output: (c, m) => muxer.addVideoChunk(c, m), error: (e) => { erreur = e; } }); enc.configure(config);
+  const total = Math.floor(duree * FPS);
+  for (let n = 0; n < total; n++) {
+    if (erreur) throw erreur; await aller(Math.min(n / FPS, duree - 0.001)); ctx.drawImage(v, 0, 0, W, H);
+    const f = new VideoFrame(canvas, { timestamp: Math.round(n * 1e6 / FPS), duration: Math.round(1e6 / FPS) });
+    while (enc.encodeQueueSize > 4) await new Promise((r) => setTimeout(r, 5));
+    enc.encode(f, { keyFrame: n % 90 === 0 }); f.close(); window.avancement = `${n}/${total}`;
+  }
+  await enc.flush(); muxer.finalize(); window.__mp4 = new Uint8Array(muxer.target.buffer); return window.__mp4.length;
+};
+window.tranche = (i, t) => { const b = window.__mp4.subarray(i, i + t); let s = ""; for (let k = 0; k < b.length; k += 32768) s += String.fromCharCode.apply(null, b.subarray(k, k + 32768)); return btoa(s); };
+window.pret = true;
+</script>
