@@ -29,6 +29,8 @@ async function appuyer(envoyer = true) {
 async function preparer() { // charge les images paresseuses, déclenche les apparitions, remet en haut
   await injecter(); const h = await p.ev("document.documentElement.scrollHeight");
   for (let y = 0; y < h; y += 500) { await p.ev(`window.scrollTo(0,${y})`, false); await p.attendre(120); }
+  await p.ev(`document.querySelectorAll('img[loading=lazy]').forEach(i=>{i.loading='eager'})`, false);
+  for (let i = 0; i < 40 && !(await p.ev(`[...document.images].every(i=>i.complete&&(i.naturalWidth>0||!i.currentSrc))`)); i++) await p.attendre(300);
   await p.attendre(600); await p.ev("window.scrollTo(0,0)", false); await p.attendre(700); await injecter();
 }
 async function apresClic(urlAvant) {

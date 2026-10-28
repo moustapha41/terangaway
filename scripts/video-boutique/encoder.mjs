@@ -4,7 +4,7 @@ const [dossier, sortie] = process.argv.slice(2); const racine = import.meta.dirn
 const TYPES = { ".html": "text/html", ".mjs": "text/javascript", ".json": "application/json", ".jpg": "image/jpeg" };
 const serveur = createServer((req, res) => {
   const p = decodeURIComponent(new URL(req.url, "http://x").pathname);
-  const chemin = p.startsWith("/images/") ? join(images, p.slice(8)) : p.startsWith("/video-4k/") ? join(video4k, p.slice(10)) : join(racine, p === "/" ? "encoder.html" : p.slice(1));
+  const chemin = p.startsWith("/images/") ? join(images, p.slice(8)) : p.startsWith("/video-4k/") ? join(video4k, p.slice(10)) : join(racine, p === "/" ? (process.env.PAGE ?? "encoder.html") : p.slice(1));
   if (!existsSync(chemin)) { res.writeHead(404).end(); return; }
   res.writeHead(200, { "Content-Type": TYPES[extname(chemin)] ?? "application/octet-stream" }).end(readFileSync(chemin));
 });

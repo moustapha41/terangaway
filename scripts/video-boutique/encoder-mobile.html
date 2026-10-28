@@ -1,0 +1,79 @@
+<!doctype html><meta charset="utf-8"><body style="margin:0"><canvas id="c"></canvas>
+<script type="module">
+import { Muxer, ArrayBufferTarget } from "/video-4k/mp4-muxer.mjs";
+const FPS = 30, W = 1080, H = 1920, CY = 160, CH = 1650, S = 2;
+const FONT = 'system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif';
+function rr(ctx, x, y, w, h, r) {
+  const q = Math.min(r, w / 2, h / 2);
+  ctx.beginPath(); ctx.moveTo(x + q, y);
+  ctx.arcTo(x + w, y, x + w, y + h, q); ctx.arcTo(x + w, y + h, x, y + h, q);
+  ctx.arcTo(x, y + h, x, y, q); ctx.arcTo(x, y, x + w, y, q); ctx.closePath();
+}
+function circle(ctx, x, y, r, fill) { ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fillStyle = fill; ctx.fill(); }
+function barres(ctx, o) {
+  const { texte, saisie, caret, charge, titre } = o;
+  // haut
+  ctx.fillStyle = "#FFFFFF"; ctx.fillRect(0, 0, W, CY);
+  ctx.fillStyle = "#111"; ctx.font = `600 30px ${FONT}`; ctx.textBaseline = "middle"; ctx.fillText("9:41", 56, 30);
+  ctx.fillStyle = "#111"; for (let i = 0; i < 4; i++) ctx.fillRect(800 + i * 12, 38 - i * 5, 7, 6 + i * 5);
+  rr(ctx, 905, 20, 54, 26, 7); ctx.strokeStyle = "#111"; ctx.lineWidth = 2.5; ctx.stroke(); ctx.fillRect(909, 24, 40, 18); ctx.fillRect(961, 28, 4, 10);
+  // pastille d'adresse
+  const x0 = 36, y0 = 72, w = W - 72, h = 76;
+  rr(ctx, x0, y0, w, h, 38); ctx.fillStyle = saisie ? "#FFFFFF" : "#EEF1F6"; ctx.fill();
+  if (saisie) { ctx.strokeStyle = "#1A73E8"; ctx.lineWidth = 4; ctx.stroke(); }
+  ctx.save(); ctx.translate(x0 + 44, y0 + h / 2); ctx.strokeStyle = "#5F6368"; ctx.lineWidth = 3.2; ctx.lineCap = "round";
+  ctx.beginPath(); ctx.arc(0, -5, 8, Math.PI, 0); ctx.stroke(); rr(ctx, -11, -4, 22, 17, 4); ctx.fillStyle = "#5F6368"; ctx.fill(); ctx.restore();
+  ctx.font = `400 30px ${FONT}`; ctx.textBaseline = "middle";
+  const m = texte.match(/^([^/]+)(\/.*)?$/) || [null, texte, ""];
+  const x = x0 + 84; const dispo = w - 84 - 70;
+  let site = m[1], chemin = m[2] || "";
+  // le chemin se raccourcit s'il déborde
+  while (ctx.measureText(site + chemin).width > dispo && chemin.length > 4) chemin = chemin.slice(0, -2);
+  if (chemin !== (m[2] || "")) chemin += "…";
+  ctx.fillStyle = "#1F2328"; ctx.fillText(site, x, y0 + h / 2 + 2);
+  const dw = ctx.measureText(site).width;
+  if (chemin) { ctx.fillStyle = "#6B7280"; ctx.fillText(chemin, x + dw, y0 + h / 2 + 2); }
+  if (caret) { const tw = ctx.measureText(texte).width; ctx.fillStyle = "#1F2328"; ctx.fillRect(x + tw + 2, y0 + 16, 3, h - 32); }
+  ctx.strokeStyle = "#5F6368"; ctx.lineWidth = 3.4; ctx.beginPath(); ctx.arc(x0 + w - 44, y0 + h / 2, 14, 0.5, Math.PI * 2 - 0.4); ctx.stroke();
+  // chargement
+  if (charge > 0 && charge < 1) { ctx.fillStyle = "#1A73E8"; ctx.fillRect(0, CY - 6, W * charge, 6); }
+  ctx.fillStyle = "#E3E6EB"; ctx.fillRect(0, CY - 1, W, 1);
+  // bas
+  ctx.fillStyle = "#FFFFFF"; ctx.fillRect(0, CY + CH, W, H - CY - CH);
+  ctx.fillStyle = "#E3E6EB"; ctx.fillRect(0, CY + CH, W, 1);
+  ctx.strokeStyle = "#5F6368"; ctx.lineWidth = 4; ctx.lineCap = "round"; ctx.lineJoin = "round";
+  const by = CY + CH + 52;
+  ctx.beginPath(); ctx.moveTo(120, by); ctx.lineTo(90, by); ctx.moveTo(100, by - 14); ctx.lineTo(86, by); ctx.lineTo(100, by + 14); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(300, by); ctx.lineTo(330, by); ctx.moveTo(320, by - 14); ctx.lineTo(334, by); ctx.lineTo(320, by + 14); ctx.stroke();
+  rr(ctx, 520, by - 8, 40, 30, 5); ctx.stroke(); ctx.beginPath(); ctx.moveTo(540, by - 30); ctx.lineTo(540, by + 6); ctx.moveTo(526, by - 18); ctx.lineTo(540, by - 32); ctx.lineTo(554, by - 18); ctx.stroke();
+  rr(ctx, 738, by - 18, 40, 36, 8); ctx.stroke(); ctx.font = `700 20px ${FONT}`; ctx.fillStyle = "#5F6368"; ctx.textAlign = "center"; ctx.fillText("1", 758, by + 1); ctx.textAlign = "left";
+  [-1, 0, 1].forEach((d) => circle(ctx, 960 + d * 14, by, 3.5, "#5F6368"));
+  ctx.fillStyle = "#111"; rr(ctx, 400, H - 18, 280, 8, 4); ctx.fill(); // barre d'accueil
+}
+
+
+const seq = await (await fetch("/images/sequence.json")).json();
+const canvas = document.getElementById("c"); canvas.width = W * S; canvas.height = H * S; const ctx = canvas.getContext("2d"); ctx.imageSmoothingQuality = "high";
+window.infos = { images: seq.length };
+window.produire = async (debit) => {
+  const config = { codec: "avc1.640034", width: W * S, height: H * S, bitrate: debit, framerate: FPS, latencyMode: "quality" };
+  if (!(await VideoEncoder.isConfigSupported(config)).supported) throw new Error("H.264 non pris en charge");
+  const muxer = new Muxer({ target: new ArrayBufferTarget(), video: { codec: "avc", width: W * S, height: H * S }, fastStart: "in-memory" });
+  let erreur = null; const enc = new VideoEncoder({ output: (c, m) => muxer.addVideoChunk(c, m), error: (e) => { erreur = e; } }); enc.configure(config);
+  let courant = -2, bitmap = null;
+  for (let n = 0; n < seq.length; n++) {
+    if (erreur) throw erreur; const f = seq[n];
+    if (f.i !== courant) { bitmap?.close(); bitmap = f.i >= 0 ? await createImageBitmap(await (await fetch(`/images/${String(f.i).padStart(5, "0")}.jpg`)).blob()) : null; courant = f.i; }
+    ctx.setTransform(S, 0, 0, S, 0, 0); ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, W, H);
+    if (bitmap) ctx.drawImage(bitmap, 0, CY, W, CH);
+    ctx.textAlign = "left"; barres(ctx, { texte: f.u, saisie: f.s, caret: f.k, charge: f.c });
+    if (!f.u && !f.s) { /* rien */ }
+    const vf = new VideoFrame(canvas, { timestamp: Math.round(n * 1e6 / FPS), duration: Math.round(1e6 / FPS) });
+    while (enc.encodeQueueSize > 4) await new Promise((r) => setTimeout(r, 5));
+    enc.encode(vf, { keyFrame: n % 60 === 0 }); vf.close(); window.avancement = `${n}/${seq.length}`;
+  }
+  await enc.flush(); muxer.finalize(); window.__mp4 = new Uint8Array(muxer.target.buffer); return window.__mp4.length;
+};
+window.tranche = (i, t) => { const b = window.__mp4.subarray(i, i + t); let s = ""; for (let k = 0; k < b.length; k += 32768) s += String.fromCharCode.apply(null, b.subarray(k, k + 32768)); return btoa(s); };
+window.pret = true;
+</script>
