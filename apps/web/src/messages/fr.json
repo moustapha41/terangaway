@@ -12,7 +12,11 @@
       "one": "{nombre} avis",
       "other": "{nombre} avis"
     },
-    "retourLogements": "Retour aux logements"
+    "retourLogements": "Retour aux logements",
+    "voirEnEuros": "Voir en euros",
+    "voirEnDollars": "Voir en dollars",
+    "masquerConversion": "Revenir au franc CFA",
+    "environ": "environ {montant}"
   },
   "entete": {
     "accueil": "Accueil",

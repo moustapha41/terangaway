@@ -9,6 +9,7 @@ import { Lien } from "@/lib/i18n/lien";
 import { useLangue, useT } from "@/lib/i18n/contexte";
 import { titreLogement } from "@/lib/i18n/titre-logement";
 import { formaterMontantVisiteur, formaterPrixVisiteur, prixAffiche } from "@/lib/prix";
+import { ConversionPrix } from "@/components/visiteur/conversion-prix";
 
 /**
  * Vue carte des résultats — maquette écran 07.
@@ -77,6 +78,10 @@ export function VueCarte({
               <p className="text-legende text-encre-douce chiffres-tabulaires">
                 {formaterPrixVisiteur(actif.prixParNuit, langue)} {t("commun.parNuit")}
               </p>
+              <ConversionPrix
+                montant={prixAffiche(actif).montant}
+                unite={t(prixAffiche(actif).cleUnite)}
+              />
             </div>
 
             <button

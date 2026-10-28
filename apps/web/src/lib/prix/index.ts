@@ -7,7 +7,7 @@ import type { Langue } from "@/lib/i18n/langues";
  * Trois règles, toutes obligatoires :
  *   un prix n'apparaît jamais sans son unité ;
  *   espace entre les milliers, « FCFA » après le montant, dans les trois langues ;
- *   la conversion est un texte secondaire, précédée de « environ ».
+ *   la conversion (euro, dollar) est un texte secondaire, précédée de « environ ».
  *
  * Le franc CFA n'a pas de décimales. `Intl.NumberFormat` le sait, mais on fixe
  * quand même les deux bornes : un arrondi silencieux sur un prix serait grave.
@@ -92,14 +92,29 @@ export function convertir(montantEnFrancs: number, langue: Langue): number {
 }
 
 /**
- * Le prix tel que le visiteur le lit : « 1 601 € », « $1,721 ».
+ * Le prix tel que le visiteur le lit : « 75 000 FCFA ».
  *
- * Le franc reste la monnaie de la donnée et du paiement — le séjour se règle
- * sur place, auprès du propriétaire. L'affichage, lui, parle la monnaie du
- * visiteur, arrondie à l'unité : le franc CFA n'a pas de centimes, et un prix
- * d'annonce qui en afficherait serait une fausse précision.
+ * Le franc CFA est la monnaie de la donnée, du paiement **et de l'affichage** :
+ * la plupart des visiteurs sont déjà au Sénégal et comptent en francs. Celui qui
+ * préfère l'euro ou le dollar le demande, d'un bouton sous le prix, et la
+ * conversion s'affiche alors en texte secondaire (`ConversionPrix`).
  */
 export function formaterPrixVisiteur(montantEnFrancs: number, langue: Langue): string {
+  return formaterPrix(montantEnFrancs, langue);
+}
+
+/** Le même montant sans sa monnaie, pour les écrans qui la nomment ailleurs. */
+export function formaterMontantVisiteur(montantEnFrancs: number, langue: Langue): string {
+  return formaterMontant(montantEnFrancs, langue);
+}
+
+/**
+ * La conversion, quand le visiteur l'a demandée : « 1 601 € », « $1,721 ».
+ *
+ * Arrondie à l'unité : le franc CFA n'a pas de centimes, et un prix d'annonce
+ * qui en afficherait serait une fausse précision.
+ */
+export function formaterPrixConverti(montantEnFrancs: number, langue: Langue): string {
   return new Intl.NumberFormat(langue, {
     style: "currency",
     currency: deviseDeLangue(langue),
@@ -107,9 +122,3 @@ export function formaterPrixVisiteur(montantEnFrancs: number, langue: Langue): s
     maximumFractionDigits: 0,
   }).format(convertir(montantEnFrancs, langue));
 }
-
-/** Le même montant sans sa monnaie, pour les écrans qui la nomment ailleurs. */
-export function formaterMontantVisiteur(montantEnFrancs: number, langue: Langue): string {
-  return formaterMontant(convertir(montantEnFrancs, langue), langue);
-}
-

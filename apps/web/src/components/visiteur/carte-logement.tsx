@@ -5,6 +5,7 @@ import { Lien } from "@/lib/i18n/lien";
 import { traducteurPour } from "@/lib/i18n/messages";
 import type { Langue } from "@/lib/i18n/langues";
 import { formaterPrixVisiteur, prixAffiche } from "@/lib/prix";
+import { ConversionPrix } from "@/components/visiteur/conversion-prix";
 import { situation } from "@/lib/lieu";
 import { titreLogement } from "@/lib/i18n/titre-logement";
 
@@ -99,6 +100,12 @@ export function CarteLogement({
           </p>
         </div>
       </Lien>
+      <div className="-mt-2 px-4 pb-4">
+        <ConversionPrix
+          montant={prixAffiche(logement).montant}
+          unite={t(prixAffiche(logement).cleUnite)}
+        />
+      </div>
     </Carte>
   );
 }

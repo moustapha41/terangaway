@@ -7,6 +7,7 @@ import { Icone } from "@teranga/ui";
 import { Lien } from "@/lib/i18n/lien";
 import { useLangue, useT } from "@/lib/i18n/contexte";
 import { formaterPrixVisiteur, prixAffiche, sousTotalSejour } from "@/lib/prix";
+import { ConversionPrix } from "@/components/visiteur/conversion-prix";
 import { useFavoris } from "@/features/favoris/use-favoris";
 import { situation } from "@/lib/lieu";
 import { titreLogement } from "@/lib/i18n/titre-logement";
@@ -134,6 +135,11 @@ export function CarteLogementListe({
               <p className="mt-0.5 text-legende text-encre-douce chiffres-tabulaires">
                 {formaterPrixVisiteur(logement.prixParNuit, langue)} {t("commun.parNuit")}
               </p>
+              <ConversionPrix
+                className="relative z-10"
+                montant={prixAffiche(logement).montant}
+                unite={t(prixAffiche(logement).cleUnite)}
+              />
             </div>
             <p className="text-petit text-encre-douce chiffres-tabulaires">
               {t("resultats.totalNuits", {

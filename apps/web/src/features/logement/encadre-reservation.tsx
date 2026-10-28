@@ -8,6 +8,7 @@ import { etiquettesDates } from "@/features/transport/etiquettes-dates";
 import { FENETRE_JEUX } from "@/lib/dates/sejour";
 import { formaterDateComplete, nombreDeNuits } from "@/lib/dates";
 import { formaterPrixVisiteur, prixAffiche, totalSejour } from "@/lib/prix";
+import { ConversionPrix } from "@/components/visiteur/conversion-prix";
 import { lienWhatsapp } from "@/lib/assistance";
 import { titreLogement } from "@/lib/i18n/titre-logement";
 import { Lien } from "@/lib/i18n/lien";
@@ -103,6 +104,10 @@ export function EncadreReservation({
         <p className="mt-0.5 text-petit text-encre-douce chiffres-tabulaires">
           {formaterPrixVisiteur(logement.prixParNuit, langue)} {t("commun.parNuit")}
         </p>
+        <ConversionPrix
+          montant={prixAffiche(logement).montant}
+          unite={t(prixAffiche(logement).cleUnite)}
+        />
         <p className="mt-0.5 text-petit text-encre-douce chiffres-tabulaires">
           {auMois
             ? t("fiche.sejourAuMois", {

@@ -12,7 +12,11 @@
       "one": "{nombre} opinión",
       "other": "{nombre} opiniones"
     },
-    "retourLogements": "Volver a los alojamientos"
+    "retourLogements": "Volver a los alojamientos",
+    "voirEnEuros": "Ver en euros",
+    "voirEnDollars": "Ver en dólares",
+    "masquerConversion": "Volver al franco CFA",
+    "environ": "unos {montant}"
   },
   "entete": {
     "accueil": "Inicio",

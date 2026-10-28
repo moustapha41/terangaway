@@ -4,6 +4,7 @@ import { MIS_EN_AVANT } from "@/lib/vitrine";
 import { traducteurPour } from "@/lib/i18n/messages";
 import type { Langue } from "@/lib/i18n/langues";
 import { formaterPrixVisiteur, prixAffiche } from "@/lib/prix";
+import { ConversionPrix } from "@/components/visiteur/conversion-prix";
 import type { Equipement, Logement } from "@teranga/contracts";
 import { logementParId } from "@/mocks/api";
 import { situation } from "@/lib/lieu";
@@ -192,6 +193,12 @@ export async function HebergementsRecommandes({ langue }: { langue: Langue }) {
                   </p>
                 </div>
               </Lien>
+              <div className="-mt-2 px-4 pb-4">
+                <ConversionPrix
+                  montant={prixAffiche(logement).montant}
+                  unite={t(prixAffiche(logement).cleUnite)}
+                />
+              </div>
 
               <span
                 aria-hidden

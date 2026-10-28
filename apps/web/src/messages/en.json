@@ -12,7 +12,11 @@
       "one": "{nombre} review",
       "other": "{nombre} reviews"
     },
-    "retourLogements": "Back to the places"
+    "retourLogements": "Back to the places",
+    "voirEnEuros": "See in euros",
+    "voirEnDollars": "See in dollars",
+    "masquerConversion": "Back to CFA francs",
+    "environ": "about {montant}"
   },
   "entete": {
     "accueil": "Home",

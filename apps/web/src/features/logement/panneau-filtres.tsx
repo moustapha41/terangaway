@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { EQUIPEMENTS, TYPES_LOGEMENT, type Facettes } from "@teranga/contracts";
 import { Icone } from "@teranga/ui";
 import { useLangue, useT } from "@/lib/i18n/contexte";
-import { deviseDeLangue, formaterMontantVisiteur } from "@/lib/prix";
+import { formaterMontantVisiteur } from "@/lib/prix";
 
 /**
  * Panneau de filtres — maquette du parcours logement, écran 02.
@@ -104,8 +104,8 @@ export function PanneauFiltres({ facettes }: { facettes: Facettes }) {
         ))}
       </Section>
 
-      {/* Prix par semaine, dans la monnaie que le visiteur lit partout ailleurs */}
-      <Section titre={t("resultats.prixParSemaine", { devise: deviseDeLangue(langue) })}>
+      {/* Prix par semaine, en francs CFA comme partout ailleurs */}
+      <Section titre={t("resultats.prixParSemaine", { devise: "FCFA" })}>
         <div className="flex items-center justify-between gap-3">
           <span className="rounded-control bg-champ px-3 py-1.5 text-petit text-encre chiffres-tabulaires">
             {formaterMontantVisiteur(Number(params.get("prixMin") ?? facettes.prix.min), langue)}
