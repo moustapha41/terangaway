@@ -1,0 +1,25 @@
+<!doctype html><meta charset="utf-8"><body style="margin:0"><canvas id="c"></canvas>
+<script type="module">
+import { Muxer, ArrayBufferTarget } from "/video-4k/mp4-muxer.mjs";
+const FPS = 30; const seq = await (await fetch("/images/sequence.json")).json();
+const premiere = await createImageBitmap(await (await fetch("/images/00000.jpg")).blob());
+const W = premiere.width, H = premiere.height; const canvas = document.getElementById("c"); canvas.width = W; canvas.height = H; const ctx = canvas.getContext("2d");
+window.infos = { W, H, images: seq.length };
+window.produire = async (debit) => {
+  const config = { codec: "avc1.640034", width: W, height: H, bitrate: debit, framerate: FPS, latencyMode: "quality" };
+  if (!(await VideoEncoder.isConfigSupported(config)).supported) throw new Error("H.264 non pris en charge");
+  const muxer = new Muxer({ target: new ArrayBufferTarget(), video: { codec: "avc", width: W, height: H }, fastStart: "in-memory" });
+  let erreur = null; const enc = new VideoEncoder({ output: (c, m) => muxer.addVideoChunk(c, m), error: (e) => { erreur = e; } }); enc.configure(config);
+  let courant = -1, bitmap = null;
+  for (let i = 0; i < seq.length; i++) {
+    if (erreur) throw erreur;
+    if (seq[i] !== courant) { bitmap?.close(); bitmap = await createImageBitmap(await (await fetch(`/images/${String(seq[i]).padStart(5, "0")}.jpg`)).blob()); courant = seq[i]; ctx.drawImage(bitmap, 0, 0); }
+    const f = new VideoFrame(canvas, { timestamp: Math.round(i * 1e6 / FPS), duration: Math.round(1e6 / FPS) });
+    while (enc.encodeQueueSize > 4) await new Promise((r) => setTimeout(r, 5));
+    enc.encode(f, { keyFrame: i % 60 === 0 }); f.close(); window.avancement = `${i}/${seq.length}`;
+  }
+  await enc.flush(); muxer.finalize(); window.__mp4 = new Uint8Array(muxer.target.buffer); return window.__mp4.length;
+};
+window.tranche = (i, t) => { const b = window.__mp4.subarray(i, i + t); let s = ""; for (let k = 0; k < b.length; k += 32768) s += String.fromCharCode.apply(null, b.subarray(k, k + 32768)); return btoa(s); };
+window.pret = true;
+</script>
