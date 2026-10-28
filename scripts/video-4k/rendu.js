@@ -15,7 +15,7 @@ import { Muxer, ArrayBufferTarget } from "./mp4-muxer.mjs";
 
 const params = new URLSearchParams(location.search);
 const FORMAT = params.get("format") ?? "desktop";
-const ECHELLE = 2; // le décor se dessine en 1920×1080 (ou 1080×1920) ; le canvas fait le double : 4K
+const ECHELLE = Number(new URLSearchParams(location.search).get("echelle") ?? 2); // le décor se dessine en 1920×1080 (ou 1080×1920) ; le canvas fait le double : 4K
 const FPS = 30;
 
 const MANIFESTE = await (await fetch(`ressources/${FORMAT}/manifeste.json`)).json();

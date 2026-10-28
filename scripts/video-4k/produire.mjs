@@ -25,7 +25,7 @@ try {
   const cmd = (method, params = {}) => new Promise((o) => { const i = ++n; att.set(i, o); ws.send(JSON.stringify({ id: i, method, params })); });
   const ev = async (expression, attendre = true) => { const r = await cmd("Runtime.evaluate", { expression, awaitPromise: attendre, returnByValue: true }); if (r.result?.exceptionDetails) throw new Error(JSON.stringify(r.result.exceptionDetails).slice(0, 600)); return r.result?.result?.value; };
   await cmd("Page.enable"); await cmd("Runtime.enable");
-  await cmd("Page.navigate", { url: `http://127.0.0.1:${port}/index.html?format=${format}${process.env.LIMITE ? '&limite=' + process.env.LIMITE : ''}` });
+  await cmd("Page.navigate", { url: `http://127.0.0.1:${port}/index.html?format=${format}${process.env.LIMITE ? '&limite=' + process.env.LIMITE : ''}${process.env.ECHELLE ? '&echelle=' + process.env.ECHELLE : ''}` });
   for (let i = 0; i < 60 && !(await ev("typeof window.produire === 'function'", false)); i++) await new Promise((r) => setTimeout(r, 1000));
 
   if (a === "--images") {
@@ -37,7 +37,7 @@ try {
   } else {
     const sortie = resolve(a ?? `${format}.mp4`);
     const suivi = setInterval(async () => { try { console.log("avancement", await ev("window.avancement ?? '…'", false)); } catch {} }, 10000);
-    const taille = await ev("window.produire()");
+    const taille = await ev(`window.produire(${process.env.DEBIT ?? 45000000})`);
     clearInterval(suivi);
     const morceaux = []; for (let i = 0; i < taille; i += 3_000_000) morceaux.push(Buffer.from(await ev(`window.tranche(${i}, 3000000)`, false), "base64"));
     writeFileSync(sortie, Buffer.concat(morceaux)); console.log("écrit", sortie, taille);
