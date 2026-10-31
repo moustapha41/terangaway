@@ -1,0 +1,84 @@
+/*
+ * ------------------------------------------------------------
+ * IMPORTANT: The contents of this file are auto-generated.
+ *
+ * This file may be updated by the Shopify admin theme editor
+ * or related systems. Please exercise caution as any changes
+ * made to this file may be overwritten.
+ * ------------------------------------------------------------
+ */
+{
+  "sections": {
+    "main": {
+      "type": "our-story",
+      "blocks": {
+        "v1": {
+          "type": "value",
+          "settings": {
+            "icon": "gem",
+            "title": "Excellence",
+            "text": "Sélection rigoureuse des matériaux pour des pièces durables et resplendissantes."
+          }
+        },
+        "v2": {
+          "type": "value",
+          "settings": {
+            "icon": "heart",
+            "title": "Passion",
+            "text": "Un souci constant du détail pour accompagner chaque femme dans ses moments uniques."
+          }
+        },
+        "v3": {
+          "type": "value",
+          "settings": {
+            "icon": "award",
+            "title": "Proximité",
+            "text": "Une présence attentive et bienveillante auprès de notre clientèle au Sénégal."
+          }
+        }
+      },
+      "block_order": ["v1", "v2", "v3"],
+      "settings": {
+        "badge": "L'Épopée Bijou Gone",
+        "title": "L'Histoire d'une Passion pour le Beau",
+        "subtitle": "Découvrez le parcours, les valeurs et le savoir-faire qui animent la marque Bijou Gone depuis Dakar.",
+        "story_title": "L'Inspiration d'origine",
+        "story_text": "<p>Fondée à Dakar, Bijou Gone est née du désir d'offrir aux femmes des bijoux élégants, modernes et accessibles sans faire de compromis sur la finesse des finitions.</p><p>Chaque collection traduit un équilibre harmonieux entre la sobriété contemporaine et l'éclat chaleureux des bijoux dorés.</p>",
+        "cta_title": "Explorez Nos Créations",
+        "cta_label": "Découvrir le Catalogue",
+        "cta_url": "shopify://collections/all"
+      }
+    },
+    "brand-story": {
+      "type": "brand-story",
+      "blocks": {
+        "f1": {
+          "type": "feature",
+          "settings": { "icon": "sparkles", "title": "Finition Soignée", "text": "Matériaux durables et éclatants" }
+        },
+        "f2": {
+          "type": "feature",
+          "settings": { "icon": "heart", "title": "Passion & Service", "text": "Conseils personnalisés" }
+        }
+      },
+      "block_order": ["f1", "f2"],
+      "settings": {
+        "badge": "L'Esprit Bijou Gone",
+        "title": "Une Histoire de Passions & de Raffinement à Dakar",
+        "text": "<p>Bijou Gone est née d'un amour inconditionnel pour les pièces d'exception qui célèbrent la féminité, l'élégance et l'authenticité.</p><p>Chaque création est pensée pour offrir une touche d'éclat unique, alliant les inspirations contemporaines au savoir-faire de bijouterie d'excellence.</p>",
+        "button_label": "Découvrir le catalogue",
+        "button_url": "shopify://collections/all"
+      }
+    },
+    "newsletter": {
+      "type": "newsletter",
+      "settings": {
+        "badge": "Privilèges Exclusifs",
+        "title": "Rejoignez le Club Privé Bijou Gone",
+        "text": "Inscrivez-vous pour recevoir en avant-première nos nouvelles collections, ventes privées et conseils d'entretien pour vos bijoux.",
+        "note": "Nous respectons votre vie privée. Pas de spam, désinscription à tout moment."
+      }
+    }
+  },
+  "order": ["main", "brand-story", "newsletter"]
+}

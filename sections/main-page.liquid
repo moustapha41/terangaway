@@ -1,0 +1,18 @@
+{%- comment -%} Page de contenu générique {%- endcomment -%}
+
+<div class="section">
+  <div class="container">
+    {% render 'section-heading', badge: section.settings.badge, title: page.title %}
+
+    {%- if page.content != blank -%}
+      <div class="rte" style="max-width: 48rem; margin-inline: auto;">{{ page.content }}</div>
+    {%- endif -%}
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "Page",
+  "settings": [{ "type": "text", "id": "badge", "label": "Badge" }]
+}
+{% endschema %}

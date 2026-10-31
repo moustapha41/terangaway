@@ -1,0 +1,189 @@
+[
+  {
+    "name": "theme_info",
+    "theme_name": "Bijou Gone",
+    "theme_version": "1.0.0",
+    "theme_author": "Bijou Gone",
+    "theme_documentation_url": "https://help.shopify.com/manual/online-store/themes",
+    "theme_support_url": "https://help.shopify.com"
+  },
+  {
+    "name": "Identité de la boutique",
+    "settings": [
+      {
+        "type": "paragraph",
+        "content": "Ces informations alimentent le pied de page, la page contact et le menu mobile."
+      },
+      {
+        "type": "text",
+        "id": "shop_phone",
+        "label": "Téléphone",
+        "default": "+221 77 000 00 00"
+      },
+      {
+        "type": "text",
+        "id": "shop_email",
+        "label": "E-mail",
+        "default": "contact@bijougone.com"
+      },
+      {
+        "type": "text",
+        "id": "shop_location",
+        "label": "Ville",
+        "default": "Dakar, Sénégal"
+      },
+      {
+        "type": "text",
+        "id": "shop_address",
+        "label": "Adresse complète",
+        "default": "Almadies, Dakar, Sénégal"
+      },
+      {
+        "type": "image_picker",
+        "id": "favicon",
+        "label": "Favicon",
+        "info": "32 × 32 px recommandé."
+      },
+      {
+        "type": "image_picker",
+        "id": "og_image",
+        "label": "Image de partage social",
+        "info": "1200 × 630 px recommandé."
+      }
+    ]
+  },
+  {
+    "name": "Panier",
+    "settings": [
+      {
+        "type": "select",
+        "id": "cart_mode",
+        "label": "Comportement du panier",
+        "options": [
+          {
+            "value": "drawer",
+            "label": "Tiroir latéral (rapide)"
+          },
+          {
+            "value": "page",
+            "label": "Page panier (requis pour un bouton de commande d'app)"
+          }
+        ],
+        "default": "drawer",
+        "info": "Avec une app de paiement à la livraison (Releasit…), choisis « Page panier » : le bouton de l'app s'y trouve."
+      }
+    ]
+  },
+  {
+    "name": "Paiement à la livraison",
+    "settings": [
+      {
+        "type": "paragraph",
+        "content": "Pour les applications de commande en paiement à la livraison (Releasit, etc.). Le bouton ouvre le formulaire de l'application au lieu du tunnel Shopify."
+      },
+      {
+        "type": "checkbox",
+        "id": "cod_enabled",
+        "label": "Afficher le bouton de commande à la livraison",
+        "default": false
+      },
+      {
+        "type": "text",
+        "id": "cod_label",
+        "label": "Libellé",
+        "default": "Commander à la livraison"
+      },
+      {
+        "type": "text",
+        "id": "cod_url",
+        "label": "Lien déclencheur",
+        "default": "/rsi-btn-hook",
+        "info": "Releasit utilise /rsi-btn-hook. Une autre app peut demander un autre lien."
+      },
+      {
+        "type": "checkbox",
+        "id": "cod_hide_checkout",
+        "label": "Masquer le bouton « Passer la commande » de Shopify",
+        "default": false,
+        "info": "À n'activer que si tu ne proposes aucun paiement en ligne."
+      }
+    ]
+  },
+  {
+    "name": "Réseaux sociaux",
+    "settings": [
+      {
+        "type": "url",
+        "id": "social_instagram",
+        "label": "Instagram"
+      },
+      {
+        "type": "url",
+        "id": "social_facebook",
+        "label": "Facebook"
+      },
+      {
+        "type": "url",
+        "id": "social_tiktok",
+        "label": "TikTok"
+      },
+      {
+        "type": "url",
+        "id": "social_whatsapp",
+        "label": "WhatsApp",
+        "info": "Format : https://wa.me/221770000000"
+      }
+    ]
+  },
+  {
+    "name": "Couleurs",
+    "settings": [
+      {
+        "type": "paragraph",
+        "content": "La palette d'origine est appliquée par défaut. Modifier ces valeurs met à jour tout le thème."
+      },
+      {
+        "type": "color",
+        "id": "color_background",
+        "label": "Arrière-plan",
+        "default": "#FFFCFA"
+      },
+      {
+        "type": "color",
+        "id": "color_text",
+        "label": "Texte",
+        "default": "#3A2118"
+      },
+      {
+        "type": "color",
+        "id": "color_gold",
+        "label": "Or (accent)",
+        "default": "#C78A2C"
+      },
+      {
+        "type": "color",
+        "id": "color_gold_hover",
+        "label": "Or (survol)",
+        "default": "#B87920"
+      },
+      {
+        "type": "color",
+        "id": "color_cream",
+        "label": "Crème",
+        "default": "#F9F1EC"
+      },
+      {
+        "type": "color",
+        "id": "color_blush",
+        "label": "Rosé",
+        "default": "#F5E3DE"
+      },
+      {
+        "type": "color",
+        "id": "color_border",
+        "label": "Bordures",
+        "default": "#EDE4DC"
+      }
+    ]
+  }
+]

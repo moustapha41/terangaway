@@ -1,0 +1,181 @@
+{%- comment -%}
+  Pied de page — reprise de src/components/layout/Footer.tsx
+{%- endcomment -%}
+
+<footer class="site-footer" role="contentinfo">
+  <div class="container">
+    <div class="site-footer__grid">
+      {%- comment -%} Colonne 1 : logo + bio {%- endcomment -%}
+      <div class="site-footer__col">
+        <a class="site-footer__logo" href="{{ routes.root_url }}" aria-label="{{ shop.name | escape }}">
+          {%- if section.settings.logo != blank -%}
+            {%- assign img_alt = shop.name | escape -%}
+            {{ section.settings.logo | image_url: width: 120 | image_tag: alt: img_alt, width: 48, height: 48, loading: 'lazy' }}
+          {%- else -%}
+            <img src="{{ 'logo.png' | asset_url }}" alt="{{ shop.name | escape }}" width="53" height="48" loading="lazy">
+          {%- endif -%}
+        </a>
+
+        {%- if section.settings.bio != blank -%}
+          <p class="site-footer__bio">{{ section.settings.bio }}</p>
+        {%- endif -%}
+
+        {% render 'social-links' %}
+      </div>
+
+      {%- comment -%} Colonne 2 : liens utiles {%- endcomment -%}
+      <div class="site-footer__col">
+        <h4 class="site-footer__heading">{{ section.settings.menu_title }}</h4>
+        <ul class="site-footer__links">
+          {%- for link in linklists[section.settings.menu].links -%}
+            <li><a href="{{ link.url }}">{{ link.title }}</a></li>
+          {%- endfor -%}
+        </ul>
+      </div>
+
+      {%- comment -%} Colonne 3 : contact {%- endcomment -%}
+      <div class="site-footer__col">
+        <h4 class="site-footer__heading">{{ 'general.contact' | t }}</h4>
+        <ul class="site-footer__contact">
+          {%- if settings.shop_phone != blank -%}
+            <li>
+              {% render 'icon', name: 'phone', size: 14 %}
+              <a href="tel:{{ settings.shop_phone | remove: ' ' }}">{{ settings.shop_phone }}</a>
+            </li>
+          {%- endif -%}
+          {%- if settings.shop_email != blank -%}
+            <li>
+              {% render 'icon', name: 'mail', size: 14 %}
+              <a href="mailto:{{ settings.shop_email }}">{{ settings.shop_email }}</a>
+            </li>
+          {%- endif -%}
+          {%- if settings.shop_location != blank -%}
+            <li>
+              {% render 'icon', name: 'map-pin', size: 14 %}
+              <span>{{ settings.shop_location }}</span>
+            </li>
+          {%- endif -%}
+        </ul>
+      </div>
+
+      {%- comment -%} Colonne 4 : newsletter {%- endcomment -%}
+      {%- if section.settings.show_newsletter -%}
+        <div class="site-footer__col">
+          <h4 class="site-footer__heading">{{ section.settings.newsletter_title }}</h4>
+          <p class="site-footer__note">{{ section.settings.newsletter_text }}</p>
+
+          {%- form 'customer', id: 'FooterNewsletter' -%}
+            <input type="hidden" name="contact[tags]" value="newsletter">
+
+            {%- if form.posted_successfully? -%}
+              <p class="footer-newsletter__success">✓ {{ 'newsletter.success' | t }}</p>
+            {%- else -%}
+              {%- if form.errors -%}
+                <p class="footer-newsletter__success" style="color: #B91C1C;">
+                  {{ form.errors.messages['email'] }}
+                </p>
+              {%- endif -%}
+
+              <div class="footer-newsletter">
+                <label class="visually-hidden" for="FooterNewsletterEmail">{{ 'newsletter.email' | t }}</label>
+                <input
+                  id="FooterNewsletterEmail"
+                  type="email"
+                  name="contact[email]"
+                  required
+                  placeholder="{{ 'newsletter.placeholder' | t }}"
+                  autocomplete="email"
+                >
+                <button type="submit" aria-label="{{ 'newsletter.subscribe' | t }}">
+                  {% render 'icon', name: 'arrow-right', size: 14 %}
+                </button>
+              </div>
+            {%- endif -%}
+          {%- endform -%}
+        </div>
+      {%- endif -%}
+    </div>
+
+    <div class="site-footer__bottom">
+      <p>&copy; {{ 'now' | date: '%Y' }} {{ shop.name }}. {{ 'general.rights' | t }}</p>
+      <p>
+        {{ section.settings.credit }}
+        {% render 'icon', name: 'heart', size: 12 %}
+        {{ section.settings.credit_suffix }}
+      </p>
+    </div>
+  </div>
+</footer>
+
+{% schema %}
+{
+  "name": "Pied de page",
+  "settings": [
+    {
+      "type": "image_picker",
+      "id": "logo",
+      "label": "Logo"
+    },
+    {
+      "type": "textarea",
+      "id": "bio",
+      "label": "Texte de marque",
+      "default": "Des bijoux et accessoires qui révèlent votre beauté et subliment chaque instant de votre vie."
+    },
+    {
+      "type": "header",
+      "content": "Liens"
+    },
+    {
+      "type": "text",
+      "id": "menu_title",
+      "label": "Titre de la colonne de liens",
+      "default": "Liens utiles"
+    },
+    {
+      "type": "link_list",
+      "id": "menu",
+      "label": "Menu du pied de page",
+      "default": "footer"
+    },
+    {
+      "type": "header",
+      "content": "Newsletter"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_newsletter",
+      "label": "Afficher l'inscription newsletter",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "newsletter_title",
+      "label": "Titre",
+      "default": "Restez informée"
+    },
+    {
+      "type": "text",
+      "id": "newsletter_text",
+      "label": "Texte",
+      "default": "Recevez nos nouveautés et offres spéciales."
+    },
+    {
+      "type": "header",
+      "content": "Bas de page"
+    },
+    {
+      "type": "text",
+      "id": "credit",
+      "label": "Mention (avant le cœur)",
+      "default": "Conçu avec"
+    },
+    {
+      "type": "text",
+      "id": "credit_suffix",
+      "label": "Mention (après le cœur)",
+      "default": "pour vous."
+    }
+  ]
+}
+{% endschema %}

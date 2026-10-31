@@ -1,0 +1,176 @@
+/*
+ * ------------------------------------------------------------
+ * IMPORTANT: The contents of this file are auto-generated.
+ *
+ * This file may be updated by the Shopify admin language editor
+ * or related systems. Please exercise caution as any changes
+ * made to this file may be overwritten.
+ * ------------------------------------------------------------
+ */
+{
+  "general": {
+    "skip_to_content": "Passer au contenu",
+    "main_nav": "Navigation principale",
+    "menu": "Menu",
+    "open_menu": "Ouvrir le menu",
+    "close_menu": "Fermer le menu",
+    "search": "Rechercher",
+    "contact": "Contact",
+    "rights": "Tous droits réservés.",
+    "error": "Une erreur est survenue. Veuillez réessayer.",
+    "pagination": "Pagination",
+    "previous": "Précédent",
+    "next": "Suivant",
+    "page": "Page {{ page }}",
+    "tagged": "Étiqueté {{ tags }}"
+  },
+  "home": {
+    "go_to_slide": "Aller à la diapositive {{ index }}",
+    "next_photos": "Photos suivantes",
+    "no_products": "Aucun produit disponible pour le moment."
+  },
+  "products": {
+    "add_to_cart": "Ajouter au panier",
+    "add_to_cart_with_title": "Ajouter {{ title }} au panier",
+    "sold_out": "Épuisé",
+    "unavailable": "Indisponible",
+    "on_sale": "Promo",
+    "quantity": "Quantité",
+    "increase_quantity": "Augmenter la quantité",
+    "decrease_quantity": "Diminuer la quantité",
+    "back_to_collection": "Retour à la collection",
+    "view_image": "Voir l'image {{ index }}",
+    "add": "Ajouter"
+  },
+  "collections": {
+    "all": "Tous les bijoux",
+    "sort_by": "Trier par",
+    "product_count": {
+      "one": "{{ count }} produit",
+      "other": "{{ count }} produits"
+    },
+    "empty_title": "Aucun bijou dans cette collection",
+    "empty_text": "Revenez bientôt, de nouvelles créations arrivent régulièrement.",
+    "all_collections": "Toutes les collections",
+    "none_title": "Aucune collection pour le moment",
+    "none_text": "Créez vos collections depuis l'admin Shopify pour les voir apparaître ici."
+  },
+  "cart": {
+    "title": "Votre panier",
+    "my_cart": "Mon panier",
+    "close": "Fermer le panier",
+    "summary": "Résumé de la commande",
+    "subtotal": "Sous-total",
+    "discount": "Réduction",
+    "shipping": "Livraison",
+    "shipping_at_checkout": "Calculée à la commande",
+    "shipping_note": "Frais de livraison calculés lors de la commande.",
+    "total": "Total",
+    "checkout": "Passer la commande",
+    "view_cart": "Voir le panier",
+    "continue_shopping": "Continuer mes achats",
+    "discover": "Découvrir la collection",
+    "remove": "Supprimer l'article",
+    "added": "Ajouté au panier ✓",
+    "empty": "Votre panier est actuellement vide.",
+    "empty_title": "Votre panier est actuellement vide",
+    "empty_text": "Découvrez nos magnifiques colliers, bracelets, bagues et boucles d'oreilles.",
+    "items_count": {
+      "one": "Article ({{ count }})",
+      "other": "Articles ({{ count }})"
+    },
+    "note": "Instructions de livraison (quartier, repère…)",
+    "note_placeholder": "Rue, repère particulier, heure de livraison souhaitée…"
+  },
+  "contact": {
+    "showroom": "Boutique & Showroom",
+    "phone": "Téléphone",
+    "phone_whatsapp": "Téléphone / WhatsApp",
+    "email": "E-mail",
+    "name": "Nom complet",
+    "name_placeholder": "Votre nom",
+    "subject": "Sujet",
+    "subject_placeholder": "Renseignement produit, commande…",
+    "message": "Message",
+    "message_placeholder": "Écrivez votre message ici…",
+    "send": "Envoyer le message",
+    "success": "Merci ! Votre message a bien été envoyé, nous vous répondrons rapidement.",
+    "whatsapp": "Discuter directement sur WhatsApp"
+  },
+  "newsletter": {
+    "email": "Adresse e-mail",
+    "placeholder": "Votre adresse e-mail",
+    "placeholder_long": "Votre adresse email…",
+    "subscribe": "S'inscrire",
+    "success": "Inscription confirmée !",
+    "success_long": "Merci ! Votre inscription a bien été prise en compte."
+  },
+  "gallery": {
+    "empty": "Ajoutez des photos à cette galerie depuis l'éditeur de thème."
+  },
+  "search": {
+    "title": "Recherche",
+    "label": "Rechercher dans la boutique",
+    "placeholder": "Collier, bracelet, bague…",
+    "results_count": {
+      "one": "{{ count }} résultat pour « {{ terms }} »",
+      "other": "{{ count }} résultats pour « {{ terms }} »"
+    },
+    "no_results_title": "Aucun résultat",
+    "no_results_text": "Nous n'avons rien trouvé pour « {{ terms }} ». Essayez un autre terme."
+  },
+  "blog": {
+    "empty": "Aucun article pour le moment.",
+    "by": "Par",
+    "comments": {
+      "one": "{{ count }} commentaire",
+      "other": "{{ count }} commentaires"
+    },
+    "comment_submit": "Publier le commentaire",
+    "comment_success": "Merci ! Votre commentaire a été envoyé."
+  },
+  "customer": {
+    "account": "Mon compte",
+    "login": "Connexion",
+    "sign_in": "Se connecter",
+    "logout": "Se déconnecter",
+    "create_account": "Créer un compte",
+    "already_account": "J'ai déjà un compte",
+    "forgot_password": "Mot de passe oublié ?",
+    "password": "Mot de passe",
+    "new_password": "Nouveau mot de passe",
+    "confirm_password": "Confirmer le mot de passe",
+    "reset_password": "Réinitialiser le mot de passe",
+    "activate_account": "Activer mon compte",
+    "decline": "Refuser l'invitation",
+    "first_name": "Prénom",
+    "last_name": "Nom",
+    "details": "Mes informations",
+    "orders": "Mes commandes",
+    "no_orders": "Vous n'avez pas encore passé de commande.",
+    "addresses": "Mes adresses",
+    "new_address": "Ajouter une adresse",
+    "save_address": "Enregistrer l'adresse",
+    "delete": "Supprimer",
+    "address": "Adresse",
+    "city": "Ville / Quartier",
+    "country": "Pays"
+  },
+  "404": {
+    "title": "Cette page est introuvable",
+    "text": "La page que vous cherchez n'existe pas ou a été déplacée.",
+    "home": "Retour à l'accueil"
+  },
+  "gift_card": {
+    "title": "Votre carte cadeau",
+    "subtitle": "Utilisez ce code lors de votre commande sur {{ shop }}.",
+    "code": "Code de la carte",
+    "expires": "Valable jusqu'au {{ date }}",
+    "shop": "Découvrir la boutique"
+  },
+  "password": {
+    "subtitle": "Notre boutique ouvre bientôt. Entrez le mot de passe pour y accéder.",
+    "label": "Mot de passe",
+    "submit": "Entrer"
+  }
+}

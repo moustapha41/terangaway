@@ -1,0 +1,38 @@
+{% layout none %}
+<!doctype html>
+<html lang="{{ request.locale.iso_code }}">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ 'gift_card.title' | t }} — {{ shop.name }}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Manrope:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,500;1,400;1,500&display=swap">
+    <link rel="stylesheet" href="{{ 'base.css' | asset_url }}">
+    {{ content_for_header }}
+  </head>
+  <body>
+    <div class="section">
+      <div class="container container--narrow">
+        <div class="card text-center stack stack--md" style="justify-items: center;">
+          <img src="{{ 'logo.png' | asset_url }}" alt="{{ shop.name }}" width="71" height="64">
+          <h1 class="card__title" style="font-size: 26px;">{{ 'gift_card.title' | t }}</h1>
+          <p class="empty-state__text">{{ 'gift_card.subtitle' | t: shop: shop.name }}</p>
+
+          <div class="product__price">{{ gift_card.balance | money }}</div>
+
+          <div class="field" style="width: 100%; max-width: 20rem;">
+            <label class="field__label" for="GiftCardCode">{{ 'gift_card.code' | t }}</label>
+            <input class="field__input" id="GiftCardCode" type="text" value="{{ gift_card.code | format_code }}" readonly style="text-align: center; letter-spacing: .1em;">
+          </div>
+
+          {%- if gift_card.expires_on -%}
+            <p class="site-footer__note">{{ 'gift_card.expires' | t: date: gift_card.expires_on | date: '%d/%m/%Y' }}</p>
+          {%- endif -%}
+
+          <a class="btn btn--primary btn--lg" href="{{ shop.url }}">{{ 'gift_card.shop' | t }}</a>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

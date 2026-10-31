@@ -1,0 +1,116 @@
+{%- comment -%}
+  Aperçu galerie — reprise de src/components/home/GalleryPreview.tsx
+{%- endcomment -%}
+
+{%- assign fallbacks = 'lookbook-1.png,bijoux-lifestyle.png,lookbook-3.png,lookbook-4.png' | split: ',' -%}
+
+<section class="gallery-preview" id="{{ section.settings.anchor | default: 'galerie' | handle }}">
+  <div class="container">
+    <div class="gallery-preview__layout">
+      <div class="gallery-preview__text">
+        {%- if section.settings.eyebrow != blank -%}
+          <span class="gallery-preview__eyebrow">
+            {{ section.settings.eyebrow }} <span aria-hidden="true">&rarr;</span>
+          </span>
+        {%- endif -%}
+
+        {%- if section.settings.title != blank -%}
+          <h2 class="gallery-preview__title">{{ section.settings.title | newline_to_br }}</h2>
+        {%- endif -%}
+
+        {%- if section.settings.text != blank -%}
+          <p class="gallery-preview__copy">{{ section.settings.text }}</p>
+        {%- endif -%}
+
+        {%- if section.settings.button_label != blank -%}
+          <div>
+            <a class="btn btn--gold btn--pill btn--sm" href="{{ section.settings.button_url }}" style="padding: 10px 20px; font-size: 12px;">
+              <span>{{ section.settings.button_label }}</span>
+              {% render 'icon', name: 'arrow-right', size: 14 %}
+            </a>
+          </div>
+        {%- endif -%}
+      </div>
+
+      <div class="gallery-preview__media">
+        <div class="gallery-strip" data-gallery-strip>
+          {%- if section.blocks.size > 0 -%}
+            {%- for block in section.blocks -%}
+              <div class="gallery-strip__item" {{ block.shopify_attributes }}>
+                {%- if block.settings.image != blank -%}
+                  {%- assign img_alt = block.settings.image.alt | default: shop.name | escape -%}
+                  {{
+                    block.settings.image
+                    | image_url: width: 480
+                    | image_tag:
+                      widths: '180, 280, 380, 480',
+                      sizes: '(max-width: 640px) 50vw, 180px',
+                      alt: img_alt,
+                      loading: 'lazy'
+                  }}
+                {%- else -%}
+                  {{ 'lifestyle-1' | placeholder_svg_tag }}
+                {%- endif -%}
+              </div>
+            {%- endfor -%}
+          {%- else -%}
+            {%- for file in fallbacks -%}
+              <div class="gallery-strip__item">
+                <img src="{{ file | asset_url }}" alt="{{ shop.name }}" loading="lazy" width="180" height="261">
+              </div>
+            {%- endfor -%}
+          {%- endif -%}
+        </div>
+
+        <button type="button" class="round-btn gallery-preview__next" data-gallery-next aria-label="{{ 'home.next_photos' | t }}">
+          {% render 'icon', name: 'chevron-right', size: 16 %}
+        </button>
+      </div>
+    </div>
+  </div>
+</section>
+
+{% schema %}
+{
+  "name": "Aperçu galerie",
+  "max_blocks": 12,
+  "settings": [
+    {
+      "type": "text",
+      "id": "anchor",
+      "label": "Ancre",
+      "default": "galerie",
+      "info": "Permet d'y mener depuis le menu avec le lien /#galerie"
+    },
+    { "type": "text", "id": "eyebrow", "label": "Sur-titre", "default": "GALERIE" },
+    {
+      "type": "textarea",
+      "id": "title",
+      "label": "Titre",
+      "default": "Nos bijoux\nen vrai",
+      "info": "Un retour à la ligne crée un saut de ligne."
+    },
+    {
+      "type": "textarea",
+      "id": "text",
+      "label": "Texte",
+      "default": "Découvrez nos bijoux portés par notre communauté et laissez-vous inspirer par leurs styles uniques."
+    },
+    { "type": "text", "id": "button_label", "label": "Libellé du bouton", "default": "Voir plus de photos" },
+    { "type": "url", "id": "button_url", "label": "Lien du bouton" }
+  ],
+  "blocks": [
+    {
+      "type": "photo",
+      "name": "Photo",
+      "settings": [{ "type": "image_picker", "id": "image", "label": "Image" }]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Aperçu galerie",
+      "blocks": [{ "type": "photo" }, { "type": "photo" }, { "type": "photo" }, { "type": "photo" }]
+    }
+  ]
+}
+{% endschema %}

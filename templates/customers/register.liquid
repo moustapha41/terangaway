@@ -1,0 +1,43 @@
+<div class="section">
+  <div class="container container--narrow">
+    {%- assign heading = 'customer.create_account' | t -%}
+    {% render 'section-heading', badge: 'Espace client', title: heading %}
+
+    <div class="card" style="max-width: 28rem; margin-inline: auto;">
+      {%- form 'create_customer' -%}
+        {%- if form.errors -%}
+          <p class="form-status form-status--error">{{ form.errors | default_errors }}</p>
+        {%- endif -%}
+
+        <div class="stack stack--md">
+          <div class="field-row">
+            <div class="field">
+              <label class="field__label" for="FirstName">{{ 'customer.first_name' | t }}</label>
+              <input class="field__input" id="FirstName" type="text" name="customer[first_name]" autocomplete="given-name">
+            </div>
+            <div class="field">
+              <label class="field__label" for="LastName">{{ 'customer.last_name' | t }}</label>
+              <input class="field__input" id="LastName" type="text" name="customer[last_name]" autocomplete="family-name">
+            </div>
+          </div>
+
+          <div class="field">
+            <label class="field__label" for="RegisterEmail">{{ 'contact.email' | t }}</label>
+            <input class="field__input" id="RegisterEmail" type="email" name="customer[email]" required autocomplete="email">
+          </div>
+
+          <div class="field">
+            <label class="field__label" for="RegisterPassword">{{ 'customer.password' | t }}</label>
+            <input class="field__input" id="RegisterPassword" type="password" name="customer[password]" required autocomplete="new-password">
+          </div>
+
+          <button type="submit" class="btn btn--primary btn--full btn--lg">{{ 'customer.create_account' | t }}</button>
+
+          <p style="font-size: 13px; color: var(--muted); text-align: center;">
+            <a href="{{ routes.account_login_url }}" style="color: var(--primary);">{{ 'customer.already_account' | t }}</a>
+          </p>
+        </div>
+      {%- endform -%}
+    </div>
+  </div>
+</div>

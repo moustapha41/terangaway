@@ -1,0 +1,98 @@
+{%- comment -%}
+  Galerie & lookbook — reprise de src/app/galerie/page.tsx + GalleryGrid.tsx
+{%- endcomment -%}
+
+<div class="section">
+  <div class="container">
+    {%- assign heading = section.settings.title | default: page.title -%}
+    {% render 'section-heading',
+      badge: section.settings.badge,
+      title: heading,
+      subtitle: section.settings.subtitle
+    %}
+
+    {%- if section.blocks.size > 0 -%}
+      <div class="gallery-grid">
+        {%- for block in section.blocks -%}
+          <div class="gallery-tile" {{ block.shopify_attributes }}>
+            {%- if block.settings.image != blank -%}
+              {%- assign img_alt = block.settings.image.alt | default: block.settings.title | escape -%}
+              {{
+                block.settings.image
+                | image_url: width: 900
+                | image_tag:
+                  widths: '400, 600, 900',
+                  sizes: '(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw',
+                  alt: img_alt,
+                  loading: 'lazy'
+              }}
+            {%- else -%}
+              {{ 'lifestyle-2' | placeholder_svg_tag }}
+            {%- endif -%}
+
+            <div class="gallery-tile__overlay">
+              {%- if block.settings.category != blank -%}
+                <span class="gallery-tile__category">
+                  {% render 'icon', name: 'sparkles', size: 12 %}
+                  {{ block.settings.category }}
+                </span>
+              {%- endif -%}
+
+              {%- if block.settings.title != blank -%}
+                <h3 class="gallery-tile__title">{{ block.settings.title }}</h3>
+              {%- endif -%}
+
+              {%- if block.settings.caption != blank -%}
+                <p class="gallery-tile__alt">{{ block.settings.caption }}</p>
+              {%- endif -%}
+            </div>
+          </div>
+        {%- endfor -%}
+      </div>
+    {%- else -%}
+      <p class="text-center" style="color: var(--muted);">{{ 'gallery.empty' | t }}</p>
+    {%- endif -%}
+
+    {%- if page.content != blank -%}
+      <div class="rte" style="margin-top: 48px;">{{ page.content }}</div>
+    {%- endif -%}
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "Galerie",
+  "max_blocks": 24,
+  "settings": [
+    { "type": "text", "id": "badge", "label": "Badge", "default": "Galerie d'Élégance" },
+    { "type": "text", "id": "title", "label": "Titre", "default": "Galerie & Lookbook" },
+    {
+      "type": "text",
+      "id": "subtitle",
+      "label": "Sous-titre",
+      "default": "Immergez-vous dans l'univers visuel raffiné de nos créations."
+    }
+  ],
+  "blocks": [
+    {
+      "type": "photo",
+      "name": "Photo",
+      "settings": [
+        { "type": "image_picker", "id": "image", "label": "Image" },
+        { "type": "text", "id": "category", "label": "Catégorie", "default": "Lifestyle" },
+        { "type": "text", "id": "title", "label": "Titre", "default": "Élégance au quotidien" },
+        { "type": "text", "id": "caption", "label": "Légende" }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Galerie",
+      "blocks": [
+        { "type": "photo" }, { "type": "photo" }, { "type": "photo" },
+        { "type": "photo" }, { "type": "photo" }, { "type": "photo" }
+      ]
+    }
+  ]
+}
+{% endschema %}

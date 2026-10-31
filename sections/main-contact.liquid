@@ -1,0 +1,175 @@
+{%- comment -%}
+  Contact — reprise de src/app/contact/page.tsx
+{%- endcomment -%}
+
+<div class="section">
+  <div class="container">
+    {%- assign heading = section.settings.title | default: page.title -%}
+    {% render 'section-heading',
+      badge: section.settings.badge,
+      title: heading,
+      subtitle: section.settings.subtitle
+    %}
+
+    <div class="split">
+      {%- comment -%} Coordonnées {%- endcomment -%}
+      <div class="card stack stack--lg" style="gap: 22px;">
+        <h3 class="card__title">{{ section.settings.details_title }}</h3>
+
+        <div class="contact-list">
+          {%- if settings.shop_address != blank -%}
+            <div class="contact-list__item">
+              <span class="contact-list__icon">{% render 'icon', name: 'map-pin', size: 20 %}</span>
+              <div>
+                <h4 class="contact-list__label">{{ 'contact.showroom' | t }}</h4>
+                <p class="contact-list__value">{{ settings.shop_address }}</p>
+              </div>
+            </div>
+          {%- endif -%}
+
+          {%- if settings.shop_phone != blank -%}
+            <div class="contact-list__item">
+              <span class="contact-list__icon">{% render 'icon', name: 'phone', size: 20 %}</span>
+              <div>
+                <h4 class="contact-list__label">{{ 'contact.phone' | t }}</h4>
+                <p class="contact-list__value">
+                  <a href="tel:{{ settings.shop_phone | remove: ' ' }}">{{ settings.shop_phone }}</a>
+                </p>
+              </div>
+            </div>
+          {%- endif -%}
+
+          {%- if settings.shop_email != blank -%}
+            <div class="contact-list__item">
+              <span class="contact-list__icon">{% render 'icon', name: 'mail', size: 20 %}</span>
+              <div>
+                <h4 class="contact-list__label">{{ 'contact.email' | t }}</h4>
+                <p class="contact-list__value">
+                  <a href="mailto:{{ settings.shop_email }}">{{ settings.shop_email }}</a>
+                </p>
+              </div>
+            </div>
+          {%- endif -%}
+        </div>
+
+        {%- if settings.social_whatsapp != blank -%}
+          <div style="padding-top: 16px; border-top: 1px solid var(--border);">
+            <a class="whatsapp-btn" href="{{ settings.social_whatsapp }}" target="_blank" rel="noopener noreferrer">
+              {% render 'icon', name: 'message-circle', size: 18 %}
+              {{ 'contact.whatsapp' | t }}
+            </a>
+          </div>
+        {%- endif -%}
+      </div>
+
+      {%- comment -%} Formulaire {%- endcomment -%}
+      <div class="card">
+        <h3 class="card__title" style="margin-bottom: 24px;">{{ section.settings.form_title }}</h3>
+
+        {%- form 'contact', id: 'ContactForm' -%}
+          {%- if form.posted_successfully? -%}
+            <p class="form-status form-status--success">{{ 'contact.success' | t }}</p>
+          {%- elsif form.errors -%}
+            <p class="form-status form-status--error">
+              {{ form.errors | default_errors }}
+            </p>
+          {%- endif -%}
+
+          <div class="stack stack--md">
+            <div class="field-row">
+              <div class="field">
+                <label class="field__label" for="ContactName">{{ 'contact.name' | t }} *</label>
+                <input
+                  class="field__input"
+                  id="ContactName"
+                  type="text"
+                  name="contact[Nom]"
+                  required
+                  autocomplete="name"
+                  placeholder="{{ 'contact.name_placeholder' | t }}"
+                  value="{% if form.name %}{{ form.name }}{% elsif customer %}{{ customer.name }}{% endif %}"
+                >
+              </div>
+
+              <div class="field">
+                <label class="field__label" for="ContactEmail">{{ 'contact.email' | t }} *</label>
+                <input
+                  class="field__input"
+                  id="ContactEmail"
+                  type="email"
+                  name="contact[email]"
+                  required
+                  autocomplete="email"
+                  placeholder="votre@email.com"
+                  value="{% if form.email %}{{ form.email }}{% elsif customer %}{{ customer.email }}{% endif %}"
+                >
+              </div>
+            </div>
+
+            <div class="field">
+              <label class="field__label" for="ContactPhone">{{ 'contact.phone_whatsapp' | t }}</label>
+              <input
+                class="field__input"
+                id="ContactPhone"
+                type="tel"
+                name="contact[Téléphone]"
+                autocomplete="tel"
+                placeholder="+221 77 000 00 00"
+              >
+            </div>
+
+            <div class="field">
+              <label class="field__label" for="ContactSubject">{{ 'contact.subject' | t }}</label>
+              <input
+                class="field__input"
+                id="ContactSubject"
+                type="text"
+                name="contact[Sujet]"
+                placeholder="{{ 'contact.subject_placeholder' | t }}"
+              >
+            </div>
+
+            <div class="field">
+              <label class="field__label" for="ContactBody">{{ 'contact.message' | t }} *</label>
+              <textarea
+                class="field__textarea"
+                id="ContactBody"
+                name="contact[body]"
+                rows="5"
+                required
+                placeholder="{{ 'contact.message_placeholder' | t }}"
+              >{% if form.body %}{{ form.body }}{% endif %}</textarea>
+            </div>
+
+            <button type="submit" class="btn btn--primary btn--lg btn--full">
+              {% render 'icon', name: 'send', size: 16 %}
+              {{ 'contact.send' | t }}
+            </button>
+          </div>
+        {%- endform -%}
+      </div>
+    </div>
+
+    {%- if page.content != blank -%}
+      <div class="rte" style="margin-top: 48px;">{{ page.content }}</div>
+    {%- endif -%}
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "Contact",
+  "settings": [
+    { "type": "text", "id": "badge", "label": "Badge", "default": "À votre écoute" },
+    { "type": "text", "id": "title", "label": "Titre", "default": "Contactez-nous" },
+    {
+      "type": "text",
+      "id": "subtitle",
+      "label": "Sous-titre",
+      "default": "Une question sur nos bijoux ou votre commande ? Notre équipe vous répond rapidement."
+    },
+    { "type": "text", "id": "details_title", "label": "Titre des coordonnées", "default": "Nos Coordonnées" },
+    { "type": "text", "id": "form_title", "label": "Titre du formulaire", "default": "Envoyez-nous un message" }
+  ]
+}
+{% endschema %}

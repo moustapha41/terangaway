@@ -1,0 +1,74 @@
+/*
+ * ------------------------------------------------------------
+ * IMPORTANT: The contents of this file are auto-generated.
+ *
+ * This file may be updated by the Shopify admin theme editor
+ * or related systems. Please exercise caution as any changes
+ * made to this file may be overwritten.
+ * ------------------------------------------------------------
+ */
+{
+  "sections": {
+    "main": {
+      "type": "main-product",
+      "settings": {
+        "show_rating": true,
+        "rating_text": "(4.9/5 — 18 avis)",
+        "show_reassurance": true,
+        "reassurance_1": "Livraison garantie sous 24h à 48h à Dakar.",
+        "reassurance_2": "Paiement sécurisé par Wave, Orange Money ou à la livraison.",
+        "show_related": true,
+        "related_title": "Vous aimerez aussi",
+        "related_subtitle": "Découvrez d'autres créations élégantes de la collection Bijou Gone."
+      }
+    },
+    "benefits": {
+      "type": "benefits",
+      "blocks": {
+        "b1": {
+          "type": "benefit",
+          "settings": {
+            "icon": "gem",
+            "title": "Qualité garantie",
+            "text": "Des bijoux soigneusement sélectionnés"
+          }
+        },
+        "b2": {
+          "type": "benefit",
+          "settings": {
+            "icon": "truck",
+            "title": "Livraison rapide",
+            "text": "À Dakar et dans les régions"
+          }
+        },
+        "b3": {
+          "type": "benefit",
+          "settings": {
+            "icon": "shield-check",
+            "title": "Paiement à la livraison",
+            "text": "Achetez en toute confiance"
+          }
+        },
+        "b4": {
+          "type": "benefit",
+          "settings": {
+            "icon": "headset",
+            "title": "Service client",
+            "text": "À votre écoute"
+          }
+        }
+      },
+      "block_order": [
+        "b1",
+        "b2",
+        "b3",
+        "b4"
+      ],
+      "settings": {}
+    }
+  },
+  "order": [
+    "main",
+    "benefits"
+  ]
+}

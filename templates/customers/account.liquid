@@ -1,0 +1,43 @@
+<div class="section">
+  <div class="container">
+    {%- assign heading = 'customer.account' | t -%}
+    {% render 'section-heading', badge: 'Espace client', title: heading %}
+
+    <div class="split">
+      <div class="card">
+        <h3 class="card__title">{{ 'customer.details' | t }}</h3>
+        <div class="stack stack--sm" style="margin-top: 16px; font-size: 14px; color: var(--muted);">
+          <p>{{ customer.name }}</p>
+          <p>{{ customer.email }}</p>
+          {%- if customer.default_address -%}
+            <div class="rte" style="font-size: 13px;">{{ customer.default_address | format_address }}</div>
+          {%- endif -%}
+        </div>
+        <div style="margin-top: 20px; display: flex; gap: 10px; flex-wrap: wrap;">
+          <a class="btn btn--outline btn--sm" href="{{ routes.account_addresses_url }}">{{ 'customer.addresses' | t }}</a>
+          <a class="btn btn--ghost btn--sm" href="{{ routes.account_logout_url }}">{{ 'customer.logout' | t }}</a>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3 class="card__title">{{ 'customer.orders' | t }}</h3>
+
+        {%- if customer.orders.size > 0 -%}
+          <div style="margin-top: 16px;">
+            {%- for order in customer.orders -%}
+              <div class="cart-item" style="align-items: center;">
+                <div class="cart-item__body">
+                  <a class="cart-item__title" href="{{ order.customer_url }}">{{ order.name }}</a>
+                  <p class="cart-item__unit">{{ order.created_at | date: '%d/%m/%Y' }} · {{ order.financial_status_label }}</p>
+                </div>
+                <div class="cart-item__total">{{ order.total_price | money }}</div>
+              </div>
+            {%- endfor -%}
+          </div>
+        {%- else -%}
+          <p style="margin-top: 16px; font-size: 14px; color: var(--muted);">{{ 'customer.no_orders' | t }}</p>
+        {%- endif -%}
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,72 @@
+<div class="section">
+  <div class="container container--narrow">
+    <a class="breadcrumb" href="{{ routes.account_url }}">
+      {% render 'icon', name: 'arrow-left', size: 16 %}
+      {{ 'customer.account' | t }}
+    </a>
+
+    {%- assign heading = 'customer.addresses' | t -%}
+    {% render 'section-heading', title: heading %}
+
+    {%- paginate customer.addresses by 6 -%}
+      <div class="stack stack--md">
+        {%- for address in customer.addresses -%}
+          <div class="card">
+            <div class="rte" style="font-size: 14px;">{{ address | format_address }}</div>
+            {%- form 'customer_address', address -%}
+              <div style="margin-top: 12px;">
+                <button type="submit" class="btn btn--ghost btn--sm" name="_method" value="delete">
+                  {{ 'customer.delete' | t }}
+                </button>
+              </div>
+            {%- endform -%}
+          </div>
+        {%- endfor -%}
+      </div>
+
+      <div class="card" style="margin-top: 24px;">
+        <h3 class="card__title">{{ 'customer.new_address' | t }}</h3>
+
+        {%- form 'customer_address', customer.new_address -%}
+          <div class="stack stack--md" style="margin-top: 16px;">
+            <div class="field-row">
+              <div class="field">
+                <label class="field__label" for="AddressFirstName">{{ 'customer.first_name' | t }}</label>
+                <input class="field__input" id="AddressFirstName" type="text" name="address[first_name]">
+              </div>
+              <div class="field">
+                <label class="field__label" for="AddressLastName">{{ 'customer.last_name' | t }}</label>
+                <input class="field__input" id="AddressLastName" type="text" name="address[last_name]">
+              </div>
+            </div>
+
+            <div class="field">
+              <label class="field__label" for="AddressStreet">{{ 'customer.address' | t }}</label>
+              <input class="field__input" id="AddressStreet" type="text" name="address[address1]">
+            </div>
+
+            <div class="field-row">
+              <div class="field">
+                <label class="field__label" for="AddressCity">{{ 'customer.city' | t }}</label>
+                <input class="field__input" id="AddressCity" type="text" name="address[city]">
+              </div>
+              <div class="field">
+                <label class="field__label" for="AddressPhone">{{ 'contact.phone' | t }}</label>
+                <input class="field__input" id="AddressPhone" type="tel" name="address[phone]">
+              </div>
+            </div>
+
+            <div class="field">
+              <label class="field__label" for="AddressCountry">{{ 'customer.country' | t }}</label>
+              <select class="field__select" id="AddressCountry" name="address[country]">
+                {{ country_option_tags }}
+              </select>
+            </div>
+
+            <button type="submit" class="btn btn--primary btn--full">{{ 'customer.save_address' | t }}</button>
+          </div>
+        {%- endform -%}
+      </div>
+    {%- endpaginate -%}
+  </div>
+</div>

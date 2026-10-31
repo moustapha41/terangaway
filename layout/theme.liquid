@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="{{ request.locale.iso_code }}" class="no-js">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="{{ settings.color_background | default: '#FFFCFA' }}">
+
+    <link rel="canonical" href="{{ canonical_url }}">
+
+    {%- comment -%}
+      Le réglage du thème a la priorité ; sinon on sert le monogramme livré
+      avec le thème. apple-touch-icon sert à l'ajout à l'écran d'accueil.
+    {%- endcomment -%}
+    {%- if settings.favicon != blank -%}
+      <link rel="icon" type="image/png" href="{{ settings.favicon | image_url: width: 32, height: 32 }}">
+      <link rel="apple-touch-icon" href="{{ settings.favicon | image_url: width: 180, height: 180 }}">
+    {%- else -%}
+      <link rel="icon" type="image/png" href="{{ 'favicon.png' | asset_url }}">
+      <link rel="apple-touch-icon" href="{{ 'favicon.png' | asset_url }}">
+    {%- endif -%}
+
+    {%- comment -%} Polices : Cormorant Garamond (serif) + Manrope (sans) {%- endcomment -%}
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Manrope:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,500;1,400;1,500&display=swap"
+    >
+
+    <title>
+      {{ page_title }}
+      {%- if current_tags %} &ndash; {{ 'general.tagged' | t: tags: current_tags | join: ', ' }}{% endif -%}
+      {%- if current_page != 1 %} &ndash; {{ 'general.page' | t: page: current_page }}{% endif -%}
+      {%- unless page_title contains shop.name %} &ndash; {{ shop.name }}{% endunless -%}
+    </title>
+
+    {%- if page_description -%}
+      <meta name="description" content="{{ page_description | escape }}">
+    {%- endif -%}
+
+    {% render 'meta-tags' %}
+
+    <link rel="stylesheet" href="{{ 'base.css' | asset_url }}">
+
+    {% render 'css-variables' %}
+
+    <script>
+      document.documentElement.classList.remove('no-js');
+      window.theme = {
+        routes: {
+          root_url: '{{ routes.root_url }}',
+          cart_url: '{{ routes.cart_url }}',
+          cart_add_url: '{{ routes.cart_add_url }}',
+          cart_change_url: '{{ routes.cart_change_url }}',
+          cart_update_url: '{{ routes.cart_update_url }}',
+          predictive_search_url: '{{ routes.predictive_search_url }}'
+        },
+        moneyFormat: {{ shop.money_format | json }},
+        cartMode: {{ settings.cart_mode | default: 'drawer' | json }},
+        strings: {
+          added: {{ 'cart.added' | t | json }},
+          error: {{ 'general.error' | t | json }},
+          quantity: {{ 'products.quantity' | t | json }},
+          increase: {{ 'products.increase_quantity' | t | json }},
+          decrease: {{ 'products.decrease_quantity' | t | json }},
+          remove: {{ 'cart.remove' | t | json }},
+          add_to_cart: {{ 'products.add_to_cart' | t | json }},
+          sold_out: {{ 'products.sold_out' | t | json }},
+          unavailable: {{ 'products.unavailable' | t | json }}
+        }
+      };
+    </script>
+
+    {{ content_for_header }}
+  </head>
+
+  <body class="template-{{ template.name | handle }}">
+    <a class="skip-link" href="#main-content">{{ 'general.skip_to_content' | t }}</a>
+
+    {% section 'header' %}
+
+    <main id="main-content" role="main">
+      {{ content_for_layout }}
+    </main>
+
+    {% section 'footer' %}
+
+    {% render 'cart-drawer' %}
+    {% render 'toast' %}
+
+    <script src="{{ 'theme.js' | asset_url }}" defer></script>
+  </body>
+</html>

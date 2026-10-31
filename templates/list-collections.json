@@ -1,0 +1,28 @@
+/*
+ * ------------------------------------------------------------
+ * IMPORTANT: The contents of this file are auto-generated.
+ *
+ * This file may be updated by the Shopify admin theme editor
+ * or related systems. Please exercise caution as any changes
+ * made to this file may be overwritten.
+ * ------------------------------------------------------------
+ */
+{
+  "sections": {
+    "main": {
+      "type": "main-list-collections",
+      "settings": {
+        "eyebrow": "NOS UNIVERS",
+        "title": "Nos collections",
+        "text": "Colliers, bracelets, bagues et boucles d'oreilles : chaque univers réunit des pièces choisies pour s'accorder à votre style.",
+        "cta_label": "Découvrir",
+        "show_count": true,
+        "hide_empty": true,
+        "hidden_handles": "frontpage"
+      }
+    }
+  },
+  "order": [
+    "main"
+  ]
+}

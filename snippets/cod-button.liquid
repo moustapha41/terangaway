@@ -1,0 +1,16 @@
+{%- comment -%}
+  Bouton de commande en paiement à la livraison.
+
+  Ouvre le formulaire de l'application (Releasit : /rsi-btn-hook) au lieu du
+  tunnel de commande Shopify. Rendu sur la page panier et dans le tiroir.
+{%- endcomment -%}
+
+{%- if settings.cod_enabled and settings.cod_label != blank -%}
+  <a
+    class="btn btn--gold btn--lg btn--full cod-button"
+    href="{{ settings.cod_url | default: '/rsi-btn-hook' }}"
+  >
+    {% render 'icon', name: 'truck', size: 18 %}
+    {{ settings.cod_label }}
+  </a>
+{%- endif -%}

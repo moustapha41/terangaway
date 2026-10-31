@@ -1,0 +1,20 @@
+{%- comment -%}
+  Titre de section — reprise de src/components/ui/SectionHeading.tsx
+  Paramètres : title, subtitle, badge, centered
+{%- endcomment -%}
+
+{%- assign centered = centered | default: true, allow_false: true -%}
+
+<div class="section-heading{% if centered %} section-heading--center{% endif %}">
+  {%- if badge != blank -%}
+    <span class="section-heading__badge">{{ badge }}</span>
+  {%- endif -%}
+
+  <h2 class="section-heading__title">{{ title }}</h2>
+
+  {%- if subtitle != blank -%}
+    <p class="section-heading__subtitle">{{ subtitle }}</p>
+  {%- endif -%}
+
+  <div class="section-heading__rule"></div>
+</div>

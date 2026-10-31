@@ -1,0 +1,216 @@
+{%- comment -%}
+  Nos bijoux — reprise de src/components/home/FeaturedProducts.tsx
+
+  La sélection (blocs « Produit ») s'affiche d'emblée. Le bouton « Voir plus »
+  révèle ensuite le reste du catalogue, par paquets, sans changer de page.
+{%- endcomment -%}
+
+{%- liquid
+  assign collection = collections[section.settings.collection]
+  assign limit = section.settings.products_to_show
+
+  # Un bloc dont le produit a été supprimé ou renommé ne résout pas :
+  # on les compte pour revenir à la collection plutôt que d'afficher du vide.
+  assign choisis = 0
+  for block in section.blocks
+    if block.settings.product != blank
+      assign choisis = choisis | plus: 1
+    endif
+  endfor
+
+  # Source du complément : la collection choisie, sinon tout le catalogue.
+  if collection != blank
+    assign reserve = collection.products
+  else
+    assign reserve = collections.all.products
+  endif
+
+  assign grille = 'product-grid'
+  if section.settings.columns == 3
+    assign grille = 'product-grid product-grid--3'
+  endif
+-%}
+
+<section class="featured" style="padding-top: {{ section.settings.padding_top }}px;">
+  <div class="container" style="max-width: 1024px;">
+    <div class="featured__header">
+      {%- if section.settings.title != blank -%}
+        <h2 class="featured__title">{{ section.settings.title }}</h2>
+      {%- endif -%}
+
+      {% render 'ornament' %}
+
+      {%- if section.settings.subtitle != blank -%}
+        <p class="featured__subtitle">{{ section.settings.subtitle }}</p>
+      {%- endif -%}
+    </div>
+
+    {%- assign deja = '' -%}
+
+    <div class="{{ grille }}" id="grille-{{ section.id }}">
+      {%- comment -%} 1. La sélection, toujours visible {%- endcomment -%}
+      {%- if choisis > 0 -%}
+        {%- for block in section.blocks -%}
+          {%- assign choisi = block.settings.product -%}
+          {%- if choisi != blank -%}
+            {%- assign deja = deja | append: '|' | append: choisi.handle | append: '|' -%}
+            <div class="product-grid__item" {{ block.shopify_attributes }}>
+              {% render 'product-card', product: choisi %}
+            </div>
+          {%- endif -%}
+        {%- endfor -%}
+
+      {%- else -%}
+        {%- for product in reserve limit: limit -%}
+          {%- assign deja = deja | append: '|' | append: product.handle | append: '|' -%}
+          <div class="product-grid__item">
+            {% render 'product-card', product: product %}
+          </div>
+        {%- else -%}
+          <p class="featured__subtitle">{{ 'home.no_products' | t }}</p>
+        {%- endfor -%}
+      {%- endif -%}
+
+      {%- comment -%} 2. La réserve, masquée, révélée par le bouton {%- endcomment -%}
+      {%- assign caches = 0 -%}
+      {%- if section.settings.more_action == 'reveal' -%}
+        {%- for product in reserve limit: 48 -%}
+          {%- assign cle = '|' | append: product.handle | append: '|' -%}
+          {%- unless deja contains cle -%}
+            {%- assign caches = caches | plus: 1 -%}
+            <div class="product-grid__item" hidden>
+              {% render 'product-card', product: product %}
+            </div>
+          {%- endunless -%}
+        {%- endfor -%}
+      {%- endif -%}
+    </div>
+
+    {%- if section.settings.show_view_all and section.settings.view_all_label != blank -%}
+      {%- if section.settings.more_action == 'reveal' -%}
+        {%- if caches > 0 -%}
+          <div class="featured__more">
+            <button
+              type="button"
+              class="btn btn--outline btn--pill"
+              data-load-more="#grille-{{ section.id }}"
+              data-step="{{ section.settings.more_step }}"
+            >
+              <span>{{ section.settings.view_all_label }}</span>
+              {% render 'icon', name: 'chevron-down', size: 16 %}
+            </button>
+          </div>
+        {%- endif -%}
+
+      {%- else -%}
+        {%- liquid
+          assign destination = section.settings.view_all_url
+          unless destination
+            assign destination = collection.url | default: routes.all_products_collection_url
+          endunless
+        -%}
+        <div class="featured__more">
+          <a class="btn btn--outline btn--pill" href="{{ destination }}">
+            {{ section.settings.view_all_label }}
+            {% render 'icon', name: 'arrow-right', size: 16 %}
+          </a>
+        </div>
+      {%- endif -%}
+    {%- endif -%}
+  </div>
+</section>
+
+{% schema %}
+{
+  "name": "Produits en vedette",
+  "max_blocks": 16,
+  "settings": [
+    { "type": "text", "id": "title", "label": "Titre", "default": "Nos bijoux" },
+    {
+      "type": "text",
+      "id": "subtitle",
+      "label": "Sous-titre",
+      "default": "Découvrez notre sélection de pièces uniques conçues pour sublimer votre style."
+    },
+    {
+      "type": "select",
+      "id": "columns",
+      "label": "Colonnes sur ordinateur",
+      "options": [
+        { "value": "3", "label": "3 colonnes (idéal pour 3, 6 ou 9 bijoux)" },
+        { "value": "4", "label": "4 colonnes (idéal pour 4, 8 ou 12 bijoux)" }
+      ],
+      "default": "4"
+    },
+    { "type": "header", "content": "Choix des produits" },
+    {
+      "type": "paragraph",
+      "content": "Ajoute des blocs « Produit » ci-dessous pour choisir tes bijoux un par un. Si tu n'en ajoutes aucun, la collection ci-dessous est utilisée."
+    },
+    {
+      "type": "collection",
+      "id": "collection",
+      "label": "Collection",
+      "info": "Sert de repli si aucun bloc, et de source pour le bouton « Voir plus »."
+    },
+    {
+      "type": "range",
+      "id": "products_to_show",
+      "label": "Nombre de produits (depuis la collection)",
+      "min": 4,
+      "max": 16,
+      "step": 4,
+      "default": 8
+    },
+    { "type": "header", "content": "Bouton sous la grille" },
+    { "type": "checkbox", "id": "show_view_all", "label": "Afficher le bouton", "default": true },
+    { "type": "text", "id": "view_all_label", "label": "Libellé", "default": "Voir plus" },
+    {
+      "type": "select",
+      "id": "more_action",
+      "label": "Action",
+      "options": [
+        { "value": "reveal", "label": "Afficher plus de bijoux sur la page" },
+        { "value": "link", "label": "Aller vers le catalogue" }
+      ],
+      "default": "reveal"
+    },
+    {
+      "type": "range",
+      "id": "more_step",
+      "label": "Bijoux ajoutés par clic",
+      "min": 2,
+      "max": 12,
+      "step": 1,
+      "default": 5
+    },
+    {
+      "type": "url",
+      "id": "view_all_url",
+      "label": "Destination",
+      "info": "Utilisée seulement avec l'action « Aller vers le catalogue »."
+    },
+    {
+      "type": "header",
+      "content": "Mise en page"
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "label": "Espacement supérieur (px)",
+      "min": 0,
+      "max": 80,
+      "step": 4,
+      "default": 24
+    }
+  ],
+  "blocks": [
+    {
+      "type": "product",
+      "name": "Produit",
+      "settings": [{ "type": "product", "id": "product", "label": "Bijou" }]
+    }
+  ],
+  "presets": [{ "name": "Produits en vedette" }]
+}
+{% endschema %}

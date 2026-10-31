@@ -1,0 +1,248 @@
+/*
+ * ------------------------------------------------------------
+ * IMPORTANT: The contents of this file are auto-generated.
+ *
+ * This file may be updated by the Shopify admin theme editor
+ * or related systems. Please exercise caution as any changes
+ * made to this file may be overwritten.
+ * ------------------------------------------------------------
+ */
+{
+  "sections": {
+    "hero": {
+      "type": "hero",
+      "blocks": {
+        "slide-1": {
+          "type": "slide",
+          "settings": {
+            "alt_fallback": "Femme portant la parure trèfle doré Bijou Gone",
+            "eyebrow": "BIJOUX & ACCESSOIRES",
+            "title": "<p>La beauté<br>au bout <em>des doigts</em></p>",
+            "show_rule": true,
+            "text": "Des bijoux raffinés et des accessoires élégants pour sublimer chaque instant de votre vie.",
+            "button_label": "Découvrir la collection",
+            "button_url": "shopify://collections/all"
+          }
+        }
+      },
+      "block_order": [
+        "slide-1"
+      ],
+      "settings": {
+        "autoplay": true,
+        "interval": 6
+      }
+    },
+    "benefits": {
+      "type": "benefits",
+      "blocks": {
+        "b1": {
+          "type": "benefit",
+          "settings": {
+            "icon": "gem",
+            "title": "Qualité garantie",
+            "text": "Des bijoux soigneusement sélectionnés"
+          }
+        },
+        "b2": {
+          "type": "benefit",
+          "settings": {
+            "icon": "truck",
+            "title": "Livraison rapide",
+            "text": "À Dakar et dans les régions"
+          }
+        },
+        "b3": {
+          "type": "benefit",
+          "settings": {
+            "icon": "shield-check",
+            "title": "Paiement à la livraison",
+            "text": "Achetez en toute confiance"
+          }
+        },
+        "b4": {
+          "type": "benefit",
+          "settings": {
+            "icon": "headset",
+            "title": "Service client",
+            "text": "À votre écoute"
+          }
+        }
+      },
+      "block_order": [
+        "b1",
+        "b2",
+        "b3",
+        "b4"
+      ],
+      "settings": {}
+    },
+    "featured-products": {
+      "type": "featured-products",
+      "blocks": {
+        "p1": {
+          "type": "product",
+          "settings": {
+            "product": "amelie"
+          }
+        },
+        "p2": {
+          "type": "product",
+          "settings": {
+            "product": "anna"
+          }
+        },
+        "p3": {
+          "type": "product",
+          "settings": {
+            "product": "aminata"
+          }
+        },
+        "p4": {
+          "type": "product",
+          "settings": {
+            "product": "helena"
+          }
+        },
+        "p5": {
+          "type": "product",
+          "settings": {
+            "product": "khadija"
+          }
+        },
+        "p6": {
+          "type": "product",
+          "settings": {
+            "product": "amsatou"
+          }
+        },
+        "p7": {
+          "type": "product",
+          "settings": {
+            "product": "louise"
+          }
+        },
+        "p8": {
+          "type": "product",
+          "settings": {
+            "product": "malika"
+          }
+        },
+        "p9": {
+          "type": "product",
+          "settings": {
+            "product": "salah"
+          }
+        }
+      },
+      "block_order": [
+        "p1",
+        "p2",
+        "p3",
+        "p4",
+        "p5",
+        "p6",
+        "p7",
+        "p8",
+        "p9"
+      ],
+      "settings": {
+        "title": "Nos bijoux",
+        "subtitle": "Découvrez notre sélection de pièces uniques conçues pour sublimer votre style.",
+        "columns": "3",
+        "collection": "",
+        "products_to_show": 8,
+        "show_view_all": true,
+        "view_all_label": "Voir plus",
+        "more_action": "reveal",
+        "more_step": 5,
+        "view_all_url": "",
+        "padding_top": 24
+      }
+    },
+    "gallery-preview": {
+      "type": "gallery-preview",
+      "blocks": {
+        "photo_pPPkyf": {
+          "type": "photo",
+          "settings": {
+            "image": "shopify://shop_images/3.jpg"
+          }
+        },
+        "photo_fqPxdN": {
+          "type": "photo",
+          "settings": {
+            "image": "shopify://shop_images/Photo__officially_erichans__Muse__u_judy03.jpg"
+          }
+        },
+        "photo_r9grf9": {
+          "type": "photo",
+          "settings": {
+            "image": "shopify://shop_images/Gold_Bracelet_Stack_Inspiration.jpg"
+          }
+        },
+        "photo_XEBbP3": {
+          "type": "photo",
+          "settings": {
+            "image": "shopify://shop_images/2.jpg"
+          }
+        },
+        "photo_EhtnBR": {
+          "type": "photo",
+          "settings": {
+            "image": "shopify://shop_images/1_9a857607-da25-4c20-8010-2eddece99b46.jpg"
+          }
+        },
+        "photo_rL3Hgr": {
+          "type": "photo",
+          "settings": {
+            "image": "shopify://shop_images/Birthday_Portrait.jpg"
+          }
+        },
+        "photo_bRJA3J": {
+          "type": "photo",
+          "settings": {
+            "image": "shopify://shop_images/Brunch_plans__Don_t_forget_the_shades____jaduraofficial_fyp_sunglasses_sunglassesfashion.jpg"
+          }
+        },
+        "photo_fQUUUr": {
+          "type": "photo",
+          "settings": {
+            "image": "shopify://shop_images/dce189eac47ae14c7e35d2aa3b29f58c.jpg"
+          }
+        },
+        "photo_prRJpM": {
+          "type": "photo",
+          "settings": {
+            "image": "shopify://shop_images/Birthday_portraits_of_honeydrop_x______theofficialfolarin_____tiwatheemua______hairbybrown_____dressify_bye.jpg"
+          }
+        }
+      },
+      "block_order": [
+        "photo_pPPkyf",
+        "photo_fqPxdN",
+        "photo_r9grf9",
+        "photo_XEBbP3",
+        "photo_EhtnBR",
+        "photo_rL3Hgr",
+        "photo_bRJA3J",
+        "photo_fQUUUr",
+        "photo_prRJpM"
+      ],
+      "settings": {
+        "anchor": "galerie",
+        "eyebrow": "GALERIE",
+        "title": "Nos bijoux\nen vrai",
+        "text": "Découvrez nos bijoux portés par notre communauté et laissez-vous inspirer par leurs styles uniques.",
+        "button_label": "Voir plus de photos",
+        "button_url": "shopify://pages/galerie"
+      }
+    }
+  },
+  "order": [
+    "hero",
+    "benefits",
+    "featured-products",
+    "gallery-preview"
+  ]
+}

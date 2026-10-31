@@ -1,0 +1,44 @@
+{%- comment -%}
+  Menu mobile — reprise de src/components/layout/MobileMenu.tsx
+{%- endcomment -%}
+
+<div class="drawer" id="mobile-menu" role="dialog" aria-modal="true" aria-label="{{ 'general.menu' | t }}" aria-hidden="true">
+  <div class="drawer__overlay" data-drawer-close></div>
+
+  <div class="drawer__panel">
+    <div>
+      <div class="drawer__header">
+        <span class="site-header__logo-text">{{ shop.name }}</span>
+        <button type="button" class="drawer__close" data-drawer-close aria-label="{{ 'general.close_menu' | t }}">
+          {% render 'icon', name: 'x', size: 22 %}
+        </button>
+      </div>
+
+      <nav class="drawer-nav">
+        {%- if menu_links != blank -%}
+          {%- for link in menu_links -%}
+            <a class="drawer-nav__link" href="{{ link.url }}">{{ link.title }}</a>
+          {%- endfor -%}
+        {%- endif -%}
+      </nav>
+    </div>
+
+    <div class="drawer__footer">
+      <a class="btn btn--primary btn--full" href="{{ routes.cart_url }}">
+        {% render 'icon', name: 'shopping-bag', size: 16 %}
+        {{ 'cart.my_cart' | t }}
+      </a>
+
+      <div class="drawer__meta">
+        {%- if settings.shop_phone != blank -%}
+          <p>{% render 'icon', name: 'phone', size: 14 %} {{ settings.shop_phone }}</p>
+        {%- endif -%}
+        {%- if settings.shop_location != blank -%}
+          <p>{{ settings.shop_location }}</p>
+        {%- endif -%}
+      </div>
+
+      {% render 'social-links' %}
+    </div>
+  </div>
+</div>

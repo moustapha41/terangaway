@@ -1,0 +1,199 @@
+{%- comment -%}
+  Panier — reprise de src/app/panier/page.tsx
+  Le paiement est géré par le tunnel de commande Shopify.
+{%- endcomment -%}
+
+<div class="section" data-cart-page>
+  <div class="container">
+    {% render 'section-heading',
+      badge: section.settings.badge,
+      title: section.settings.title,
+      subtitle: section.settings.subtitle
+    %}
+
+    {%- if cart.item_count == 0 -%}
+      <div class="empty-state">
+        {% render 'icon', name: 'shopping-bag', size: 56 %}
+        <h3 class="empty-state__title">{{ 'cart.empty_title' | t }}</h3>
+        <p class="empty-state__text">{{ 'cart.empty_text' | t }}</p>
+        <a class="btn btn--primary" href="{{ routes.all_products_collection_url }}">
+          {{ 'cart.discover' | t }}
+        </a>
+      </div>
+    {%- else -%}
+      <form action="{{ routes.cart_url }}" method="post" novalidate>
+        <div class="cart-layout">
+          <div class="card">
+            <div class="cart-head">
+              <span class="cart-head__title">
+                {{ 'cart.items_count' | t: count: cart.item_count }}
+              </span>
+              <a class="cart-head__link" href="{{ routes.all_products_collection_url }}">
+                {% render 'icon', name: 'arrow-left', size: 14 %}
+                {{ 'cart.continue_shopping' | t }}
+              </a>
+            </div>
+
+            {%- for item in cart.items -%}
+              <div class="cart-item" data-cart-line="{{ forloop.index }}">
+                <a class="cart-item__media" href="{{ item.url }}">
+                  {%- if item.image -%}
+                    {%- assign img_alt = item.title | escape -%}
+                    {{ item.image | image_url: width: 160 | image_tag: alt: img_alt, loading: 'lazy', width: 80, height: 80 }}
+                  {%- endif -%}
+                </a>
+
+                <div class="cart-item__body">
+                  {%- if item.product.type != blank -%}
+                    <span class="cart-item__vendor">{{ item.product.type }}</span>
+                  {%- endif -%}
+
+                  <a class="cart-item__title" href="{{ item.url }}">{{ item.product.title }}</a>
+
+                  {%- unless item.variant.title == 'Default Title' -%}
+                    <p class="cart-item__variant">{{ item.variant.title }}</p>
+                  {%- endunless -%}
+
+                  <p class="cart-item__unit">{{ item.final_price | money }}</p>
+
+                  <div class="cart-item__controls">
+                    <div class="qty qty--sm">
+                      <button type="button" data-qty-step="-1" aria-label="{{ 'products.decrease_quantity' | t }}">
+                        {% render 'icon', name: 'minus', size: 13 %}
+                      </button>
+                      <label class="visually-hidden" for="CartQty-{{ forloop.index }}">{{ 'products.quantity' | t }}</label>
+                      <input
+                        id="CartQty-{{ forloop.index }}"
+                        type="number"
+                        min="0"
+                        value="{{ item.quantity }}"
+                        data-cart-qty
+                      >
+                      <button type="button" data-qty-step="1" aria-label="{{ 'products.increase_quantity' | t }}">
+                        {% render 'icon', name: 'plus', size: 13 %}
+                      </button>
+                    </div>
+
+                    <button type="button" class="cart-item__remove" data-cart-remove aria-label="{{ 'cart.remove' | t }}">
+                      {% render 'icon', name: 'trash', size: 16 %}
+                    </button>
+                  </div>
+                </div>
+
+                <div class="cart-item__total">{{ item.final_line_price | money }}</div>
+              </div>
+            {%- endfor -%}
+
+            {%- if section.settings.show_note -%}
+              <div class="cart-note" style="margin-top: 20px;">
+                <label for="CartNote">{{ 'cart.note' | t }}</label>
+                <textarea id="CartNote" name="note" placeholder="{{ 'cart.note_placeholder' | t }}">{{ cart.note }}</textarea>
+              </div>
+            {%- endif -%}
+          </div>
+
+          <div class="cart-summary">
+            <h3 class="cart-summary__title">{{ 'cart.summary' | t }}</h3>
+
+            <div class="cart-summary__rows">
+              <div class="cart-summary__row">
+                <span>{{ 'cart.subtotal' | t }}</span>
+                <strong>{{ cart.items_subtotal_price | money }}</strong>
+              </div>
+
+              {%- if cart.total_discount > 0 -%}
+                <div class="cart-summary__row cart-summary__row--free">
+                  <span>{{ 'cart.discount' | t }}</span>
+                  <strong>- {{ cart.total_discount | money }}</strong>
+                </div>
+              {%- endif -%}
+
+              <div class="cart-summary__row cart-summary__row--free">
+                <span>{{ 'cart.shipping' | t }}</span>
+                <strong>{{ 'cart.shipping_at_checkout' | t }}</strong>
+              </div>
+
+              <div class="cart-summary__total">
+                <span>{{ 'cart.total' | t }}</span>
+                <span>{{ cart.total_price | money }}</span>
+              </div>
+            </div>
+
+            {% render 'cod-button' %}
+
+            {%- unless settings.cod_enabled and settings.cod_hide_checkout -%}
+              <button
+                type="submit"
+                name="checkout"
+                class="btn btn--lg btn--full {% if settings.cod_enabled %}btn--outline{% else %}btn--primary{% endif %}"
+              >
+                {{ 'cart.checkout' | t }}
+                {% render 'icon', name: 'arrow-right', size: 16 %}
+              </button>
+            {%- endunless -%}
+
+            {%- comment -%}
+              Blocs d'application : bouton « Commander en paiement à la
+              livraison » de Releasit, ou autre moyen de paiement.
+            {%- endcomment -%}
+            {%- if section.blocks.size > 0 -%}
+              <div class="cart-summary__apps">
+                {%- for block in section.blocks -%}
+                  {%- case block.type -%}
+                    {%- when '@app' -%}
+                      <div {{ block.shopify_attributes }}>{% render block %}</div>
+                  {%- endcase -%}
+                {%- endfor -%}
+              </div>
+            {%- endif -%}
+
+            <div class="cart-summary__reassurance">
+              {%- if section.settings.reassurance_1 != blank -%}
+                <div>
+                  {% render 'icon', name: 'truck', size: 16 %}
+                  <span>{{ section.settings.reassurance_1 }}</span>
+                </div>
+              {%- endif -%}
+              {%- if section.settings.reassurance_2 != blank -%}
+                <div>
+                  {% render 'icon', name: 'shield-check', size: 16 %}
+                  <span>{{ section.settings.reassurance_2 }}</span>
+                </div>
+              {%- endif -%}
+            </div>
+          </div>
+        </div>
+      </form>
+    {%- endif -%}
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "Panier",
+  "blocks": [{ "type": "@app" }],
+  "settings": [
+    { "type": "text", "id": "badge", "label": "Badge", "default": "Votre Sélection" },
+    { "type": "text", "id": "title", "label": "Titre", "default": "Votre Panier de Bijoux" },
+    {
+      "type": "text",
+      "id": "subtitle",
+      "label": "Sous-titre",
+      "default": "Vérifiez les articles sélectionnés avant de finaliser votre commande."
+    },
+    { "type": "checkbox", "id": "show_note", "label": "Autoriser une note de commande", "default": true },
+    {
+      "type": "text",
+      "id": "reassurance_1",
+      "label": "Réassurance 1",
+      "default": "Livraison rapide à Dakar & en région"
+    },
+    {
+      "type": "text",
+      "id": "reassurance_2",
+      "label": "Réassurance 2",
+      "default": "Paiement sécurisé à la livraison ou Wave / Orange Money"
+    }
+  ]
+}
+{% endschema %}

@@ -1,0 +1,166 @@
+{%- comment -%}
+  Une collection — bandeau habillé puis grille de produits éditoriale.
+{%- endcomment -%}
+
+{%- liquid
+  assign heading = collection.title | default: section.settings.title
+  assign has_bg = false
+  if section.settings.show_image and collection.featured_image
+    assign has_bg = true
+  endif
+-%}
+
+<div class="collection-banner">
+  {%- if has_bg -%}
+    {%- assign bg_alt = collection.title | escape -%}
+    <div class="collection-banner__bg">
+      {{
+        collection.featured_image
+        | image_url: width: 2000
+        | image_tag: widths: '800, 1200, 1600, 2000', sizes: '100vw', alt: bg_alt, loading: 'eager'
+      }}
+    </div>
+  {%- endif -%}
+
+  <div class="container container--wide">
+    <div class="collection-banner__inner">
+      <a class="collection-banner__crumb" href="{{ routes.collections_url }}">
+        {% render 'icon', name: 'arrow-left', size: 13, stroke: 1.8 %}
+        {{ 'collections.all_collections' | t }}
+      </a>
+
+      <h1 class="collection-banner__title">{{ heading }}</h1>
+
+      {% render 'ornament' %}
+
+      {%- if collection.description != blank -%}
+        <div class="collection-banner__text rte">{{ collection.description }}</div>
+      {%- elsif section.settings.subtitle != blank -%}
+        <p class="collection-banner__text">{{ section.settings.subtitle }}</p>
+      {%- endif -%}
+
+      {%- if section.settings.show_count -%}
+        <span class="collection-banner__count">
+          {{ 'collections.product_count' | t: count: collection.products_count }}
+        </span>
+      {%- endif -%}
+    </div>
+  </div>
+</div>
+
+{%- paginate collection.products by section.settings.per_page -%}
+  <div class="section" style="padding-block: 52px 80px;">
+    <div class="container container--wide">
+
+      {%- if section.settings.show_collection_links -%}
+        <div class="chip-row">
+          <a class="chip{% if collection.handle == 'all' %} is-active{% endif %}" href="{{ routes.all_products_collection_url }}">
+            {{ 'collections.all' | t }}
+          </a>
+          {%- for linked in collections -%}
+            {%- unless linked.handle == 'frontpage' or linked.all_products_count == 0 -%}
+              <a class="chip{% if linked.handle == collection.handle %} is-active{% endif %}" href="{{ linked.url }}">
+                {{ linked.title }}
+              </a>
+            {%- endunless -%}
+          {%- endfor -%}
+        </div>
+      {%- endif -%}
+
+      {%- if collection.products.size > 0 -%}
+        <div class="collection-toolbar">
+          <span class="collection-toolbar__count">
+            {{ 'collections.product_count' | t: count: collection.products_count }}
+          </span>
+
+          {%- if section.settings.show_sort -%}
+            <div class="collection-toolbar__sort">
+              <label for="SortBy">{{ 'collections.sort_by' | t }}</label>
+              {%- assign current = collection.sort_by | default: collection.default_sort_by -%}
+              <select id="SortBy" data-sort-select>
+                {%- for option in collection.sort_options -%}
+                  <option value="{{ option.value }}" {% if option.value == current %}selected{% endif %}>
+                    {{ option.name }}
+                  </option>
+                {%- endfor -%}
+              </select>
+            </div>
+          {%- endif -%}
+        </div>
+
+        <div class="product-grid--editorial">
+          {%- for product in collection.products -%}
+            {% render 'product-card', product: product, style: 'editorial' %}
+          {%- endfor -%}
+        </div>
+
+        {%- if paginate.pages > 1 -%}
+          <nav class="pagination" role="navigation" aria-label="{{ 'general.pagination' | t }}">
+            {%- if paginate.previous -%}
+              <a href="{{ paginate.previous.url }}" aria-label="{{ 'general.previous' | t }}">
+                {% render 'icon', name: 'chevron-left', size: 15 %}
+              </a>
+            {%- endif -%}
+
+            {%- for part in paginate.parts -%}
+              {%- if part.is_link -%}
+                <a href="{{ part.url }}">{{ part.title }}</a>
+              {%- else -%}
+                <span class="{% if part.title == paginate.current_page %}is-current{% endif %}">{{ part.title }}</span>
+              {%- endif -%}
+            {%- endfor -%}
+
+            {%- if paginate.next -%}
+              <a href="{{ paginate.next.url }}" aria-label="{{ 'general.next' | t }}">
+                {% render 'icon', name: 'chevron-right', size: 15 %}
+              </a>
+            {%- endif -%}
+          </nav>
+        {%- endif -%}
+      {%- else -%}
+        <div class="collection-empty">
+          {% render 'icon', name: 'gem', size: 40 %}
+          <h2 class="collection-empty__title">{{ 'collections.empty_title' | t }}</h2>
+          <p class="collection-empty__text">{{ 'collections.empty_text' | t }}</p>
+          <a class="btn btn--primary btn--pill" href="{{ routes.collections_url }}">
+            {{ 'collections.all_collections' | t }}
+          </a>
+        </div>
+      {%- endif -%}
+    </div>
+  </div>
+{%- endpaginate -%}
+
+{% schema %}
+{
+  "name": "Collection",
+  "settings": [
+    {
+      "type": "paragraph",
+      "content": "Le titre et le texte viennent de la collection elle-même. Les champs ci-dessous servent de repli."
+    },
+    { "type": "text", "id": "title", "label": "Titre de repli", "default": "Notre collection" },
+    {
+      "type": "textarea",
+      "id": "subtitle",
+      "label": "Texte de repli",
+      "default": "Des créations choisies une à une, pensées pour accompagner chacun de vos moments."
+    },
+    {
+      "type": "checkbox",
+      "id": "show_image",
+      "label": "Utiliser l'image de la collection en fond du bandeau",
+      "default": true
+    },
+    { "type": "checkbox", "id": "show_count", "label": "Afficher le nombre de produits", "default": true },
+    { "type": "checkbox", "id": "show_sort", "label": "Afficher le tri", "default": true },
+    {
+      "type": "checkbox",
+      "id": "show_collection_links",
+      "label": "Afficher les autres collections",
+      "default": true
+    },
+    { "type": "range", "id": "per_page", "label": "Produits par page", "min": 8, "max": 48, "step": 4, "default": 24 }
+  ]
+}
+{% endschema %}

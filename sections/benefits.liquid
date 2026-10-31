@@ -1,0 +1,64 @@
+{%- comment -%}
+  Avantages — reprise de src/components/home/Benefits.tsx
+{%- endcomment -%}
+
+<section class="benefits">
+  <div class="container">
+    <div class="benefits__grid">
+      {%- for block in section.blocks -%}
+        <div class="benefits__item" {{ block.shopify_attributes }}>
+          <div class="benefits__icon">
+            {% render 'icon', name: block.settings.icon, size: 24 %}
+          </div>
+          <div>
+            <h4 class="benefits__title">{{ block.settings.title }}</h4>
+            <p class="benefits__text">{{ block.settings.text }}</p>
+          </div>
+        </div>
+      {%- endfor -%}
+    </div>
+  </div>
+</section>
+
+{% schema %}
+{
+  "name": "Avantages",
+  "max_blocks": 4,
+  "blocks": [
+    {
+      "type": "benefit",
+      "name": "Avantage",
+      "settings": [
+        {
+          "type": "select",
+          "id": "icon",
+          "label": "Icône",
+          "options": [
+            { "value": "truck", "label": "Camion (livraison)" },
+            { "value": "shield-check", "label": "Bouclier (paiement)" },
+            { "value": "gem", "label": "Gemme (qualité)" },
+            { "value": "headset", "label": "Casque (service client)" },
+            { "value": "heart", "label": "Cœur" },
+            { "value": "sparkles", "label": "Étincelles" },
+            { "value": "award", "label": "Médaille" }
+          ],
+          "default": "truck"
+        },
+        { "type": "text", "id": "title", "label": "Titre", "default": "Livraison rapide" },
+        { "type": "text", "id": "text", "label": "Texte", "default": "À Dakar et dans les régions" }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Avantages",
+      "blocks": [
+        { "type": "benefit", "settings": { "icon": "truck", "title": "Livraison rapide", "text": "À Dakar et dans les régions" } },
+        { "type": "benefit", "settings": { "icon": "shield-check", "title": "Paiement à la livraison", "text": "Achetez en toute confiance" } },
+        { "type": "benefit", "settings": { "icon": "gem", "title": "Qualité garantie", "text": "Des bijoux soigneusement sélectionnés" } },
+        { "type": "benefit", "settings": { "icon": "headset", "title": "Service client", "text": "À votre écoute" } }
+      ]
+    }
+  ]
+}
+{% endschema %}

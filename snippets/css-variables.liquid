@@ -1,0 +1,38 @@
+{%- comment -%}
+  Les réglages de couleur du thème écrasent les jetons définis dans base.css.
+{%- endcomment -%}
+
+<style>
+  :root {
+    {%- if settings.color_background != blank -%}
+      --background: {{ settings.color_background }};
+    {%- endif -%}
+    {%- if settings.color_text != blank -%}
+      --foreground: {{ settings.color_text }};
+      --brown: {{ settings.color_text }};
+      --brown-light: {{ settings.color_text | color_lighten: 10 }};
+      --brown-secondary: {{ settings.color_text | color_lighten: 22 }};
+      --muted: {{ settings.color_text | color_lighten: 22 }};
+    {%- endif -%}
+    {%- if settings.color_gold != blank -%}
+      --primary: {{ settings.color_gold }};
+      --gold: {{ settings.color_gold }};
+      --gold-light: {{ settings.color_gold | color_lighten: 14 }};
+      --gold-deep: {{ settings.color_gold | color_darken: 4 }};
+      --gold-deeper: {{ settings.color_gold | color_darken: 10 }};
+      --secondary: {{ settings.color_gold | color_lighten: 14 }};
+    {%- endif -%}
+    {%- if settings.color_gold_hover != blank -%}
+      --primary-hover: {{ settings.color_gold_hover }};
+    {%- endif -%}
+    {%- if settings.color_cream != blank -%}
+      --cream: {{ settings.color_cream }};
+    {%- endif -%}
+    {%- if settings.color_blush != blank -%}
+      --blush: {{ settings.color_blush }};
+    {%- endif -%}
+    {%- if settings.color_border != blank -%}
+      --border: {{ settings.color_border }};
+    {%- endif -%}
+  }
+</style>

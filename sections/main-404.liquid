@@ -1,0 +1,19 @@
+{%- comment -%} Page introuvable {%- endcomment -%}
+
+<div class="section">
+  <div class="container">
+    <div class="empty-state">
+      {% render 'icon', name: 'gem', size: 48 %}
+      <h1 class="empty-state__title" style="font-size: 26px;">{{ '404.title' | t }}</h1>
+      <p class="empty-state__text">{{ '404.text' | t }}</p>
+      <div style="display: flex; gap: 12px; flex-wrap: wrap; justify-content: center;">
+        <a class="btn btn--primary" href="{{ routes.root_url }}">{{ '404.home' | t }}</a>
+        <a class="btn btn--outline" href="{{ routes.all_products_collection_url }}">{{ 'collections.all' | t }}</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% schema %}
+{ "name": "Page 404" }
+{% endschema %}

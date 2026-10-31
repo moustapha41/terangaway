@@ -1,0 +1,57 @@
+<div class="section">
+  <div class="container">
+    <a class="breadcrumb" href="{{ routes.account_url }}">
+      {% render 'icon', name: 'arrow-left', size: 16 %}
+      {{ 'customer.account' | t }}
+    </a>
+
+    {% render 'section-heading', title: order.name, centered: false %}
+
+    <div class="split split--wide-left">
+      <div class="card">
+        {%- for line in order.line_items -%}
+          <div class="cart-item">
+            {%- if line.image -%}
+              <div class="cart-item__media">
+                {%- assign img_alt = line.title | escape -%}
+                {{ line.image | image_url: width: 160 | image_tag: alt: img_alt, loading: 'lazy', width: 80, height: 80 }}
+              </div>
+            {%- endif -%}
+            <div class="cart-item__body">
+              <span class="cart-item__title">{{ line.title }}</span>
+              <p class="cart-item__unit">{{ 'products.quantity' | t }} : {{ line.quantity }}</p>
+            </div>
+            <div class="cart-item__total">{{ line.final_line_price | money }}</div>
+          </div>
+        {%- endfor -%}
+      </div>
+
+      <div class="cart-summary">
+        <h3 class="cart-summary__title">{{ 'cart.summary' | t }}</h3>
+        <div class="cart-summary__rows">
+          <div class="cart-summary__row">
+            <span>{{ 'cart.subtotal' | t }}</span>
+            <strong>{{ order.subtotal_price | money }}</strong>
+          </div>
+          <div class="cart-summary__row">
+            <span>{{ 'cart.shipping' | t }}</span>
+            <strong>{{ order.shipping_price | money }}</strong>
+          </div>
+          <div class="cart-summary__total">
+            <span>{{ 'cart.total' | t }}</span>
+            <span>{{ order.total_price | money }}</span>
+          </div>
+        </div>
+
+        <div style="font-size: 13px; color: var(--muted);">
+          <p>{{ order.created_at | date: '%d/%m/%Y' }}</p>
+          <p>{{ order.financial_status_label }} · {{ order.fulfillment_status_label }}</p>
+        </div>
+
+        {%- if order.shipping_address -%}
+          <div class="rte" style="font-size: 13px;">{{ order.shipping_address | format_address }}</div>
+        {%- endif -%}
+      </div>
+    </div>
+  </div>
+</div>

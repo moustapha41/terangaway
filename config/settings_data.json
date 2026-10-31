@@ -1,0 +1,66 @@
+/*
+ * ------------------------------------------------------------
+ * IMPORTANT: The contents of this file are auto-generated.
+ *
+ * This file may be updated by the Shopify admin theme editor
+ * or related systems. Please exercise caution as any changes
+ * made to this file may be overwritten.
+ * ------------------------------------------------------------
+ */
+{
+  "current": {
+    "shop_phone": "+221 71 004 36 36",
+    "shop_email": "contact@seydany.com",
+    "shop_location": "Dakar, Sénégal",
+    "shop_address": "Almadies, Dakar, Sénégal",
+    "cart_mode": "drawer",
+    "cod_enabled": false,
+    "cod_label": "Commander à la livraison",
+    "cod_url": "/rsi-btn-hook",
+    "cod_hide_checkout": false,
+    "social_instagram": "https://www.instagram.com/seydany.shop?igsh=MXBnOHV5dTJwaWxtcw%3D%3D&utm_source=qr",
+    "social_facebook": "https://www.facebook.com/share/1BYbKRWN8i/?mibextid=wwXIfr",
+    "social_tiktok": "https://www.tiktok.com/@seydany.shop?_r=1&_t=ZS-975l7f70LXo",
+    "social_whatsapp": "https://wa.me/221770000000",
+    "color_background": "#FFFCFA",
+    "color_text": "#3A2118",
+    "color_gold": "#C78A2C",
+    "color_gold_hover": "#B87920",
+    "color_cream": "#F9F1EC",
+    "color_blush": "#F5E3DE",
+    "color_border": "#EDE4DC",
+    "sections": {
+      "header": {
+        "type": "header",
+        "settings": {
+          "logo": "shopify://shop_images/b142c1a7-e39d-4ac3-b33c-4081d3bbf589-removebg-preview.png",
+          "menu": "main-menu",
+          "show_search": true,
+          "show_account": false
+        }
+      },
+      "footer": {
+        "type": "footer",
+        "settings": {
+          "logo": "shopify://shop_images/b142c1a7-e39d-4ac3-b33c-4081d3bbf589-removebg-preview.png",
+          "bio": "Des bijoux et accessoires qui révèlent votre beauté et subliment chaque instant de votre vie.",
+          "menu_title": "Liens utiles",
+          "menu": "footer",
+          "show_newsletter": true,
+          "newsletter_title": "Restez informée",
+          "newsletter_text": "Recevez nos nouveautés et offres spéciales.",
+          "credit": "Conçu avec",
+          "credit_suffix": "pour vous."
+        }
+      }
+    },
+    "content_for_index": [],
+    "blocks": {
+      "13669795325273674392": {
+        "type": "shopify://apps/releasit-cod-form/blocks/app-embed/72faf214-4174-4fec-886b-0d0e8d3af9a2",
+        "disabled": false,
+        "settings": {}
+      }
+    }
+  }
+}

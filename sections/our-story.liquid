@@ -1,0 +1,139 @@
+{%- comment -%}
+  Notre histoire — reprise de src/app/notre-histoire/page.tsx
+{%- endcomment -%}
+
+<div class="section">
+  <div class="container stack stack--xl">
+    {% render 'section-heading',
+      badge: section.settings.badge,
+      title: section.settings.title,
+      subtitle: section.settings.subtitle
+    %}
+
+    {%- comment -%} Récit + image {%- endcomment -%}
+    <div class="split split--even" style="align-items: center;">
+      <div class="stack stack--md">
+        {%- if section.settings.story_title != blank -%}
+          <h3 style="font-family: var(--font-serif); font-size: 24px; font-weight: 700; color: var(--brown);">
+            {{ section.settings.story_title }}
+          </h3>
+        {%- endif -%}
+
+        {%- if section.settings.story_text != blank -%}
+          <div class="rte">{{ section.settings.story_text }}</div>
+        {%- endif -%}
+      </div>
+
+      <div class="brand-story__media-main">
+        {%- if section.settings.image != blank -%}
+          {%- assign img_alt = section.settings.image.alt | default: section.settings.title | escape -%}
+          {{
+            section.settings.image
+            | image_url: width: 1000
+            | image_tag: widths: '500, 750, 1000', sizes: '(max-width: 1024px) 100vw, 50vw', alt: img_alt, loading: 'lazy'
+          }}
+        {%- else -%}
+          <img src="{{ 'hero-femme-bijoux.png' | asset_url }}" alt="{{ shop.name }}" loading="lazy" width="800" height="600">
+        {%- endif -%}
+      </div>
+    </div>
+
+    {%- comment -%} Valeurs {%- endcomment -%}
+    {%- if section.blocks.size > 0 -%}
+      <div class="values">
+        {%- for block in section.blocks -%}
+          <div class="values__item" {{ block.shopify_attributes }}>
+            <span class="values__icon">{% render 'icon', name: block.settings.icon, size: 24 %}</span>
+            <h4 class="values__title">{{ block.settings.title }}</h4>
+            <p class="values__text">{{ block.settings.text }}</p>
+          </div>
+        {%- endfor -%}
+      </div>
+    {%- endif -%}
+
+    {%- if page.content != blank -%}
+      <div class="rte" style="max-width: 48rem; margin-inline: auto;">{{ page.content }}</div>
+    {%- endif -%}
+
+    {%- comment -%} Appel à l'action {%- endcomment -%}
+    {%- if section.settings.cta_label != blank -%}
+      <div class="text-center stack stack--md" style="justify-items: center;">
+        {%- if section.settings.cta_title != blank -%}
+          <h3 style="font-family: var(--font-serif); font-size: 24px; font-weight: 700; color: var(--brown);">
+            {{ section.settings.cta_title }}
+          </h3>
+        {%- endif -%}
+        <a class="btn btn--primary btn--lg" href="{{ section.settings.cta_url | default: routes.all_products_collection_url }}">
+          {{ section.settings.cta_label }}
+        </a>
+      </div>
+    {%- endif -%}
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "Notre histoire",
+  "max_blocks": 3,
+  "settings": [
+    { "type": "text", "id": "badge", "label": "Badge", "default": "L'Épopée Bijou Gone" },
+    { "type": "text", "id": "title", "label": "Titre", "default": "L'Histoire d'une Passion pour le Beau" },
+    {
+      "type": "text",
+      "id": "subtitle",
+      "label": "Sous-titre",
+      "default": "Découvrez le parcours, les valeurs et le savoir-faire qui animent la marque depuis Dakar."
+    },
+    { "type": "image_picker", "id": "image", "label": "Image" },
+    { "type": "text", "id": "story_title", "label": "Titre du récit", "default": "L'Inspiration d'origine" },
+    {
+      "type": "richtext",
+      "id": "story_text",
+      "label": "Récit",
+      "default": "<p>Fondée à Dakar, Bijou Gone est née du désir d'offrir aux femmes des bijoux élégants, modernes et accessibles sans faire de compromis sur la finesse des finitions.</p><p>Chaque collection traduit un équilibre harmonieux entre la sobriété contemporaine et l'éclat chaleureux des bijoux dorés.</p>"
+    },
+    { "type": "header", "content": "Appel à l'action" },
+    { "type": "text", "id": "cta_title", "label": "Titre", "default": "Explorez Nos Créations" },
+    { "type": "text", "id": "cta_label", "label": "Libellé du bouton", "default": "Découvrir le Catalogue" },
+    { "type": "url", "id": "cta_url", "label": "Lien du bouton" }
+  ],
+  "blocks": [
+    {
+      "type": "value",
+      "name": "Valeur",
+      "settings": [
+        {
+          "type": "select",
+          "id": "icon",
+          "label": "Icône",
+          "options": [
+            { "value": "gem", "label": "Gemme" },
+            { "value": "heart", "label": "Cœur" },
+            { "value": "award", "label": "Médaille" },
+            { "value": "sparkles", "label": "Étincelles" },
+            { "value": "shield-check", "label": "Bouclier" }
+          ],
+          "default": "gem"
+        },
+        { "type": "text", "id": "title", "label": "Titre", "default": "Excellence" },
+        {
+          "type": "textarea",
+          "id": "text",
+          "label": "Texte",
+          "default": "Sélection rigoureuse des matériaux pour des pièces durables et resplendissantes."
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Notre histoire",
+      "blocks": [
+        { "type": "value", "settings": { "icon": "gem", "title": "Excellence", "text": "Sélection rigoureuse des matériaux pour des pièces durables et resplendissantes." } },
+        { "type": "value", "settings": { "icon": "heart", "title": "Passion", "text": "Un souci constant du détail pour accompagner chaque femme dans ses moments uniques." } },
+        { "type": "value", "settings": { "icon": "award", "title": "Proximité", "text": "Une présence attentive et bienveillante auprès de notre clientèle au Sénégal." } }
+      ]
+    }
+  ]
+}
+{% endschema %}

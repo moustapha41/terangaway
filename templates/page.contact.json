@@ -1,0 +1,24 @@
+/*
+ * ------------------------------------------------------------
+ * IMPORTANT: The contents of this file are auto-generated.
+ *
+ * This file may be updated by the Shopify admin theme editor
+ * or related systems. Please exercise caution as any changes
+ * made to this file may be overwritten.
+ * ------------------------------------------------------------
+ */
+{
+  "sections": {
+    "main": {
+      "type": "main-contact",
+      "settings": {
+        "badge": "À votre écoute",
+        "title": "Contactez Bijou Gone",
+        "subtitle": "Une question sur nos bijoux ou votre commande ? Notre équipe vous répond rapidement.",
+        "details_title": "Nos Coordonnées",
+        "form_title": "Envoyez-nous un message"
+      }
+    }
+  },
+  "order": ["main"]
+}

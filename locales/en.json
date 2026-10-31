@@ -1,0 +1,176 @@
+/*
+ * ------------------------------------------------------------
+ * IMPORTANT: The contents of this file are auto-generated.
+ *
+ * This file may be updated by the Shopify admin language editor
+ * or related systems. Please exercise caution as any changes
+ * made to this file may be overwritten.
+ * ------------------------------------------------------------
+ */
+{
+  "general": {
+    "skip_to_content": "Skip to content",
+    "main_nav": "Main navigation",
+    "menu": "Menu",
+    "open_menu": "Open menu",
+    "close_menu": "Close menu",
+    "search": "Search",
+    "contact": "Contact",
+    "rights": "All rights reserved.",
+    "error": "Something went wrong. Please try again.",
+    "pagination": "Pagination",
+    "previous": "Previous",
+    "next": "Next",
+    "page": "Page {{ page }}",
+    "tagged": "Tagged {{ tags }}"
+  },
+  "home": {
+    "go_to_slide": "Go to slide {{ index }}",
+    "next_photos": "Next photos",
+    "no_products": "No products available yet."
+  },
+  "products": {
+    "add_to_cart": "Add to cart",
+    "add_to_cart_with_title": "Add {{ title }} to cart",
+    "sold_out": "Sold out",
+    "unavailable": "Unavailable",
+    "on_sale": "Sale",
+    "quantity": "Quantity",
+    "increase_quantity": "Increase quantity",
+    "decrease_quantity": "Decrease quantity",
+    "back_to_collection": "Back to collection",
+    "view_image": "View image {{ index }}",
+    "add": "Add"
+  },
+  "collections": {
+    "all": "All jewellery",
+    "sort_by": "Sort by",
+    "product_count": {
+      "one": "{{ count }} product",
+      "other": "{{ count }} products"
+    },
+    "empty_title": "No jewellery in this collection",
+    "empty_text": "Check back soon — new pieces arrive regularly.",
+    "all_collections": "All collections",
+    "none_title": "No collections yet",
+    "none_text": "Create your collections in the Shopify admin and they will appear here."
+  },
+  "cart": {
+    "title": "Your cart",
+    "my_cart": "My cart",
+    "close": "Close cart",
+    "summary": "Order summary",
+    "subtotal": "Subtotal",
+    "discount": "Discount",
+    "shipping": "Shipping",
+    "shipping_at_checkout": "Calculated at checkout",
+    "shipping_note": "Shipping is calculated at checkout.",
+    "total": "Total",
+    "checkout": "Checkout",
+    "view_cart": "View cart",
+    "continue_shopping": "Continue shopping",
+    "discover": "Discover the collection",
+    "remove": "Remove item",
+    "added": "Added to cart ✓",
+    "empty": "Your cart is currently empty.",
+    "empty_title": "Your cart is currently empty",
+    "empty_text": "Discover our necklaces, bracelets, rings and earrings.",
+    "items_count": {
+      "one": "Item ({{ count }})",
+      "other": "Items ({{ count }})"
+    },
+    "note": "Delivery instructions",
+    "note_placeholder": "Street, landmark, preferred delivery time…"
+  },
+  "contact": {
+    "showroom": "Store & showroom",
+    "phone": "Phone",
+    "phone_whatsapp": "Phone / WhatsApp",
+    "email": "Email",
+    "name": "Full name",
+    "name_placeholder": "Your name",
+    "subject": "Subject",
+    "subject_placeholder": "Product question, order…",
+    "message": "Message",
+    "message_placeholder": "Write your message here…",
+    "send": "Send message",
+    "success": "Thank you! Your message has been sent.",
+    "whatsapp": "Chat with us on WhatsApp"
+  },
+  "newsletter": {
+    "email": "Email address",
+    "placeholder": "Your email address",
+    "placeholder_long": "Your email address…",
+    "subscribe": "Subscribe",
+    "success": "You're subscribed!",
+    "success_long": "Thank you! Your subscription has been registered."
+  },
+  "gallery": {
+    "empty": "Add photos to this gallery from the theme editor."
+  },
+  "search": {
+    "title": "Search",
+    "label": "Search the store",
+    "placeholder": "Necklace, bracelet, ring…",
+    "results_count": {
+      "one": "{{ count }} result for \"{{ terms }}\"",
+      "other": "{{ count }} results for \"{{ terms }}\""
+    },
+    "no_results_title": "No results",
+    "no_results_text": "We found nothing for \"{{ terms }}\". Try another term."
+  },
+  "blog": {
+    "empty": "No articles yet.",
+    "by": "By",
+    "comments": {
+      "one": "{{ count }} comment",
+      "other": "{{ count }} comments"
+    },
+    "comment_submit": "Post comment",
+    "comment_success": "Thank you! Your comment has been submitted."
+  },
+  "customer": {
+    "account": "My account",
+    "login": "Log in",
+    "sign_in": "Sign in",
+    "logout": "Log out",
+    "create_account": "Create account",
+    "already_account": "I already have an account",
+    "forgot_password": "Forgot your password?",
+    "password": "Password",
+    "new_password": "New password",
+    "confirm_password": "Confirm password",
+    "reset_password": "Reset password",
+    "activate_account": "Activate account",
+    "decline": "Decline invitation",
+    "first_name": "First name",
+    "last_name": "Last name",
+    "details": "My details",
+    "orders": "My orders",
+    "no_orders": "You haven't placed any orders yet.",
+    "addresses": "My addresses",
+    "new_address": "Add an address",
+    "save_address": "Save address",
+    "delete": "Delete",
+    "address": "Address",
+    "city": "City",
+    "country": "Country"
+  },
+  "404": {
+    "title": "Page not found",
+    "text": "The page you're looking for doesn't exist or has moved.",
+    "home": "Back to home"
+  },
+  "gift_card": {
+    "title": "Your gift card",
+    "subtitle": "Use this code at checkout on {{ shop }}.",
+    "code": "Gift card code",
+    "expires": "Valid until {{ date }}",
+    "shop": "Visit the store"
+  },
+  "password": {
+    "subtitle": "Our store is opening soon. Enter the password to take a look.",
+    "label": "Password",
+    "submit": "Enter"
+  }
+}

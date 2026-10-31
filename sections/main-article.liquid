@@ -1,0 +1,74 @@
+{%- comment -%} Article de blog {%- endcomment -%}
+
+<div class="section">
+  <div class="container container--narrow">
+    <a class="breadcrumb" href="{{ blog.url }}">
+      {% render 'icon', name: 'arrow-left', size: 16 %}
+      {{ blog.title }}
+    </a>
+
+    <article>
+      <header class="stack stack--sm" style="margin-bottom: 32px;">
+        <span class="product__category">{{ article.published_at | date: '%d %B %Y' }}</span>
+        <h1 style="font-family: var(--font-serif); font-size: 34px; font-weight: 700; color: var(--brown);">
+          {{ article.title }}
+        </h1>
+        {%- if article.author != blank -%}
+          <p style="font-size: 13px; color: var(--muted);">{{ 'blog.by' | t }} {{ article.author }}</p>
+        {%- endif -%}
+      </header>
+
+      {%- if article.image -%}
+        <div style="border-radius: var(--radius-lg); overflow: hidden; margin-bottom: 32px;">
+          {%- assign img_alt = article.title | escape -%}
+          {{ article.image | image_url: width: 1200 | image_tag: alt: img_alt, loading: 'eager' }}
+        </div>
+      {%- endif -%}
+
+      <div class="rte">{{ article.content }}</div>
+    </article>
+
+    {%- if blog.comments_enabled? -%}
+      <div style="margin-top: 48px;">
+        <h2 class="card__title">{{ 'blog.comments' | t: count: article.comments_count }}</h2>
+
+        {%- for comment in article.comments -%}
+          <div style="padding: 16px 0; border-bottom: 1px solid var(--border);">
+            <p style="font-size: 12px; font-weight: 600; color: var(--brown);">{{ comment.author }}</p>
+            <div class="rte" style="font-size: 14px; margin-top: 6px;">{{ comment.content }}</div>
+          </div>
+        {%- endfor -%}
+
+        {%- form 'new_comment', article -%}
+          {%- if form.posted_successfully? -%}
+            <p class="form-status form-status--success">{{ 'blog.comment_success' | t }}</p>
+          {%- elsif form.errors -%}
+            <p class="form-status form-status--error">{{ form.errors | default_errors }}</p>
+          {%- endif -%}
+
+          <div class="stack stack--md" style="margin-top: 24px;">
+            <div class="field-row">
+              <div class="field">
+                <label class="field__label" for="CommentAuthor">{{ 'contact.name' | t }}</label>
+                <input class="field__input" id="CommentAuthor" type="text" name="comment[author]" required>
+              </div>
+              <div class="field">
+                <label class="field__label" for="CommentEmail">{{ 'contact.email' | t }}</label>
+                <input class="field__input" id="CommentEmail" type="email" name="comment[email]" required>
+              </div>
+            </div>
+            <div class="field">
+              <label class="field__label" for="CommentBody">{{ 'contact.message' | t }}</label>
+              <textarea class="field__textarea" id="CommentBody" name="comment[body]" rows="4" required></textarea>
+            </div>
+            <button type="submit" class="btn btn--primary">{{ 'blog.comment_submit' | t }}</button>
+          </div>
+        {%- endform -%}
+      </div>
+    {%- endif -%}
+  </div>
+</div>
+
+{% schema %}
+{ "name": "Article" }
+{% endschema %}

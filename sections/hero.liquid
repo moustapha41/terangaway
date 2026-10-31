@@ -1,0 +1,148 @@
+{%- comment -%}
+  Bannière héro — reproduction de la maquette (viewport 1536 px).
+  Repères : hero 1536 × 783 · texte à x159 · pagination 01/02/03 à droite.
+  Le titre accepte du gras/italique via le champ richtext du bloc.
+{%- endcomment -%}
+
+<section class="hero" data-hero
+  data-hero-autoplay="{{ section.settings.autoplay }}"
+  data-hero-interval="{{ section.settings.interval | times: 1000 }}">
+
+  <div class="hero__viewport">
+    {%- for block in section.blocks -%}
+      {%- liquid
+        if forloop.first
+          assign loading = 'eager'
+        else
+          assign loading = 'lazy'
+        endif
+        assign img_alt = block.settings.image.alt | default: block.settings.alt_fallback | default: shop.name | escape
+        assign hero_title = block.settings.title | replace: '</p><p>', '<br>' | replace: '<p>', '' | replace: '</p>', '' | strip
+      -%}
+
+      <div class="hero__slide{% if forloop.first %} is-active{% endif %}" data-hero-slide {{ block.shopify_attributes }}>
+        <div class="hero__media">
+          {%- if block.settings.image != blank -%}
+            {{
+              block.settings.image
+              | image_url: width: 2400
+              | image_tag:
+                widths: '900, 1200, 1536, 1920, 2400',
+                sizes: '100vw',
+                alt: img_alt,
+                loading: loading,
+                preload: forloop.first
+            }}
+          {%- else -%}
+            {%- comment -%}
+              Image livrée avec le thème : servie telle quelle, sans
+              recompression, pour préserver la qualité d'origine.
+            {%- endcomment -%}
+            <img
+              src="{{ 'hero-bijou-gone.png' | asset_url }}"
+              alt="{{ img_alt }}"
+              width="1774"
+              height="887"
+              {% if forloop.first %}fetchpriority="high"{% else %}loading="lazy"{% endif %}
+            >
+          {%- endif -%}
+        </div>
+
+        <div class="hero__content">
+          <div class="hero__inner">
+            {%- if block.settings.eyebrow != blank -%}
+              <span class="hero__eyebrow">{{ block.settings.eyebrow }}</span>
+            {%- endif -%}
+
+            {%- if hero_title != blank -%}
+              {%- if forloop.first and template.name == 'index' -%}
+                <h1 class="hero__title">{{ hero_title }}</h1>
+              {%- else -%}
+                <p class="hero__title">{{ hero_title }}</p>
+              {%- endif -%}
+            {%- endif -%}
+
+            {%- if block.settings.show_rule -%}
+              <div class="hero__rule"></div>
+            {%- endif -%}
+
+            {%- if block.settings.text != blank -%}
+              <p class="hero__text">{{ block.settings.text }}</p>
+            {%- endif -%}
+
+            {%- if block.settings.button_label != blank -%}
+              <a class="hero__cta" href="{{ block.settings.button_url | default: routes.all_products_collection_url }}">
+                <span>{{ block.settings.button_label }}</span>
+                {% render 'icon', name: 'arrow-right', size: 18, stroke: 1.6 %}
+              </a>
+            {%- endif -%}
+          </div>
+        </div>
+      </div>
+    {%- endfor -%}
+
+    {%- if section.blocks.size > 1 -%}
+      <div class="hero__pagination">
+        {%- for block in section.blocks -%}
+          <button
+            type="button"
+            class="hero__dot{% if forloop.first %} is-active{% endif %}"
+            data-hero-dot
+            aria-label="{{ 'home.go_to_slide' | t: index: forloop.index }}"
+          >{{ forloop.index | prepend: '0' | slice: -2, 2 }}</button>
+        {%- endfor -%}
+      </div>
+    {%- endif -%}
+  </div>
+</section>
+
+{% schema %}
+{
+  "name": "Bannière héro",
+  "max_blocks": 6,
+  "settings": [
+    { "type": "checkbox", "id": "autoplay", "label": "Défilement automatique", "default": true },
+    {
+      "type": "range",
+      "id": "interval",
+      "label": "Intervalle (secondes)",
+      "min": 3, "max": 12, "step": 1, "default": 6
+    }
+  ],
+  "blocks": [
+    {
+      "type": "slide",
+      "name": "Diapositive",
+      "settings": [
+        {
+          "type": "image_picker",
+          "id": "image",
+          "label": "Image de fond",
+          "info": "Format 2:1 conseillé (1774 × 887 px ou plus). Si vide, la photo livrée avec le thème est utilisée."
+        },
+        { "type": "text", "id": "alt_fallback", "label": "Texte alternatif de l'image" },
+        { "type": "text", "id": "eyebrow", "label": "Sur-titre", "default": "BIJOUX & ACCESSOIRES" },
+        {
+          "type": "richtext",
+          "id": "title",
+          "label": "Titre",
+          "default": "<p>La beauté<br>au bout <em>des doigts</em></p>",
+          "info": "Italique avec le bouton I. Entrée crée un retour à la ligne."
+        },
+        { "type": "checkbox", "id": "show_rule", "label": "Afficher le filet doré sous le titre", "default": true },
+        {
+          "type": "textarea",
+          "id": "text",
+          "label": "Texte",
+          "default": "Des bijoux raffinés et des accessoires élégants pour sublimer chaque instant de votre vie."
+        },
+        { "type": "text", "id": "button_label", "label": "Libellé du bouton", "default": "Découvrir la collection" },
+        { "type": "url", "id": "button_url", "label": "Lien du bouton" }
+      ]
+    }
+  ],
+  "presets": [
+    { "name": "Bannière héro", "blocks": [{ "type": "slide" }] }
+  ]
+}
+{% endschema %}

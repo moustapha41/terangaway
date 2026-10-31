@@ -1,0 +1,122 @@
+{%- comment -%}
+  Carte produit.
+  Paramètres :
+    product (obligatoire)
+    style    — 'compact' (défaut, page d'accueil) ou 'editorial' (pages collection)
+    show_add — false pour masquer l'ajout au panier
+
+  Le lien et le formulaire sont frères à l'intérieur du média : un <form>
+  imbriqué dans un <a> serait invalide et le bouton ne serait pas cliquable.
+{%- endcomment -%}
+
+{%- liquid
+  assign show_add = show_add | default: true, allow_false: true
+  assign style = style | default: 'compact'
+  assign variant = product.selected_or_first_available_variant
+  assign img_alt = product.featured_media.alt | default: product.title | escape
+  assign card_label = product.title | escape
+
+  if style == 'editorial'
+    assign card_sizes = '(max-width: 699px) 50vw, (max-width: 1099px) 33vw, 25vw'
+    assign card_widths = '300, 450, 600, 900'
+  else
+    assign card_sizes = '(max-width: 640px) 50vw, 240px'
+    assign card_widths = '240, 360, 480, 600'
+  endif
+-%}
+
+<div class="product-card product-card--{{ style }}">
+  <div class="product-card__media">
+    <a class="product-card__media-link" href="{{ product.url }}" aria-label="{{ card_label }}">
+      {%- if product.featured_media -%}
+        {{
+          product.featured_media
+          | image_url: width: 900
+          | image_tag: widths: card_widths, sizes: card_sizes, alt: img_alt, loading: 'lazy'
+        }}
+      {%- else -%}
+        {{ 'product-1' | placeholder_svg_tag: 'product-card__placeholder' }}
+      {%- endif -%}
+    </a>
+
+    {%- if product.available == false -%}
+      <span class="product-card__badge">{{ 'products.sold_out' | t }}</span>
+    {%- elsif variant.compare_at_price > variant.price -%}
+      <span class="product-card__badge product-card__badge--sale">{{ 'products.on_sale' | t }}</span>
+    {%- endif -%}
+
+    {%- if style == 'editorial' and show_add -%}
+      <form method="post" action="{{ routes.cart_add_url }}" data-product-form>
+        <input type="hidden" name="form_type" value="product">
+        <input type="hidden" name="utf8" value="✓">
+        <input type="hidden" name="id" value="{{ variant.id }}">
+        <input type="hidden" name="quantity" value="1">
+        <button
+          type="submit"
+          class="product-card__quickadd"
+          {% unless product.available %}disabled{% endunless %}
+          aria-label="{{ 'products.add_to_cart_with_title' | t: title: product.title }}"
+        >
+          {%- if product.available -%}
+            {% render 'icon', name: 'shopping-bag', size: 15, stroke: 1.7 %}
+            <span>{{ 'products.add' | t }}</span>
+          {%- else -%}
+            <span>{{ 'products.sold_out' | t }}</span>
+          {%- endif -%}
+        </button>
+      </form>
+    {%- endif -%}
+  </div>
+
+  {%- if style == 'editorial' -%}
+    <div class="product-card__body">
+      {%- if product.type != blank -%}
+        <span class="product-card__category">{{ product.type }}</span>
+      {%- endif -%}
+
+      <a href="{{ product.url }}">
+        <h3 class="product-card__title">{{ product.title }}</h3>
+      </a>
+
+      <div class="product-card__price">
+        {{ variant.price | money }}
+        {%- if variant.compare_at_price > variant.price -%}
+          <del>{{ variant.compare_at_price | money }}</del>
+        {%- endif -%}
+      </div>
+    </div>
+
+  {%- else -%}
+    <div class="product-card__body">
+      <div class="product-card__info">
+        <a href="{{ product.url }}">
+          <h3 class="product-card__title">{{ product.title }}</h3>
+        </a>
+
+        <div class="product-card__price">
+          {{ variant.price | money }}
+          {%- if variant.compare_at_price > variant.price -%}
+            <del>{{ variant.compare_at_price | money }}</del>
+          {%- endif -%}
+        </div>
+      </div>
+
+      {%- if show_add -%}
+        <form method="post" action="{{ routes.cart_add_url }}" data-product-form>
+          <input type="hidden" name="form_type" value="product">
+          <input type="hidden" name="utf8" value="✓">
+          <input type="hidden" name="id" value="{{ variant.id }}">
+          <input type="hidden" name="quantity" value="1">
+          <button
+            type="submit"
+            class="product-card__add"
+            {% unless product.available %}disabled{% endunless %}
+            aria-label="{{ 'products.add_to_cart_with_title' | t: title: product.title }}"
+          >
+            {% render 'icon', name: 'shopping-bag', size: 14, stroke: 1.8 %}
+          </button>
+        </form>
+      {%- endif -%}
+    </div>
+  {%- endif -%}
+</div>

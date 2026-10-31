@@ -1,0 +1,75 @@
+{%- comment -%} Résultats de recherche {%- endcomment -%}
+
+{%- paginate search.results by 24 -%}
+  <div class="section">
+    <div class="container">
+      {%- assign heading = 'search.title' | t -%}
+      {% render 'section-heading', badge: 'Recherche', title: heading %}
+
+      <form action="{{ routes.search_url }}" method="get" role="search" style="max-width: 32rem; margin: 0 auto 48px;">
+        <div class="field">
+          <label class="visually-hidden" for="SearchInput">{{ 'search.label' | t }}</label>
+          <div style="display: flex; gap: 10px;">
+            <input
+              class="field__input"
+              id="SearchInput"
+              type="search"
+              name="q"
+              value="{{ search.terms | escape }}"
+              placeholder="{{ 'search.placeholder' | t }}"
+            >
+            <button type="submit" class="btn btn--primary">
+              {% render 'icon', name: 'search', size: 16 %}
+            </button>
+          </div>
+        </div>
+      </form>
+
+      {%- if search.performed -%}
+        {%- if search.results_count > 0 -%}
+          <p class="collection-toolbar__count" style="margin-bottom: 24px;">
+            {{ 'search.results_count' | t: count: search.results_count, terms: search.terms }}
+          </p>
+
+          <div class="product-grid product-grid--roomy">
+            {%- for item in search.results -%}
+              {%- if item.object_type == 'product' -%}
+                {% render 'product-card', product: item %}
+              {%- else -%}
+                <a class="product-card" href="{{ item.url }}" style="padding: 20px;">
+                  <h3 class="card__title" style="font-size: 16px;">{{ item.title }}</h3>
+                  <p style="font-size: 13px; color: var(--muted); margin-top: 8px;">
+                    {{ item.content | strip_html | truncate: 120 }}
+                  </p>
+                </a>
+              {%- endif -%}
+            {%- endfor -%}
+          </div>
+
+          {%- if paginate.pages > 1 -%}
+            <nav class="pagination">
+              {%- for part in paginate.parts -%}
+                {%- if part.is_link -%}
+                  <a href="{{ part.url }}">{{ part.title }}</a>
+                {%- else -%}
+                  <span class="{% if part.title == paginate.current_page %}is-current{% endif %}">{{ part.title }}</span>
+                {%- endif -%}
+              {%- endfor -%}
+            </nav>
+          {%- endif -%}
+        {%- else -%}
+          <div class="empty-state">
+            {% render 'icon', name: 'search', size: 44 %}
+            <h3 class="empty-state__title">{{ 'search.no_results_title' | t }}</h3>
+            <p class="empty-state__text">{{ 'search.no_results_text' | t: terms: search.terms }}</p>
+            <a class="btn btn--primary" href="{{ routes.all_products_collection_url }}">{{ 'collections.all' | t }}</a>
+          </div>
+        {%- endif -%}
+      {%- endif -%}
+    </div>
+  </div>
+{%- endpaginate -%}
+
+{% schema %}
+{ "name": "Recherche" }
+{% endschema %}

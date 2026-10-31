@@ -1,0 +1,108 @@
+{%- comment -%}
+  En-tête — reproduction de la maquette (viewport 1536 px).
+  Barre crème opaque de 83 px · logo x138 · nav x435 · recherche + panier à droite.
+{%- endcomment -%}
+
+{%- assign menu_links = linklists[section.settings.menu].links -%}
+
+<header class="site-header" role="banner">
+  <div class="site-header__inner">
+    <a class="site-header__logo" href="{{ routes.root_url }}" aria-label="{{ shop.name | escape }}">
+      {%- if section.settings.logo != blank -%}
+        {%- assign logo_alt = shop.name | escape -%}
+        {{
+          section.settings.logo
+          | image_url: width: 280
+          | image_tag: widths: '91, 182, 280', sizes: '91px', alt: logo_alt, loading: 'eager', fetchpriority: 'high'
+        }}
+      {%- else -%}
+        <img
+          src="{{ 'logo-wreath.png' | asset_url }}"
+          alt="{{ shop.name | escape }}"
+          width="82"
+          height="74"
+          fetchpriority="high"
+        >
+      {%- endif -%}
+    </a>
+
+    <nav class="site-nav" role="navigation" aria-label="{{ 'general.main_nav' | t }}">
+      {%- for link in menu_links -%}
+        {%- liquid
+          # Un lien d'ancre (/#galerie) pointe vers la page courante : sans ce
+          # garde-fou, deux entrées du menu seraient soulignées à la fois.
+          assign actif = false
+          if link.active or link.child_active
+            assign actif = true
+          endif
+          if link.url contains '#'
+            assign actif = false
+          endif
+        -%}
+        <a
+          class="site-nav__link{% if actif %} is-active{% endif %}"
+          href="{{ link.url }}"
+          {% if actif %}aria-current="page"{% endif %}
+        >
+          {{ link.title }}
+        </a>
+      {%- endfor -%}
+    </nav>
+
+    <div class="site-header__actions">
+      {%- if section.settings.show_search -%}
+        <a class="header-icon-btn" href="{{ routes.search_url }}" aria-label="{{ 'general.search' | t }}">
+          {% render 'icon', name: 'search', size: 23, stroke: 1.6 %}
+        </a>
+      {%- endif -%}
+
+      {%- if shop.customer_accounts_enabled and section.settings.show_account -%}
+        <a
+          class="header-icon-btn"
+          href="{% if customer %}{{ routes.account_url }}{% else %}{{ routes.account_login_url }}{% endif %}"
+          aria-label="{{ 'customer.account' | t }}"
+        >
+          {% render 'icon', name: 'user', size: 23, stroke: 1.6 %}
+        </a>
+      {%- endif -%}
+
+      <a
+        class="header-icon-btn"
+        href="{{ routes.cart_url }}"
+        {% if settings.cart_mode != 'page' %}data-drawer-open="cart-drawer"{% endif %}
+        aria-label="{{ 'cart.title' | t }}"
+      >
+        {% render 'icon', name: 'shopping-bag', size: 25, stroke: 1.6 %}
+        <span class="cart-count" data-cart-count>{{ cart.item_count }}</span>
+      </a>
+
+      <button
+        type="button"
+        class="header-icon-btn nav-toggle"
+        data-drawer-open="mobile-menu"
+        aria-label="{{ 'general.open_menu' | t }}"
+      >
+        {% render 'icon', name: 'menu', size: 24, stroke: 1.6 %}
+      </button>
+    </div>
+  </div>
+</header>
+
+{% render 'mobile-menu', menu_links: menu_links %}
+
+{% schema %}
+{
+  "name": "En-tête",
+  "settings": [
+    {
+      "type": "image_picker",
+      "id": "logo",
+      "label": "Logo",
+      "info": "Monogramme à la couronne florale. Si vide, le logo livré avec le thème est utilisé."
+    },
+    { "type": "link_list", "id": "menu", "label": "Menu principal", "default": "main-menu" },
+    { "type": "checkbox", "id": "show_search", "label": "Afficher la recherche", "default": true },
+    { "type": "checkbox", "id": "show_account", "label": "Afficher le compte client", "default": false }
+  ]
+}
+{% endschema %}

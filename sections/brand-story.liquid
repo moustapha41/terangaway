@@ -1,0 +1,122 @@
+{%- comment -%}
+  Histoire de la marque — reprise de src/components/home/BrandStory.tsx
+{%- endcomment -%}
+
+<section class="brand-story">
+  <div class="container">
+    <div class="brand-story__layout">
+      <div class="brand-story__media">
+        <div class="brand-story__media-main">
+          {%- if section.settings.image != blank -%}
+            {%- assign img_alt = section.settings.image.alt | default: section.settings.title | escape -%}
+            {{
+              section.settings.image
+              | image_url: width: 1000
+              | image_tag: widths: '500, 750, 1000', sizes: '(max-width: 1024px) 100vw, 50vw', alt: img_alt, loading: 'lazy'
+            }}
+          {%- else -%}
+            <img src="{{ 'bijoux-lifestyle.png' | asset_url }}" alt="{{ shop.name }}" loading="lazy" width="800" height="600">
+          {%- endif -%}
+        </div>
+
+        <div class="brand-story__media-inset">
+          {%- if section.settings.image_inset != blank -%}
+            {%- assign inset_alt = section.settings.image_inset.alt | default: shop.name | escape -%}
+            {{ section.settings.image_inset | image_url: width: 400 | image_tag: alt: inset_alt, loading: 'lazy', width: 192, height: 192 }}
+          {%- else -%}
+            <img src="{{ 'femme-bijoux.png' | asset_url }}" alt="{{ shop.name }}" loading="lazy" width="192" height="192">
+          {%- endif -%}
+        </div>
+      </div>
+
+      <div class="brand-story__content">
+        {%- if section.settings.badge != blank -%}
+          <span class="section-heading__badge" style="margin: 0;">{{ section.settings.badge }}</span>
+        {%- endif -%}
+
+        {%- if section.settings.title != blank -%}
+          <h2 class="brand-story__title">{{ section.settings.title }}</h2>
+        {%- endif -%}
+
+        {%- if section.settings.text != blank -%}
+          <div class="brand-story__text">{{ section.settings.text }}</div>
+        {%- endif -%}
+
+        {%- if section.blocks.size > 0 -%}
+          <div class="feature-pair">
+            {%- for block in section.blocks -%}
+              <div class="feature-pair__item" {{ block.shopify_attributes }}>
+                {% render 'icon', name: block.settings.icon, size: 20 %}
+                <div>
+                  <h4 class="feature-pair__title">{{ block.settings.title }}</h4>
+                  <p class="feature-pair__text">{{ block.settings.text }}</p>
+                </div>
+              </div>
+            {%- endfor -%}
+          </div>
+        {%- endif -%}
+
+        {%- if section.settings.button_label != blank -%}
+          <a class="btn btn--primary" href="{{ section.settings.button_url }}">{{ section.settings.button_label }}</a>
+        {%- endif -%}
+      </div>
+    </div>
+  </div>
+</section>
+
+{% schema %}
+{
+  "name": "Histoire de la marque",
+  "max_blocks": 2,
+  "settings": [
+    { "type": "image_picker", "id": "image", "label": "Image principale" },
+    { "type": "image_picker", "id": "image_inset", "label": "Image en médaillon" },
+    { "type": "text", "id": "badge", "label": "Badge", "default": "L'Esprit Bijou Gone" },
+    {
+      "type": "text",
+      "id": "title",
+      "label": "Titre",
+      "default": "Une Histoire de Passions & de Raffinement à Dakar"
+    },
+    {
+      "type": "richtext",
+      "id": "text",
+      "label": "Texte",
+      "default": "<p>Bijou Gone est née d'un amour inconditionnel pour les pièces d'exception qui célèbrent la féminité, l'élégance et l'authenticité.</p><p>Chaque création est pensée pour offrir une touche d'éclat unique, alliant les inspirations contemporaines au savoir-faire de bijouterie d'excellence.</p>"
+    },
+    { "type": "text", "id": "button_label", "label": "Libellé du bouton", "default": "Lire notre histoire complète" },
+    { "type": "url", "id": "button_url", "label": "Lien du bouton" }
+  ],
+  "blocks": [
+    {
+      "type": "feature",
+      "name": "Atout",
+      "settings": [
+        {
+          "type": "select",
+          "id": "icon",
+          "label": "Icône",
+          "options": [
+            { "value": "sparkles", "label": "Étincelles" },
+            { "value": "heart", "label": "Cœur" },
+            { "value": "gem", "label": "Gemme" },
+            { "value": "award", "label": "Médaille" }
+          ],
+          "default": "sparkles"
+        },
+        { "type": "text", "id": "title", "label": "Titre", "default": "Finition Soignée" },
+        { "type": "text", "id": "text", "label": "Texte", "default": "Matériaux durables et éclatants" }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Histoire de la marque",
+      "blocks": [
+        { "type": "feature", "settings": { "icon": "sparkles", "title": "Finition Soignée", "text": "Matériaux durables et éclatants" } },
+        { "type": "feature", "settings": { "icon": "heart", "title": "Passion & Service", "text": "Conseils personnalisés" } }
+      ]
+    }
+  ]
+}
+{% endschema %}

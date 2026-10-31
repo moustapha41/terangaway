@@ -1,0 +1,47 @@
+{%- comment -%} Blog / journal {%- endcomment -%}
+
+{%- paginate blog.articles by 12 -%}
+  <div class="section">
+    <div class="container">
+      {% render 'section-heading', badge: 'Journal', title: blog.title %}
+
+      <div class="gallery-grid">
+        {%- for article in blog.articles -%}
+          <a class="card" href="{{ article.url }}" style="padding: 0; overflow: hidden; border-radius: var(--radius-lg);">
+            {%- if article.image -%}
+              <div style="aspect-ratio: 3/2; overflow: hidden; background: var(--cream);">
+                {%- assign img_alt = article.title | escape -%}
+                {{ article.image | image_url: width: 800 | image_tag: alt: img_alt, loading: 'lazy', class: 'media-cover' }}
+              </div>
+            {%- endif -%}
+            <div style="padding: 20px;">
+              <span class="product__category">{{ article.published_at | date: '%d %B %Y' }}</span>
+              <h3 class="card__title" style="font-size: 18px; margin-top: 6px;">{{ article.title }}</h3>
+              <p style="font-size: 13px; color: var(--muted); margin-top: 8px; line-height: 1.6;">
+                {{ article.excerpt_or_content | strip_html | truncate: 140 }}
+              </p>
+            </div>
+          </a>
+        {%- else -%}
+          <p style="color: var(--muted);">{{ 'blog.empty' | t }}</p>
+        {%- endfor -%}
+      </div>
+
+      {%- if paginate.pages > 1 -%}
+        <nav class="pagination">
+          {%- for part in paginate.parts -%}
+            {%- if part.is_link -%}
+              <a href="{{ part.url }}">{{ part.title }}</a>
+            {%- else -%}
+              <span class="{% if part.title == paginate.current_page %}is-current{% endif %}">{{ part.title }}</span>
+            {%- endif -%}
+          {%- endfor -%}
+        </nav>
+      {%- endif -%}
+    </div>
+  </div>
+{%- endpaginate -%}
+
+{% schema %}
+{ "name": "Blog" }
+{% endschema %}

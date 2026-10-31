@@ -1,0 +1,21 @@
+{%- comment -%} Réseaux sociaux — pastilles rondes du pied de page {%- endcomment -%}
+
+<div class="social-row">
+  {%- if settings.social_instagram != blank -%}
+    <a href="{{ settings.social_instagram }}" target="_blank" rel="noopener noreferrer" aria-label="Instagram">
+      {% render 'icon', name: 'instagram', size: 14 %}
+    </a>
+  {%- endif -%}
+
+  {%- if settings.social_facebook != blank -%}
+    <a href="{{ settings.social_facebook }}" target="_blank" rel="noopener noreferrer" aria-label="Facebook">
+      {% render 'icon', name: 'facebook', size: 14 %}
+    </a>
+  {%- endif -%}
+
+  {%- if settings.social_tiktok != blank -%}
+    <a href="{{ settings.social_tiktok }}" target="_blank" rel="noopener noreferrer" aria-label="TikTok">
+      {% render 'icon', name: 'tiktok', size: 14 %}
+    </a>
+  {%- endif -%}
+</div>

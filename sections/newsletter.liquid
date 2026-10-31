@@ -1,0 +1,84 @@
+{%- comment -%}
+  Club privé / newsletter — reprise de src/components/home/Newsletter.tsx
+{%- endcomment -%}
+
+<section class="newsletter">
+  <div class="container container--narrow">
+    <div class="newsletter__inner">
+      {%- if section.settings.badge != blank -%}
+        <div class="newsletter__badge">
+          {% render 'icon', name: 'sparkles', size: 14 %}
+          {{ section.settings.badge }}
+        </div>
+      {%- endif -%}
+
+      {%- if section.settings.title != blank -%}
+        <h2 class="newsletter__title">{{ section.settings.title }}</h2>
+      {%- endif -%}
+
+      {%- if section.settings.text != blank -%}
+        <p class="newsletter__text">{{ section.settings.text }}</p>
+      {%- endif -%}
+
+      {%- form 'customer', id: 'MainNewsletter' -%}
+        <input type="hidden" name="contact[tags]" value="newsletter">
+
+        {%- if form.posted_successfully? -%}
+          <div class="newsletter__success">
+            {% render 'icon', name: 'check-circle', size: 20 %}
+            <span>{{ 'newsletter.success_long' | t }}</span>
+          </div>
+        {%- else -%}
+          {%- if form.errors -%}
+            <div class="newsletter__success" style="color: #FCA5A5;">
+              <span>{{ form.errors.messages['email'] }}</span>
+            </div>
+          {%- endif -%}
+
+          <div class="newsletter__form">
+            <div class="newsletter__field">
+              {% render 'icon', name: 'mail', size: 18 %}
+              <label class="visually-hidden" for="MainNewsletterEmail">{{ 'newsletter.email' | t }}</label>
+              <input
+                id="MainNewsletterEmail"
+                type="email"
+                name="contact[email]"
+                required
+                placeholder="{{ 'newsletter.placeholder_long' | t }}"
+                autocomplete="email"
+              >
+            </div>
+            <button type="submit" class="btn btn--secondary">{{ 'newsletter.subscribe' | t }}</button>
+          </div>
+        {%- endif -%}
+      {%- endform -%}
+
+      {%- if section.settings.note != blank -%}
+        <p class="newsletter__note">{{ section.settings.note }}</p>
+      {%- endif -%}
+    </div>
+  </div>
+</section>
+
+{% schema %}
+{
+  "name": "Newsletter",
+  "settings": [
+    { "type": "text", "id": "badge", "label": "Badge", "default": "Privilèges Exclusifs" },
+    { "type": "text", "id": "title", "label": "Titre", "default": "Rejoignez le Club Privé Bijou Gone" },
+    {
+      "type": "textarea",
+      "id": "text",
+      "label": "Texte",
+      "default": "Inscrivez-vous pour recevoir en avant-première nos nouvelles collections, ventes privées et conseils d'entretien pour vos bijoux."
+    },
+    {
+      "type": "text",
+      "id": "note",
+      "label": "Mention légale",
+      "default": "Nous respectons votre vie privée. Pas de spam, désinscription à tout moment."
+    }
+  ],
+  "presets": [{ "name": "Newsletter" }]
+}
+{% endschema %}

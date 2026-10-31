@@ -1,0 +1,27 @@
+<div class="section">
+  <div class="container container--narrow">
+    {%- assign heading = 'customer.activate_account' | t -%}
+    {% render 'section-heading', title: heading %}
+
+    <div class="card" style="max-width: 28rem; margin-inline: auto;">
+      {%- form 'activate_customer_password' -%}
+        {%- if form.errors -%}
+          <p class="form-status form-status--error">{{ form.errors | default_errors }}</p>
+        {%- endif -%}
+
+        <div class="stack stack--md">
+          <div class="field">
+            <label class="field__label" for="ActivatePassword">{{ 'customer.password' | t }}</label>
+            <input class="field__input" id="ActivatePassword" type="password" name="customer[password]" required autocomplete="new-password">
+          </div>
+          <div class="field">
+            <label class="field__label" for="ActivatePasswordConfirm">{{ 'customer.confirm_password' | t }}</label>
+            <input class="field__input" id="ActivatePasswordConfirm" type="password" name="customer[password_confirmation]" required autocomplete="new-password">
+          </div>
+          <button type="submit" class="btn btn--primary btn--full btn--lg">{{ 'customer.activate_account' | t }}</button>
+          <button type="submit" class="btn btn--ghost btn--full" name="decline">{{ 'customer.decline' | t }}</button>
+        </div>
+      {%- endform -%}
+    </div>
+  </div>
+</div>

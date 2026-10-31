@@ -1,0 +1,283 @@
+{%- comment -%}
+  Fiche produit — reprise de src/app/produit/[slug]/page.tsx
+{%- endcomment -%}
+
+{%- liquid
+  assign variant = product.selected_or_first_available_variant
+  assign has_options = false
+  unless product.has_only_default_variant
+    assign has_options = true
+  endunless
+-%}
+
+<div class="section" style="padding-block: 40px;" data-product-root>
+  <div class="container">
+    <a class="breadcrumb" href="{{ collection.url | default: routes.all_products_collection_url }}">
+      {% render 'icon', name: 'arrow-left', size: 16 %}
+      {{ 'products.back_to_collection' | t }}
+    </a>
+
+    <div class="product">
+      {%- comment -%} Galerie {%- endcomment -%}
+      <div class="product__gallery">
+        <div class="product__media" data-product-media>
+          {%- if product.featured_media -%}
+            {%- assign img_alt = product.featured_media.alt | default: product.title | escape -%}
+            {{
+              product.featured_media
+              | image_url: width: 1200
+              | image_tag:
+                widths: '500, 750, 1000, 1200',
+                sizes: '(max-width: 1024px) 100vw, 50vw',
+                alt: img_alt,
+                loading: 'eager',
+                fetchpriority: 'high'
+            }}
+          {%- else -%}
+            {{ 'product-1' | placeholder_svg_tag }}
+          {%- endif -%}
+        </div>
+
+        {%- if product.media.size > 1 -%}
+          <div class="product__thumbs" data-product-thumbs>
+            {%- for media in product.media limit: 8 -%}
+              <button
+                type="button"
+                class="product__thumb{% if forloop.first %} is-active{% endif %}"
+                data-thumb-src="{{ media | image_url: width: 1200 }}"
+                aria-label="{{ 'products.view_image' | t: index: forloop.index }}"
+              >
+                {%- assign thumb_alt = media.alt | default: product.title | escape -%}
+                {{ media | image_url: width: 200 | image_tag: alt: thumb_alt, loading: 'lazy', width: 100, height: 100 }}
+              </button>
+            {%- endfor -%}
+          </div>
+        {%- endif -%}
+      </div>
+
+      {%- comment -%} Informations et achat {%- endcomment -%}
+      <div class="product__info">
+        <div>
+          {%- if product.type != blank -%}
+            <span class="product__category">{{ product.type }}</span>
+          {%- endif -%}
+
+          <h1 class="product__title">{{ product.title }}</h1>
+
+          {%- if section.settings.show_rating -%}
+            <div class="product__rating">
+              <span class="product__rating-stars">
+                {% for i in (1..5) %}{% render 'icon', name: 'star', size: 15 %}{% endfor %}
+              </span>
+              <span class="product__rating-count">{{ section.settings.rating_text }}</span>
+            </div>
+          {%- endif -%}
+        </div>
+
+        <div class="product__price" data-variant-price>
+          {{ variant.price | money }}
+          {%- if variant.compare_at_price > variant.price -%}
+            <del>{{ variant.compare_at_price | money }}</del>
+          {%- endif -%}
+        </div>
+
+        {%- if product.description != blank -%}
+          <div class="product__description rte">{{ product.description }}</div>
+        {%- endif -%}
+
+        {%- comment -%}
+          La balise {% form 'product' %} ajoute class="shopify-product-form",
+          id="product_form_<id>" et data-productid : les applications de
+          commande s'appuient dessus pour savoir quel produit est affiché.
+        {%- endcomment -%}
+        {%- form 'product', product, class: 'product__form', data-product-form: 'true', data-type: 'add-to-cart-form' -%}
+          <input type="hidden" name="id" value="{{ variant.id }}" data-variant-id>
+
+          {%- if has_options -%}
+            <div data-variant-picker>
+              {%- for option in product.options_with_values -%}
+                <div class="variant-option" data-option-index="{{ forloop.index0 }}">
+                  <span class="variant-option__label">{{ option.name }}</span>
+                  <div class="variant-option__values">
+                    {%- for value in option.values -%}
+                      <button
+                        type="button"
+                        class="variant-option__value{% if option.selected_value == value %} is-active{% endif %}"
+                        data-option-value="{{ value | escape }}"
+                        aria-pressed="{% if option.selected_value == value %}true{% else %}false{% endif %}"
+                      >
+                        {{ value }}
+                      </button>
+                    {%- endfor -%}
+                  </div>
+                </div>
+              {%- endfor -%}
+            </div>
+          {%- endif -%}
+
+          <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+            <div class="qty">
+              <button type="button" data-qty-step="-1" aria-label="{{ 'products.decrease_quantity' | t }}">
+                {% render 'icon', name: 'minus', size: 15 %}
+              </button>
+              <label class="visually-hidden" for="Quantity">{{ 'products.quantity' | t }}</label>
+              <input id="Quantity" type="number" name="quantity" value="1" min="1">
+              <button type="button" data-qty-step="1" aria-label="{{ 'products.increase_quantity' | t }}">
+                {% render 'icon', name: 'plus', size: 15 %}
+              </button>
+            </div>
+
+            <button
+              type="submit"
+              class="btn btn--primary btn--lg"
+              style="flex: 1 1 200px;"
+              data-variant-submit
+              {% unless variant.available %}disabled{% endunless %}
+            >
+              {% render 'icon', name: 'shopping-bag', size: 18 %}
+              <span data-submit-label>
+                {%- if variant.available -%}
+                  {{ 'products.add_to_cart' | t }}
+                {%- else -%}
+                  {{ 'products.sold_out' | t }}
+                {%- endif -%}
+              </span>
+            </button>
+          </div>
+        {%- endform -%}
+
+        {%- comment -%}
+          Blocs d'application : c'est ici que se place le formulaire Releasit
+          (ou toute autre app de commande), juste sous le bouton d'ajout.
+        {%- endcomment -%}
+        {%- if section.blocks.size > 0 -%}
+          <div class="product__apps">
+            {%- for block in section.blocks -%}
+              {%- case block.type -%}
+                {%- when '@app' -%}
+                  <div {{ block.shopify_attributes }}>{% render block %}</div>
+              {%- endcase -%}
+            {%- endfor -%}
+          </div>
+        {%- endif -%}
+
+        {%- if section.settings.show_reassurance -%}
+          <div class="product__reassurance">
+            {%- if section.settings.reassurance_1 != blank -%}
+              <div>
+                {% render 'icon', name: 'truck', size: 16 %}
+                <span>{{ section.settings.reassurance_1 }}</span>
+              </div>
+            {%- endif -%}
+            {%- if section.settings.reassurance_2 != blank -%}
+              <div>
+                {% render 'icon', name: 'shield-check', size: 16 %}
+                <span>{{ section.settings.reassurance_2 }}</span>
+              </div>
+            {%- endif -%}
+          </div>
+        {%- endif -%}
+      </div>
+    </div>
+
+    {%- comment -%} Produits associés {%- endcomment -%}
+    {%- if section.settings.show_related -%}
+      <div class="mt-lg">
+        {% render 'section-heading',
+          title: section.settings.related_title,
+          subtitle: section.settings.related_subtitle
+        %}
+
+        <div class="product-grid">
+          {%- assign shown = 0 -%}
+          {%- for related in collections.all.products -%}
+            {%- if related.id != product.id and related.type == product.type and shown < 4 -%}
+              {% render 'product-card', product: related, show_add: false %}
+              {%- assign shown = shown | plus: 1 -%}
+            {%- endif -%}
+          {%- endfor -%}
+
+          {%- if shown < 4 -%}
+            {%- for related in collections.all.products -%}
+              {%- if related.id != product.id and related.type != product.type and shown < 4 -%}
+                {% render 'product-card', product: related, show_add: false %}
+                {%- assign shown = shown | plus: 1 -%}
+              {%- endif -%}
+            {%- endfor -%}
+          {%- endif -%}
+        </div>
+      </div>
+    {%- endif -%}
+  </div>
+
+  {%- comment -%} Données variantes pour le sélecteur JS {%- endcomment -%}
+  <script type="application/json" data-variants-json>
+    [
+    {%- for v in product.variants -%}
+      {
+        "id": {{ v.id }},
+        "options": {{ v.options | json }},
+        "price": {{ v.price }},
+        "compare_at_price": {{ v.compare_at_price | default: 0 }},
+        "available": {{ v.available }},
+        "featured_image": {% if v.featured_image %}{{ v.featured_image | image_url: width: 1200 | json }}{% else %}null{% endif %}
+      }{%- unless forloop.last -%},{%- endunless -%}
+    {%- endfor -%}
+    ]
+  </script>
+</div>
+
+
+{%- comment -%} Données structurées produit {%- endcomment -%}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Product",
+  "name": {{ product.title | json }},
+  "description": {{ product.description | strip_html | truncate: 400 | json }},
+  {% if product.featured_media %}"image": [{{ product.featured_media | image_url: width: 1200 | prepend: 'https:' | json }}],{% endif %}
+  "sku": {{ variant.sku | default: variant.id | json }},
+  "brand": { "@type": "Brand", "name": {{ shop.name | json }} },
+  "offers": {
+    "@type": "Offer",
+    "url": {{ shop.url | append: product.url | json }},
+    "priceCurrency": {{ cart.currency.iso_code | json }},
+    "price": {{ variant.price | divided_by: 100.0 | json }},
+    "availability": "https://schema.org/{% if variant.available %}InStock{% else %}OutOfStock{% endif %}"
+  }
+}
+</script>
+
+{% schema %}
+{
+  "name": "Fiche produit",
+  "blocks": [{ "type": "@app" }],
+  "settings": [
+    { "type": "checkbox", "id": "show_rating", "label": "Afficher les étoiles", "default": true },
+    { "type": "text", "id": "rating_text", "label": "Texte de notation", "default": "(4.9/5 — 18 avis)" },
+    { "type": "header", "content": "Réassurance" },
+    { "type": "checkbox", "id": "show_reassurance", "label": "Afficher le bloc de réassurance", "default": true },
+    {
+      "type": "text",
+      "id": "reassurance_1",
+      "label": "Ligne 1 (livraison)",
+      "default": "Livraison garantie sous 24h à 48h à Dakar."
+    },
+    {
+      "type": "text",
+      "id": "reassurance_2",
+      "label": "Ligne 2 (paiement)",
+      "default": "Paiement sécurisé par Wave, Orange Money ou à la livraison."
+    },
+    { "type": "header", "content": "Produits associés" },
+    { "type": "checkbox", "id": "show_related", "label": "Afficher les produits associés", "default": true },
+    { "type": "text", "id": "related_title", "label": "Titre", "default": "Vous aimerez aussi" },
+    {
+      "type": "text",
+      "id": "related_subtitle",
+      "label": "Sous-titre",
+      "default": "Découvrez d'autres créations élégantes de la collection."
+    }
+  ]
+}
+{% endschema %}

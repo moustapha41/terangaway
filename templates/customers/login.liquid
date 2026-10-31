@@ -1,0 +1,34 @@
+<div class="section">
+  <div class="container container--narrow">
+    {%- assign heading = 'customer.login' | t -%}
+    {% render 'section-heading', badge: 'Espace client', title: heading %}
+
+    <div class="card" style="max-width: 28rem; margin-inline: auto;">
+      {%- form 'customer_login' -%}
+        {%- if form.errors -%}
+          <p class="form-status form-status--error">{{ form.errors | default_errors }}</p>
+        {%- endif -%}
+
+        <div class="stack stack--md">
+          <div class="field">
+            <label class="field__label" for="CustomerEmail">{{ 'contact.email' | t }}</label>
+            <input class="field__input" id="CustomerEmail" type="email" name="customer[email]" required autocomplete="email">
+          </div>
+
+          <div class="field">
+            <label class="field__label" for="CustomerPassword">{{ 'customer.password' | t }}</label>
+            <input class="field__input" id="CustomerPassword" type="password" name="customer[password]" required autocomplete="current-password">
+          </div>
+
+          <button type="submit" class="btn btn--primary btn--full btn--lg">{{ 'customer.sign_in' | t }}</button>
+
+          <p style="font-size: 13px; color: var(--muted); text-align: center;">
+            <a href="{{ routes.account_recover_url }}" style="color: var(--primary);">{{ 'customer.forgot_password' | t }}</a>
+            &nbsp;·&nbsp;
+            <a href="{{ routes.account_register_url }}" style="color: var(--primary);">{{ 'customer.create_account' | t }}</a>
+          </p>
+        </div>
+      {%- endform -%}
+    </div>
+  </div>
+</div>
